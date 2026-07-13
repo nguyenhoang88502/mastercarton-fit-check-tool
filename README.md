@@ -292,12 +292,12 @@ For ordinary existing-FG proposals, shared-carton compatibility remains the prim
 
 The view shows:
 
-- A pure master-carton wireframe containing only the 12 outer perimeter edges.
+- A master-carton outline containing the 12 correctly connected outer perimeter edges plus very light white translucent wall surfaces with no internal strokes.
 - Packed FG cuboids in the calculated uniform grid or exact mixed-orientation placement.
 - All six faces of every solid FG cuboid, depth-sorted before the carton wireframe is drawn.
 - Only the target quantity as solid boxes.
 - Unused capacity positions as optional ghost outlines.
-- A compact packing summary beside the drawing; no axes, diagonal cross-lines, wall surfaces, or dimension text are drawn inside the SVG.
+- A compact packing summary beside the drawing; no axes, diagonal cross-lines, or dimension text are drawn inside the SVG.
 
 ### Rotation and grab interaction
 
