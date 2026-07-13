@@ -243,6 +243,8 @@ Excel upload controls are hidden by default. The **Workbook** / **Dữ liệu Ex
 
 For every orientation it calculates the integer quantities along carton length, width, and height, then multiplies them to obtain physical capacity. The highest-capacity orientation is selected.
 
+`CartonFitEngine.evaluate()` retains an `orientationResults` audit trail containing all six calculations and reports `orientationsTested: 6`. The 3D summary displays `6 / 6`, making orientation coverage visible for the selected result rather than merely implied.
+
 A carton passes only when physical capacity is at least the target quantity. Volume utilization is used for comparison and ranking only. A volume-only fit must never pass.
 
 Existing cartons are ranked by:
@@ -252,7 +254,7 @@ Existing cartons are ranked by:
 3. Active lifecycle before other lifecycle values.
 4. Smallest carton volume.
 
-The engine returns and displays the Top 10 passing existing cartons. The highlighted current assignment is shown separately before those alternatives, using either the Weekly BOM source-of-truth label or an explicit workbook-fallback label.
+The engine returns and displays the Top 10 passing existing cartons. The highlighted current assignment is shown separately before those alternatives, using either the Weekly BOM source-of-truth label or an explicit workbook-fallback label. The assigned carton is excluded before applying the ten-result limit, preventing an assigned carton inside the ranking from reducing the alternatives to nine.
 
 ## New-carton generation
 
@@ -269,6 +271,10 @@ Packing patterns:
 - `4 × 3 × 1`
 
 Every pattern is applied to all six orientations. The generator adds 5 mm internal clearance to every proposed dimension, rounds upward to a 5 mm increment, removes duplicates, and tests retained candidates with the same physical fit engine.
+
+For the selected FG when `target_qty ≤ 200`, the generator additionally enumerates every Pareto-minimal positive integer grid pattern: no count on any axis can be reduced while still holding the target. Count-axis permutations are covered by the six FG orientations. This fills gaps left by the controlled pattern list, such as `1 × 3 × 3` for target 7. Above 200, the controlled patterns remain in use to keep the offline browser responsive.
+
+Length/width-swapped proposal duplicates are normalized before scoring because swapping the carton base axes does not change physical capacity when all six FG orientations are tested. Carton height remains distinct because it can represent a materially different carton construction/opening direction.
 
 The generator returns the Top 10 scored new-carton proposals. Every retained proposal must physically fit the selected FG target; volume alone cannot qualify a proposal.
 
@@ -345,6 +351,9 @@ The last core validation run confirmed:
 - With Weekly BOM unavailable, the current remaining workbook exposes 950 searchable FG records, including 439 with a complete provisional assignment/dimension chain.
 - Top 10 ranking was independently checked on actual workbook data: equal-surplus cartons were ordered by descending utilization, and engine capacity/utilization matched separate calculations exactly.
 - Utilization-audit tests cover physical pass, below-threshold underutilization, exact-threshold pass, manual-validation-required, rigid-volume-impossible, and production-confirmed model-limitation states.
+- An independent exhaustive oracle checked 157,464 FG/carton dimension combinations; all six-orientation capacities matched with zero discrepancies.
+- The assigned-carton exclusion regression now returns ten actual alternatives, and proposal regression tests return ten physically passing sizes with no length/width-swapped duplicates.
+- A real-workbook benchmark using a `140 × 63 × 223 mm`, target-12 manual FG evaluated 950 known FG records, returned ten unique passing proposals, and completed in about 4.9 seconds in the Node-based audit environment.
 
 ## Known constraints
 
@@ -352,6 +361,7 @@ The last core validation run confirmed:
 - The embedded reader supports `.xlsx` and `.xlsm`, not legacy binary `.xls`.
 - Formula cells rely on cached values stored in the workbook.
 - Proposal generation is synchronous and can take noticeable time with very large FG datasets.
+- “All arrangements” means all six orthogonal orientations and all enumerated uniform-grid count patterns within the scope above. The tool does not claim exhaustive arbitrary mixed-orientation 3D bin packing; that problem is combinatorial/NP-hard. A failed simple-grid result may still require physical trials or a specialist mixed-orientation packing solver.
 - Physical sample validation remains mandatory. The tool does not account for corrugated-board thickness, compression, tolerances beyond configured clearance, inserts, bag deformation, weight, stacking strength, or shipping regulations.
 - No result should be described as production-approved.
 
