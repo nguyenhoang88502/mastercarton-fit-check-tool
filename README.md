@@ -292,7 +292,7 @@ For ordinary existing-FG proposals, shared-carton compatibility remains the prim
 
 The view shows:
 
-- A master-carton outline containing the 12 correctly connected outer perimeter edges plus very light white translucent wall surfaces with no internal strokes.
+- A master-carton outline containing the 12 correctly connected outer perimeter edges plus stroke-free translucent wall surfaces: subtle kraft brown in light mode and faint white in dark mode.
 - Packed FG cuboids in the calculated uniform grid or exact mixed-orientation placement.
 - All six faces of every solid FG cuboid, depth-sorted before the carton wireframe is drawn.
 - Only the target quantity as solid boxes.

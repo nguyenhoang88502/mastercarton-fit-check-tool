@@ -350,7 +350,7 @@ class PackingVisualizer3D {
     for(const p of placements){const x0=p.x,y0=p.y,z0=p.z,x1=x0+p.length,y1=y0+p.width,z1=z0+p.height,vertices=[[x0,y0,z0],[x1,y0,z0],[x0,y1,z0],[x1,y1,z0],[x0,y0,z1],[x1,y0,z1],[x0,y1,z1],[x1,y1,z1]];for(const [indices,fill] of faceDefs){const points=indices.map(i=>vertices[i]);faces.push({points,fill,ghost:p.ghost,depth:points.reduce((sum,v)=>sum+viewDepth(...v),0)/points.length})}}
     faces.sort((a,b)=>a.depth-b.depth);
     const dark=document.documentElement.dataset.theme==='dark',cartonFaceIndices=[[0,1,2,3],[4,5,6,7],[0,1,5,4],[1,2,6,5],[3,2,6,7],[0,3,7,4]];
-    let out=`<defs><clipPath id="cartonClip"><polygon points="${cartonHull}"/></clipPath></defs><g fill="#ffffff" fill-opacity="${dark?'.045':'.075'}" stroke="none">`;
+    let out=`<defs><clipPath id="cartonClip"><polygon points="${cartonHull}"/></clipPath></defs><g fill="${dark?'#ffffff':'#b88452'}" fill-opacity="${dark?'.045':'.12'}" stroke="none">`;
     for(const indices of cartonFaceIndices)out+=`<polygon points="${indices.map(i=>P(...corners[i])).join(' ')}"/>`;out+='</g><g clip-path="url(#cartonClip)">';
     for(const face of faces)out+=`<polygon points="${face.points.map(p=>P(...p)).join(' ')}" fill="${face.ghost?'none':face.fill}" fill-opacity="${face.ghost?0:.9}" stroke="${face.ghost?'#9dafbd':'#126ca9'}" stroke-width="${face.ghost?'.65':'.8'}" ${face.ghost?'stroke-dasharray="3 2"':''}/>`;
     out+='</g>';const edge=dark?'#d9e6ef':'#233e53';
