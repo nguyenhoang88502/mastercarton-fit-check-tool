@@ -292,12 +292,12 @@ For ordinary existing-FG proposals, shared-carton compatibility remains the prim
 
 The view shows:
 
-- A master-carton wireframe.
+- A master-carton wireframe with strong edges and a very faint translucent white wall surface.
 - Packed FG cuboids in the calculated uniform grid or exact mixed-orientation placement.
 - All six faces of every solid FG cuboid, depth-sorted before the carton wireframe is drawn.
 - Only the target quantity as solid boxes.
 - Unused capacity positions as optional ghost outlines.
-- Center-locked Length, Width, and Height axes plus packing statistics and the complete six-orientation audit.
+- Small Length, Width, and Height labels placed directly on carton edges plus a compact packing summary.
 
 ### Rotation and grab interaction
 
@@ -309,6 +309,8 @@ screenY = sin(elevation) × (sin(angle) × x + cos(angle) × y) − cos(elevatio
 ```
 
 Before drawing, all eight centered carton corners are projected and fitted into the SVG viewport. There is no minimum-scale clamp, so large cartons cannot expand beyond the drawing and visually clip FG walls. The carton, FG, orientation, and arrangement dimensions are never modified by rotation. Drag state stores only camera azimuth/elevation. The button view rotates in 15-degree steps and wraps after 24 steps. Reset returns both azimuth and elevation to the default isometric view.
+
+The center pivot remains mathematical and is not drawn. Manager-facing labels use plain wording such as `DOES NOT FIT MEASURED BOXES`; technical terms such as “orthogonal fit” are kept out of the visible result status.
 
 Do not reintroduce rotation by swapping or decrementing `carton.width`, `carton.depth`, `fit.length`, or `fit.width`.
 
