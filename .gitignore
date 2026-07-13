@@ -1,0 +1,20 @@
+# Excel temporary lock files
+~$*.xlsx
+~$*.xlsm
+
+# Launcher-generated local manifests
+Weekly BOM Manifest.json
+WVN Master Carton Workbook Manifest.json
+
+# Local inspection and parsing artifacts
+*.inspect.ndjson
+.firecrawl/
+
+# Cloudflare/Wrangler local state
+.wrangler/
+
+# Common OS/editor noise
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
