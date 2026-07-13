@@ -24,13 +24,13 @@ The launcher:
 2. Scans that directory for `.xlsx` files, excluding Excel temporary files beginning with `~$`.
 3. Sorts workbooks by `LastWriteTimeUtc`, newest first.
 4. Writes `WVN Master Carton Workbook Manifest.json` beside the launcher.
-5. Looks for `1. Weekly BOM` beside the tool folder, under the user's Downloads folder, or inside the tool folder, in that order.
-6. Writes `Weekly BOM Manifest.json` with the available Weekly BOM workbooks.
+5. Looks for the authoritative `1. Weekly BOM` directory beside the tool folder, under the user's Downloads folder, or inside the tool folder, in that order.
+6. Writes `Weekly BOM Manifest.json` with absolute local `file:///` URLs, allowing a Desktop-hosted tool to read a BOM stored in Downloads when Chrome/Edge is launched with local-file access.
 7. Opens the HTML in Chrome or Edge with `--allow-file-access-from-files` and an isolated temporary browser profile.
 
 The HTML reads the first manifest entry and loads that workbook locally. If the HTML is opened directly without the launcher, the user can expose the hidden **Workbook** panel and select or drag-drop a workbook manually.
 
-For Weekly BOM selection, the HTML prefers a month/day embedded in filenames such as `BOM & FORMULA JUL 03 D365.xlsx`, then falls back to file modification time. This prevents a recently copied older file from replacing a newer weekly period. A manual Weekly BOM picker is available inside the collapsed **Workbook** panel.
+For Weekly BOM selection, the launcher prefers a month/day embedded in filenames such as `BOM & FORMULA JUL 03 D365.xlsx`, then falls back to file modification time. This prevents a recently copied older file from replacing a newer weekly period. A manual Weekly BOM picker is available inside the collapsed **Workbook** panel.
 
 ## Current workbook schema
 
@@ -53,7 +53,7 @@ The calculation filters this sheet strictly to rows where `Unit = EA`. CA and PL
 
 Invalid EA rows with blank, text, zero, or negative dimensions are ignored. If an item has multiple valid EA rows with different dimensions, it is flagged as a conflicting source record and is not allowed into fit, audit, optimization, or 3D calculations until the source data is corrected.
 
-### FG-to-master-carton reference
+### Provisional FG-to-master-carton reference
 
 Expected source headers:
 
@@ -67,7 +67,9 @@ Expected source headers:
 - `FG_Lifecycle`
 - `Carton_Lifecycle`
 
-`FG_ID` joins to `Item number`. `FG_Per_MasterCarton` becomes the default FG target quantity.
+`FG_ID` joins to `Item number`. `FG_Per_MasterCarton` becomes the default FG target quantity. This sheet is an MVP/provisional reference only; it is not the authoritative source for the current Master Carton assignment. The tool keeps its assignment values only for comparison with the Weekly BOM.
+
+The sheet is optional. If it is absent, the app still loads EA dimensions and carton dimensions, then builds/extends the selectable FG list from the Weekly BOM. When a target quantity is unavailable, `Mastercarton_Dimensions.fg_per_carton` is used as a clearly labelled fallback when the BOM-assigned carton has a dimension record.
 
 ### Master-carton dimensions
 
@@ -109,15 +111,18 @@ Do not add unit conversion inside `CartonFitEngine`, `NewCartonGenerator`, scori
 
 ### FG–Master Carton data linkage check
 
-Selecting an existing FG now performs a visible data-lineage check before the general fit search:
+Selecting an existing FG performs a visible data-lineage check before the general fit search. The Weekly BOM is the source of truth for FG-to-Master-Carton assignment; the local workbook is a dimension source and provisional MVP reference:
 
 The Existing FG area includes a dedicated FG-ID search box. Typing filters the dropdown by item ID while preserving each option's data-completeness note.
 
-1. Find the selected `FG_ID` in the FG-to-master-carton reference sheet.
-2. Read its assigned `MasterCarton_ID`.
-3. Find the FG's packaging dimensions by matching `FG_ID` to `Item number` in the FG packaging-dimension sheet, retaining only `Unit = EA`, then convert its centimetre dimensions to millimetres with `×10`.
-4. Find the assigned carton's dimensions by matching `MasterCarton_ID` to `carton_id` in the master-carton dimension sheet.
-5. When both dimension records exist, test the assigned carton physically with all six orientations.
+1. Find the selected FG in the newest Weekly BOM and identify its Master Carton component.
+2. Treat that BOM item number as the active assigned `MasterCarton_ID`.
+3. Compare it with the provisional `FG_MasterCarton.MasterCarton_ID` when that sheet/value exists.
+4. Find the FG's packaging dimensions by matching `FG_ID` to `Item number` in the FG packaging-dimension sheet, retaining only `Unit = EA`, then convert its centimetre dimensions to millimetres with `×10`.
+5. Find the BOM-assigned carton's dimensions by matching its item number to `Mastercarton_Dimensions.carton_id`.
+6. When both dimension records exist, test the BOM-assigned carton physically with all six orientations.
+
+If the Weekly BOM contains no Master Carton item for the FG, the provisional assignment is displayed only as a rejected comparison value and is not used as the current assignment. If multiple Master Carton candidates exist, the condition is visibly marked ambiguous and the data-link status remains incomplete.
 
 The UI shows five explicit cards:
 
@@ -129,7 +134,7 @@ The UI shows five explicit cards:
 
 The overall badge says either `DATA LINK COMPLETE` or `ASSIGNMENT OR DIMENSION DATA INCOMPLETE`. Missing records are shown in red; users do not need to infer missing joins from an empty table.
 
-Every option in the Existing FG dropdown also includes an inline completeness note. `Data complete` requires all four elements: FG ID, assigned Master Carton ID, EA packaging dimensions, and assigned Master Carton dimensions. Incomplete options list the exact missing elements, and the selected option repeats the status in a badge beside the dropdown.
+Every option in the Existing FG dropdown also includes an inline completeness note. `Data complete` requires FG ID, a positive target quantity, an unambiguous Weekly BOM Master Carton assignment, EA packaging dimensions, and assigned Master Carton dimensions. Before the Weekly BOM loads, options explicitly say they are awaiting the source-of-truth check. Incomplete options list the exact missing elements, and the selected option repeats the status in a badge beside the dropdown.
 
 ### Latest Weekly BOM cross-check
 
@@ -139,15 +144,16 @@ When an existing FG is selected, the tool also checks the newest Weekly BOM load
 2. Reads normalized BOM exports (`FG` / `Item number`) or repeated D365 BOM blocks (`Item number`, `Product name`, `Item group`, and component tables).
 3. Uses BOM level 1 when a `BOMLevel` column exists.
 4. Identifies Master Carton components by exact item-number match to `Mastercarton_Dimensions`. A product-name fallback recognizes Master Carton / shipper descriptions while explicitly excluding carton labels and stickers.
-5. Compares the Weekly BOM carton item to `MasterCarton_ID` from `FG_MasterCarton`.
+5. Uses the Weekly BOM carton item as the active assignment and compares it to provisional `MasterCarton_ID` from `FG_MasterCarton`.
 6. Confirms whether every BOM carton item has valid dimensions in `Mastercarton_Dimensions`.
 
-The panel displays the Weekly BOM filename, FG row count, assigned carton, BOM carton item number/name/norm, assignment match, and dimension-data status. It is hidden for manual NPI products because those products are not expected to exist in the current BOM.
+The panel displays the Weekly BOM filename, FG row count, authoritative BOM assignment, provisional MVP assignment, BOM carton item number/name/norm, comparison result, and dimension-data status. It is hidden for manual NPI products because those products are not expected to exist in the current BOM.
 
 The data path is displayed as:
 
 ```text
-FG_MasterCarton: FG_ID → MasterCarton_ID → Mastercarton_Dimensions: carton_id
+Weekly BOM (source of truth): FG → Master Carton item → Mastercarton_Dimensions: carton_id
+FG_MasterCarton (optional MVP comparison): FG_ID → provisional MasterCarton_ID
 Dimension_FG_packaging: Item number → FG dimensions
 ```
 
@@ -272,16 +278,16 @@ The view shows:
 - Unused capacity positions as optional ghost outlines.
 - Axis labels and packing statistics.
 
-### Rotation bug fix
+### Rotation and grab interaction
 
-Rotation now changes only the camera projection basis:
+Rotation changes only the camera projection basis. Users can drag horizontally to change azimuth and vertically to change elevation with a mouse, pen, or touch pointer. The left/right buttons remain available for 15-degree steps:
 
 ```text
 screenX = cos(angle) × x − sin(angle) × y
-screenY = 0.42 × (sin(angle) × x + cos(angle) × y) − z
+screenY = sin(elevation) × (sin(angle) × x + cos(angle) × y) − cos(elevation) × z
 ```
 
-The carton, FG, orientation, and arrangement dimensions are never modified by rotation. The view rotates in 15-degree steps and wraps after 24 steps. Reset returns to the default 45-degree isometric view.
+The carton, FG, orientation, and arrangement dimensions are never modified by rotation. Drag state stores only camera azimuth/elevation. The button view rotates in 15-degree steps and wraps after 24 steps. Reset returns both azimuth and elevation to the default isometric view.
 
 Do not reintroduce rotation by swapping or decrementing `carton.width`, `carton.depth`, `fit.length`, or `fit.width`.
 
@@ -320,11 +326,14 @@ The last core validation run confirmed:
 - A carton with enough total volume but physical capacity 1 does not pass a target of 2.
 - Swapping FG width and depth does not change best physical capacity.
 - Twenty-four visualizer rotations do not mutate FG, carton, or fit dimensions.
+- Pointer-drag rotation changes both camera azimuth and elevation while leaving FG, carton, fit, and arrangement values byte-for-byte unchanged.
 - Manual proposal generation returns a physically passing candidate.
 - The JavaScript passes `node --check` after extraction from the HTML.
 - The current workbook was previously detected as 831 FG codes and 184 cartons.
 - Current strict cross-sheet audit: 831 assigned FG rows, 530 with valid unambiguous EA dimensions, 658 with valid assigned-carton dimensions, and 436 with all four required data elements complete.
 - Invalid duplicate EA rows no longer overwrite valid EA dimensions; six FG IDs with conflicting valid EA dimensions are explicitly blocked and flagged for source-data correction.
+- Actual July Weekly BOM reconciliation produced 671 BOM-authoritative carton assignments across 1,097 selectable FG IDs; 74 of those assignments exist without a provisional MVP assignment, proving that the Weekly BOM path does not depend on `FG_MasterCarton`.
+- Removing `FG_MasterCarton` from the workbook in a test still loaded 670 valid EA FG dimension records and 184 carton records before Weekly BOM reconciliation.
 
 ## Known constraints
 
@@ -345,7 +354,7 @@ Before handing off a future version:
 4. Preserve all six orientation tests.
 5. Preserve physical-capacity gating; never use volume alone to pass a carton.
 6. Test both manual NPI and existing-FG workflows.
-7. For an existing FG, confirm the displayed assigned Master Carton ID matches `FG_MasterCarton.MasterCarton_ID`.
+7. For an existing FG, confirm the displayed assigned Master Carton ID comes from the newest Weekly BOM; treat `FG_MasterCarton.MasterCarton_ID` only as a comparison.
 8. Confirm the FG and carton dimension badges accurately reflect matches in their respective dimension sheets.
 9. Confirm the initial existing-FG 3D view uses the assigned carton when its dimensions are available.
 10. Test both existing-carton and new-proposal 3D views.
