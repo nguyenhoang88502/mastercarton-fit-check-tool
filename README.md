@@ -214,7 +214,7 @@ The audit resolves dimensions from the normalized workbook data and calculates:
 - Actual physical capacity using all six orthogonal orientations.
 - Best arrangement and remaining space.
 - BOM volumetric utilization: `(FG volume × target quantity) / carton volume`.
-- Maximum packed utilization: `(FG volume × physical capacity) / carton volume`.
+- Verified packed utilization: `(FG volume × verified capacity) / carton volume`. Mixed-placement capacity is shown as a lower bound when only the target arrangement has been proven.
 
 The default underutilization threshold is 75% and is editable from 1% to 100%. A pair is flagged when BOM utilization is below the threshold or when the target quantity does not physically fit. A physically fitting pair below the threshold is explicitly labelled `HIGH WASTE / UNDERUTILIZED` in red; it is no longer incorrectly displayed as a green simple-grid pass. Utilization exactly equal to the threshold passes the threshold check.
 
@@ -245,7 +245,13 @@ For every orientation it calculates the integer quantities along carton length, 
 
 `CartonFitEngine.evaluate()` retains an `orientationResults` audit trail containing all six calculations and reports `orientationsTested: 6`. The 3D summary displays `6 / 6`, making orientation coverage visible for the selected result rather than merely implied.
 
-A carton passes only when physical capacity is at least the target quantity. Volume utilization is used for comparison and ranking only. A volume-only fit must never pass.
+Length, width, and height labels are therefore interchangeable for fit purposes. Reordering the same three measured values cannot change the result because every axis assignment is tested.
+
+If the best uniform grid misses the target but the target volume is still possible, `OrthogonalPackingSolver` tries individually rotated boxes. For targets up to 12 it performs a bounded exhaustive backtracking search: every unique orthogonal box orientation is attempted at every bottom-left-back coordinate formed by the carton origin and already placed box faces. A found solution stores the exact position and orientation of every FG cuboid for the 3D view.
+
+The mixed search has a deterministic 150,000-node browser-safety limit. A completed search with no solution is reported as `NO ORTHOGONAL TARGET FIT`. A target above 12 or a search that reaches the node limit is reported as `MANUAL VALIDATION REQUIRED`; it is never presented as a proven geometric failure.
+
+A carton passes only when a uniform grid or a verified mixed-orientation placement reaches the target quantity. Volume utilization is used for comparison and ranking only. A volume-only fit must never pass.
 
 Existing cartons are ranked by:
 
@@ -270,7 +276,7 @@ Packing patterns:
 - `3 × 2 × 2`
 - `4 × 3 × 1`
 
-Every pattern is applied to all six orientations. The generator adds 5 mm internal clearance to every proposed dimension, rounds upward to a 5 mm increment, removes duplicates, and tests retained candidates with the same physical fit engine.
+Every pattern is applied to all six orientations. The generator adds 5 mm internal clearance to every proposed dimension, rounds upward to a 5 mm increment, removes duplicates, and verifies retained candidates with the uniform-grid engine. Candidate generation deliberately remains grid-based and controlled; the mixed solver is for checking existing cartons, not for creating arbitrary carton dimensions.
 
 For the selected FG when `target_qty ≤ 200`, the generator additionally enumerates every Pareto-minimal positive integer grid pattern: no count on any axis can be reduced while still holding the target. Count-axis permutations are covered by the six FG orientations. This fills gaps left by the controlled pattern list, such as `1 × 3 × 3` for target 7. Above 200, the controlled patterns remain in use to keep the offline browser responsive.
 
@@ -287,21 +293,22 @@ For ordinary existing-FG proposals, shared-carton compatibility remains the prim
 The view shows:
 
 - A master-carton wireframe.
-- Packed FG cuboids in the calculated `qtyLength × qtyWidth × qtyHeight` arrangement.
+- Packed FG cuboids in the calculated uniform grid or exact mixed-orientation placement.
+- All six faces of every solid FG cuboid, depth-sorted before the carton wireframe is drawn.
 - Only the target quantity as solid boxes.
 - Unused capacity positions as optional ghost outlines.
-- Axis labels and packing statistics.
+- Center-locked Length, Width, and Height axes plus packing statistics and the complete six-orientation audit.
 
 ### Rotation and grab interaction
 
-Rotation changes only the camera projection basis. Users can drag horizontally to change azimuth and vertically to change elevation with a mouse, pen, or touch pointer. The left/right buttons remain available for 15-degree steps:
+Rotation changes only the camera projection basis. Users directly grab the drawing: dragging right rotates the object right, and dragging vertically changes elevation. The orbit pivot is the geometric center of the master carton. The left/right buttons remain available for 15-degree steps:
 
 ```text
 screenX = cos(angle) × x − sin(angle) × y
 screenY = sin(elevation) × (sin(angle) × x + cos(angle) × y) − cos(elevation) × z
 ```
 
-The carton, FG, orientation, and arrangement dimensions are never modified by rotation. Drag state stores only camera azimuth/elevation. The button view rotates in 15-degree steps and wraps after 24 steps. Reset returns both azimuth and elevation to the default isometric view.
+Before drawing, all eight centered carton corners are projected and fitted into the SVG viewport. There is no minimum-scale clamp, so large cartons cannot expand beyond the drawing and visually clip FG walls. The carton, FG, orientation, and arrangement dimensions are never modified by rotation. Drag state stores only camera azimuth/elevation. The button view rotates in 15-degree steps and wraps after 24 steps. Reset returns both azimuth and elevation to the default isometric view.
 
 Do not reintroduce rotation by swapping or decrementing `carton.width`, `carton.depth`, `fit.length`, or `fit.width`.
 
@@ -323,7 +330,8 @@ Dark mode is implemented with CSS custom properties under `html[data-theme="dark
 - `WorkbookLoader` — reads XLSX workbook parts.
 - `SimpleZip` — minimal ZIP reader using the browser's `DecompressionStream`.
 - `DataNormalizer` — detects schemas, joins source sheets, converts units, and returns normalized FG/carton arrays.
-- `CartonFitEngine` — six-orientation physical fit calculation.
+- `OrthogonalPackingSolver` — bounded mixed-orientation target placement with exact cuboid coordinates.
+- `CartonFitEngine` — six-orientation grid calculation plus verified mixed-placement fallback.
 - `NewCartonGenerator` — candidate generation and proposal scoring.
 - `CartonScorer` — existing-carton ranking.
 - `PackingVisualizer3D` — SVG carton and packing renderer.
@@ -352,6 +360,11 @@ The last core validation run confirmed:
 - Top 10 ranking was independently checked on actual workbook data: equal-surplus cartons were ordered by descending utilization, and engine capacity/utilization matched separate calculations exactly.
 - Utilization-audit tests cover physical pass, below-threshold underutilization, exact-threshold pass, manual-validation-required, rigid-volume-impossible, and production-confirmed model-limitation states.
 - An independent exhaustive oracle checked 157,464 FG/carton dimension combinations; all six-orientation capacities matched with zero discrepancies.
+- A mixed-only regression packs five `2 × 3 × 4` cuboids in a `6 × 5 × 4` carton: the best uniform grid holds four, while the mixed solver finds and records all five non-overlapping placements.
+- A separate integer-voxel placement oracle checked 300 deterministic small mixed-packing cases; target-fit decisions matched the browser solver in every case.
+- FG `3032829` was traced to EA dimensions `96 × 75 × 205 mm`, Weekly BOM carton `3029132`, target quantity 3, and carton dimensions `235.712 × 202.692 × 105.664 mm`. The six uniform capacities are `0, 0, 0, 0, 2, 2`; the completed target-3 mixed search also finds no orthogonal solution. This is correctly flagged as a BOM-versus-measured-dimensions conflict rather than forced to PASS.
+- The same FG was benchmarked against all 143 valid carton-dimension records in the current workbook: 88 cartons passed, eight were rescued by verified mixed orientation, and the full check completed in roughly 33 ms in the Node-based audit environment.
+- The 3D regression confirms six rendered walls per FG, centered orbit coordinates at multiple views, direct (non-inverted) pointer drag, and no mutation of FG or carton dimensions.
 - The assigned-carton exclusion regression now returns ten actual alternatives, and proposal regression tests return ten physically passing sizes with no length/width-swapped duplicates.
 - A real-workbook benchmark using a `140 × 63 × 223 mm`, target-12 manual FG evaluated 950 known FG records, returned ten unique passing proposals, and completed in about 4.9 seconds in the Node-based audit environment.
 
@@ -361,7 +374,7 @@ The last core validation run confirmed:
 - The embedded reader supports `.xlsx` and `.xlsm`, not legacy binary `.xls`.
 - Formula cells rely on cached values stored in the workbook.
 - Proposal generation is synchronous and can take noticeable time with very large FG datasets.
-- “All arrangements” means all six orthogonal orientations and all enumerated uniform-grid count patterns within the scope above. The tool does not claim exhaustive arbitrary mixed-orientation 3D bin packing; that problem is combinatorial/NP-hard. A failed simple-grid result may still require physical trials or a specialist mixed-orientation packing solver.
+- Existing-carton checks include all six uniform orientations plus the mixed-orientation target search described above. The tool still does not model diagonal/non-orthogonal placement, compression, nesting, flexible packaging, or arbitrary free-angle 3D bin packing. Searches above the target/node safety limits require physical trials or a specialist solver.
 - Physical sample validation remains mandatory. The tool does not account for corrugated-board thickness, compression, tolerances beyond configured clearance, inserts, bag deformation, weight, stacking strength, or shipping regulations.
 - No result should be described as production-approved.
 
