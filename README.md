@@ -30,6 +30,8 @@ The launcher:
 
 The HTML reads the first manifest entry and loads that workbook locally. If the HTML is opened directly without the launcher, the user can expose the hidden **Workbook** panel and select or drag-drop a workbook manually.
 
+The expanded **Workbook** panel displays hyperlinks to the auto-loaded dimension workbook and Weekly BOM. These links use the same local `file:///` source addresses as the launcher manifests, allowing users to navigate to the actual source file for review or manual maintenance. Browser security does not expose the original path of a file selected through a file-input control, so manually selected files show a short explanation instead of a misleading source link.
+
 For Weekly BOM selection, the launcher prefers a month/day embedded in filenames such as `BOM & FORMULA JUL 03 D365.xlsx`, then falls back to file modification time. This prevents a recently copied older file from replacing a newer weekly period. A manual Weekly BOM picker is available inside the collapsed **Workbook** panel.
 
 ## Current workbook schema
@@ -124,6 +126,8 @@ The Existing FG area includes a dedicated FG-ID search box. Typing filters the d
 
 If the Weekly BOM contains no Master Carton item for the FG, the provisional assignment is displayed only as a rejected comparison value and is not used as the current assignment. If multiple Master Carton candidates exist, the condition is visibly marked ambiguous and the data-link status remains incomplete.
 
+If the Weekly BOM cannot be loaded at all, the app enters an explicit provisional fallback mode instead of disabling the existing-FG workflow. It uses `FG_MasterCarton.MasterCarton_ID`, `Dimension_FG_packaging` EA dimensions, and `Mastercarton_Dimensions` as the alternative join path. A compact amber warning appears near the top of the page stating that Weekly BOM source-of-truth validation is unavailable. Dropdown records with a complete fallback chain are labelled `Complete provisional data`, remain searchable, and can be calculated and visualized. Once a valid Weekly BOM loads, authoritative reconciliation automatically replaces fallback mode and hides the warning.
+
 The UI shows five explicit cards:
 
 - Finished Good ID.
@@ -134,7 +138,7 @@ The UI shows five explicit cards:
 
 The overall badge says either `DATA LINK COMPLETE` or `ASSIGNMENT OR DIMENSION DATA INCOMPLETE`. Missing records are shown in red; users do not need to infer missing joins from an empty table.
 
-Every option in the Existing FG dropdown also includes an inline completeness note. `Data complete` requires FG ID, a positive target quantity, an unambiguous Weekly BOM Master Carton assignment, EA packaging dimensions, and assigned Master Carton dimensions. Before the Weekly BOM loads, options explicitly say they are awaiting the source-of-truth check. Incomplete options list the exact missing elements, and the selected option repeats the status in a badge beside the dropdown.
+Every option in the Existing FG dropdown also includes an inline completeness note. In authoritative mode, `Data complete` requires FG ID, a positive target quantity, an unambiguous Weekly BOM Master Carton assignment, EA packaging dimensions, and assigned Master Carton dimensions. While the BOM is loading or unavailable, the same checks use the provisional `FG_MasterCarton` assignment and successful records are labelled `Complete provisional data`. Incomplete options list the exact missing elements, and the selected option repeats the status in a badge beside the dropdown.
 
 ### Latest Weekly BOM cross-check
 
@@ -169,11 +173,11 @@ The current workbook audit found 831 FG master rows, all with a Master Carton as
 
 The top form accepts:
 
-- New FG ID.
+- New FG ID, optionally.
 - FG length, width, and height.
 - Target quantity.
 
-FG name and proposed carton name are generated internally from the entered FG ID; they are not user inputs.
+When FG ID is blank, the calculation uses the temporary internal label `MANUAL-NPI`. FG name and proposed carton name are generated internally; they are not required user inputs.
 
 This path does not require an existing FG or BOM record.
 
@@ -183,7 +187,7 @@ The header displays a compact `Analysis Mode Only` badge so users understand tha
 
 The NPI form is intentionally organized into three engineering blocks:
 
-1. Product identity — FG ID only.
+1. Product identity — optional FG ID only.
 2. Finished Good Dimensions (mm) — Length, Width, and Height in one horizontal row.
 3. Target quantity.
 
@@ -192,7 +196,7 @@ Keep the three dimension inputs grouped in L × W × H order. The layout must no
 On submission:
 
 1. The tool tests the manual FG against all loaded existing cartons.
-2. If one or more cartons fit, it shows the best five and visualizes the highest-ranked result.
+2. If one or more cartons fit, it shows the best ten and visualizes the highest-ranked result.
 3. If none fits, it creates a temporary identifier in the form `NPI-MC-YYYYMMDD-HHMMSS`, applies the entered/generated carton name, and shows both values in the proposal banner and proposal table.
 4. Manual NPI proposals prioritize the selected FG's packing density and smaller carton volume, then shared compatibility with known FG codes.
 
@@ -212,7 +216,7 @@ The audit resolves dimensions from the normalized workbook data and calculates:
 - BOM volumetric utilization: `(FG volume × target quantity) / carton volume`.
 - Maximum packed utilization: `(FG volume × physical capacity) / carton volume`.
 
-The default underutilization threshold is 75% and is editable from 1% to 100%. A pair is flagged when BOM utilization is below the threshold or when the target quantity does not physically fit.
+The default underutilization threshold is 75% and is editable from 1% to 100%. A pair is flagged when BOM utilization is below the threshold or when the target quantity does not physically fit. A physically fitting pair below the threshold is explicitly labelled `HIGH WASTE / UNDERUTILIZED` in red; it is no longer incorrectly displayed as a green simple-grid pass. Utilization exactly equal to the threshold passes the threshold check.
 
 Flagged pairs trigger a density-first optimized-carton calculation. Current legacy statistics and the suggested solution are displayed side by side, including utilization improvement and carton-volume reduction. Separate buttons load the current or suggested arrangement into the shared 3D visualizer.
 
@@ -248,6 +252,8 @@ Existing cartons are ranked by:
 3. Active lifecycle before other lifecycle values.
 4. Smallest carton volume.
 
+The engine returns and displays the Top 10 passing existing cartons. The highlighted current assignment is shown separately before those alternatives, using either the Weekly BOM source-of-truth label or an explicit workbook-fallback label.
+
 ## New-carton generation
 
 `NewCartonGenerator` creates controlled candidates rather than searching millimetre by millimetre.
@@ -263,6 +269,8 @@ Packing patterns:
 - `4 × 3 × 1`
 
 Every pattern is applied to all six orientations. The generator adds 5 mm internal clearance to every proposed dimension, rounds upward to a 5 mm increment, removes duplicates, and tests retained candidates with the same physical fit engine.
+
+The generator returns the Top 10 scored new-carton proposals. Every retained proposal must physically fit the selected FG target; volume alone cannot qualify a proposal.
 
 For ordinary existing-FG proposals, shared-carton compatibility remains the primary ranking goal. For manual NPI input, `prioritizeDensity: true` makes selected-FG utilization and small carton volume the first priorities while still calculating how many workbook FG codes each proposal supports.
 
@@ -334,6 +342,9 @@ The last core validation run confirmed:
 - Invalid duplicate EA rows no longer overwrite valid EA dimensions; six FG IDs with conflicting valid EA dimensions are explicitly blocked and flagged for source-data correction.
 - Actual July Weekly BOM reconciliation produced 671 BOM-authoritative carton assignments across 1,097 selectable FG IDs; 74 of those assignments exist without a provisional MVP assignment, proving that the Weekly BOM path does not depend on `FG_MasterCarton`.
 - Removing `FG_MasterCarton` from the workbook in a test still loaded 670 valid EA FG dimension records and 184 carton records before Weekly BOM reconciliation.
+- With Weekly BOM unavailable, the current remaining workbook exposes 950 searchable FG records, including 439 with a complete provisional assignment/dimension chain.
+- Top 10 ranking was independently checked on actual workbook data: equal-surplus cartons were ordered by descending utilization, and engine capacity/utilization matched separate calculations exactly.
+- Utilization-audit tests cover physical pass, below-threshold underutilization, exact-threshold pass, manual-validation-required, rigid-volume-impossible, and production-confirmed model-limitation states.
 
 ## Known constraints
 
