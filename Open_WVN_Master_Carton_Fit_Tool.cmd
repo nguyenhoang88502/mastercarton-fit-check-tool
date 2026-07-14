@@ -1,14 +1,18 @@
 @echo off
-setlocal EnableDelayedExpansion
+setlocal
 
 set "TOOL_DIR=%~dp0"
 set "TOOL_DIR=%TOOL_DIR:~0,-1%"
 set "HTML_FILE=%TOOL_DIR%\WVN_Master_Carton_Fit_Tool.html"
 
 rem ---------------------------------------------------------------------------
-rem Detect user root from %USERPROFILE%
+rem Detect user root: parse username from TOOL_DIR when under C:\Users\...
 rem ---------------------------------------------------------------------------
 set "USER_ROOT=%USERPROFILE%"
+if /I "%TOOL_DIR:~0,9%"=="C:\Users\" (
+  set "_REST=%TOOL_DIR:~9%"
+  for /f "delims=\ tokens=1" %%U in ("%_REST%") do set "USER_ROOT=C:\Users\%%U"
+)
 
 echo ========================================
 echo  WVN Master Carton Fit Tool Launcher
@@ -19,15 +23,21 @@ echo USER_ROOT     : %USER_ROOT%
 rem ---------------------------------------------------------------------------
 rem Build fixed company NPI paths (username is the only variable)
 rem ---------------------------------------------------------------------------
-set "NPI_TOOLS_DIR=%USER_ROOT%\OneDrive - Wahl Clipper Corporation (1)\NPI Information - Documents\General\Project Management\5. Tools for NPI"
+set "NPI_TOOLS_DIR=%USER_ROOT%\OneDrive - Wahl Clipper Corporation\NPI Information - Documents\General\Project Management\5. Tools for NPI"
 set "WEEKLY_BOM_DIR=%NPI_TOOLS_DIR%\1. Weekly BOM"
 set "MASTER_CARTON_TOOL_DIR=%NPI_TOOLS_DIR%\MasterCarton fit check tool"
+set "INSPECTION_TOOL_DIR=%NPI_TOOLS_DIR%\Inspection Standard Tool"
 
 echo NPI_TOOLS_DIR : %NPI_TOOLS_DIR%
 echo WEEKLY_BOM_DIR exists:
-if exist "%WEEKLY_BOM_DIR%" (echo   YES - %WEEKLY_BOM_DIR%) else (echo   NO  - %WEEKLY_BOM_DIR%)
+if exist "%WEEKLY_BOM_DIR%" echo   YES - %WEEKLY_BOM_DIR%
+if not exist "%WEEKLY_BOM_DIR%" echo   NO  - %WEEKLY_BOM_DIR%
 echo MASTER_CARTON_TOOL_DIR exists:
-if exist "%MASTER_CARTON_TOOL_DIR%" (echo   YES - %MASTER_CARTON_TOOL_DIR%) else (echo   NO  - %MASTER_CARTON_TOOL_DIR%)
+if exist "%MASTER_CARTON_TOOL_DIR%" echo   YES - %MASTER_CARTON_TOOL_DIR%
+if not exist "%MASTER_CARTON_TOOL_DIR%" echo   NO  - %MASTER_CARTON_TOOL_DIR%
+echo INSPECTION_TOOL_DIR exists:
+if exist "%INSPECTION_TOOL_DIR%" echo   YES - %INSPECTION_TOOL_DIR%
+if not exist "%INSPECTION_TOOL_DIR%" echo   NO  - %INSPECTION_TOOL_DIR%
 
 rem ---------------------------------------------------------------------------
 rem 1. Dimension workbook manifest
@@ -40,6 +50,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$toolDir='%TOOL_DIR%';" ^
   "$weeklyBomDir='%WEEKLY_BOM_DIR%';" ^
   "$masterCartonToolDir='%MASTER_CARTON_TOOL_DIR%';" ^
+  "$localBomDir=Join-Path $toolDir '1. Weekly BOM';" ^
   "$namePrefs=@(" ^
   "  @{Pattern='Products Physical Dimension - FG 1.Apr.25.xlsx'; Label='preferred dimension workbook'}," ^
   "  @{Pattern='*Products Physical Dimension - FG *.xlsx';    Label='Products Physical Dimension (date variant)'}," ^
@@ -50,6 +61,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   ");" ^
   "$locations=@(" ^
   "  @{Path=$weeklyBomDir;          Label='Weekly BOM folder'}," ^
+  "  @{Path=$localBomDir;           Label='local 1. Weekly BOM'}," ^
   "  @{Path=$masterCartonToolDir;   Label='MasterCarton tool folder'}," ^
   "  @{Path=$toolDir;              Label='tool directory'}" ^
   ");" ^
@@ -61,7 +73,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "    $found=Get-ChildItem -LiteralPath $loc.Path -Filter $pref.Pattern -File -ErrorAction SilentlyContinue | Where-Object {$_.Name -notlike '~$*'} | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1;" ^
   "    if($found){" ^
   "      $uri=([System.Uri]$found.FullName).AbsoluteUri;" ^
-  "      $entry=@{name=$found.Name;path=$found.FullName;url=$uri;modifiedUtc=$found.LastWriteTimeUtc.ToString('o');sourceType='dimension'};" ^
+  "      $entry=[pscustomobject]@{name=$found.Name;path=$found.FullName;url=$uri;modifiedUtc=$found.LastWriteTimeUtc.ToString('o');sourceType='dimension'};" ^
   "      Write-Host ('    MATCHED: '+$found.Name+' ('+$pref.Label+')');" ^
   "      Write-Host ('    path : '+$found.FullName);" ^
   "      Write-Host ('    url  : '+$uri);" ^
@@ -81,6 +93,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$manifestPath=Join-Path $toolDir 'WVN Master Carton Workbook Manifest.json';" ^
   "Set-Content -Encoding UTF8 -LiteralPath $manifestPath -Value $json;" ^
   "Write-Host ('  Manifest: '+$manifestPath)"
+if errorlevel 1 exit /b 1
 
 rem ---------------------------------------------------------------------------
 rem 2. Weekly BOM manifest
@@ -97,27 +110,21 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "  @{Path=(Join-Path $toolDir '1. Weekly BOM'); Label='local 1. Weekly BOM'}," ^
   "  @{Path=$toolDir;                    Label='tool directory'}" ^
   ");" ^
-  "$months=@{JAN=1;FEB=2;MAR=3;APR=4;MAY=5;JUN=6;JUL=7;AUG=8;SEP=9;OCT=10;NOV=11;DEC=12};" ^
   "$files=@();" ^
   "foreach($loc in $locations){" ^
   "  if(!(Test-Path $loc.Path)){ Write-Host ('  SKIP (not found): '+$loc.Path+' ('+$loc.Label+')'); continue };" ^
   "  Write-Host ('  Scanning: '+$loc.Path+' ('+$loc.Label+')');" ^
-  "  $inDir=Get-ChildItem -LiteralPath $loc.Path -Filter 'BOM ^& FORMULA * D365.xlsx' -File -ErrorAction SilentlyContinue | Where-Object {$_.Name -notlike '~$*'};" ^
+  "  $inDir=Get-ChildItem -LiteralPath $loc.Path -Filter 'BOM & FORMULA * D365.xlsx' -File -ErrorAction SilentlyContinue | Where-Object {$_.Name -notlike '~$*'} | Sort-Object LastWriteTimeUtc -Descending;" ^
   "  foreach($f in $inDir){" ^
-  "    $period=[datetime]::MinValue;" ^
-  "    if($f.BaseName -match '(?i)\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\s+(\d{1,2})\b'){" ^
-  "      $period=[datetime]::new($f.LastWriteTimeUtc.Year,$months[$Matches[1].ToUpperInvariant()],[int]$Matches[2],0,0,0,[DateTimeKind]::Utc)" ^
-  "    };" ^
   "    $uri=([System.Uri]$f.FullName).AbsoluteUri;" ^
-  "    $files+=@(@{name=$f.Name;path=$f.FullName;url=$uri;modifiedUtc=$f.LastWriteTimeUtc.ToString('o');sourceType='weekly_bom';period=$period})" ^
+  "    $files+=@([pscustomobject]@{name=$f.Name;path=$f.FullName;url=$uri;modifiedUtc=$f.LastWriteTimeUtc.ToString('o');sourceType='weekly_bom'})" ^
   "  }" ^
   "};" ^
-  "$files=$files | Sort-Object @{Expression='period';Descending=$true},@{Expression='modifiedUtc';Descending=$true} | ForEach-Object {[pscustomobject]@{name=$_.name;path=$_.path;url=$_.url;modifiedUtc=$_.modifiedUtc;sourceType=$_.sourceType}};" ^
   "if($files.Count -eq 0){" ^
   "  Write-Host '  WARNING: No Weekly BOM files found.';" ^
   "  Write-Host '  You can still open a BOM manually in the browser (Workbook panel).'" ^
   "} else {" ^
-  "  Write-Host ('  Latest BOM (by period): '+$files[0].name);" ^
+  "  Write-Host ('  Latest BOM (by LastWriteTimeUtc): '+$files[0].name);" ^
   "  Write-Host ('  path : '+$files[0].path);" ^
   "  Write-Host ('  url  : '+$files[0].url);" ^
   "  Write-Host ('  Total BOM candidates  : '+$files.Count)" ^
@@ -126,6 +133,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$manifestPath=Join-Path $toolDir 'Weekly BOM Manifest.json';" ^
   "Set-Content -Encoding UTF8 -LiteralPath $manifestPath -Value $json;" ^
   "Write-Host ('  Manifest: '+$manifestPath)"
+if errorlevel 1 exit /b 1
+
+if /I "%~1"=="--manifests-only" exit /b 0
 
 rem ---------------------------------------------------------------------------
 rem 3. Launch browser
@@ -158,7 +168,7 @@ if not defined CHROME if exist "%ProgramFiles(x86)%\Google\Chrome\Application\ch
 
 if defined CHROME (
   echo   Browser: Chrome
-  start "" "!CHROME!" --user-data-dir="%TEMP%\WVN-Master-Carton-Tool-%RANDOM%" --allow-file-access-from-files "%HTML_FILE%"
+  start "" "%CHROME%" --user-data-dir="%TEMP%\WVN-Master-Carton-Tool-%RANDOM%" --allow-file-access-from-files "%HTML_FILE%"
   exit /b
 )
 
@@ -175,7 +185,7 @@ if not defined EDGE if exist "%ProgramFiles%\Microsoft\Edge\Application\msedge.e
 
 if defined EDGE (
   echo   Browser: Edge
-  start "" "!EDGE!" --user-data-dir="%TEMP%\WVN-Master-Carton-Tool-%RANDOM%" --allow-file-access-from-files "%HTML_FILE%"
+  start "" "%EDGE%" --user-data-dir="%TEMP%\WVN-Master-Carton-Tool-%RANDOM%" --allow-file-access-from-files "%HTML_FILE%"
   exit /b
 )
 
