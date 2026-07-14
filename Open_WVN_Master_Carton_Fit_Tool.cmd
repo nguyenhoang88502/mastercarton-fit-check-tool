@@ -9,6 +9,16 @@ echo ========================================
 echo  WVN Master Carton Fit Tool Launcher
 echo ========================================
 echo Tool directory: %TOOL_DIR%
+echo HTML: %HTML_FILE%
+
+rem ---------------------------------------------------------------------------
+rem Discover OneDrive folders (may have suffix (1), (2), etc.)
+rem ---------------------------------------------------------------------------
+echo.
+echo [OneDrive discovery]
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$matches=@(Get-ChildItem -LiteralPath $env:USERPROFILE -Directory -ErrorAction SilentlyContinue | Where-Object {$_.Name -like 'OneDrive - Wahl Clipper Corporation*'} | ForEach-Object {$_.FullName});" ^
+  "if($matches.Count -gt 0){foreach($m in $matches){Write-Host ('  Found: '+$m)}}else{Write-Host '  WARNING: No OneDrive - Wahl Clipper Corporation folder found.'}"
 
 rem ---------------------------------------------------------------------------
 rem 1. Dimension workbook manifest
@@ -18,37 +28,38 @@ echo [Dimension workbook search]
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$toolDir='%TOOL_DIR%';" ^
   "$namePrefs=@(" ^
-  "  @{Pattern='Products Physical Dimension - FG *.xlsx';       Label='preferred dimension workbook'}," ^
-  "  @{Pattern='*Products Physical Dimension*.xlsx';             Label='Products Physical Dimension variant'}," ^
-  "  @{Pattern='*Physical Dimension*.xlsx';                      Label='physical dimension workbook'}," ^
-  "  @{Pattern='*Dimension - FG*.xlsx';                          Label='dimension FG workbook'}," ^
-  "  @{Pattern='carton_tool_input.xlsx';                         Label='legacy fallback'}," ^
-  "  @{Pattern='*.xlsx';                                         Label='any workbook (last resort)'}" ^
+  "  @{Pattern='Products Physical Dimension - FG 1.Apr.25.xlsx'; Label='preferred dimension workbook'}," ^
+  "  @{Pattern='*Products Physical Dimension - FG *.xlsx';    Label='Products Physical Dimension (date variant)'}," ^
+  "  @{Pattern='*Products Physical Dimension*.xlsx';           Label='Products Physical Dimension variant'}," ^
+  "  @{Pattern='*Physical Dimension*.xlsx';                    Label='physical dimension workbook'}," ^
+  "  @{Pattern='*Dimension*FG*.xlsx';                          Label='dimension FG workbook'}," ^
+  "  @{Pattern='carton_tool_input.xlsx';                       Label='legacy fallback'}" ^
   ");" ^
   "$locations=@();" ^
-  "if(Test-Path $toolDir){$locations+=@($toolDir)};" ^
-  "if(Test-Path (Join-Path $toolDir '1. Weekly BOM')){$locations+=@(Join-Path $toolDir '1. Weekly BOM')};" ^
-  "$onedrive=$env:OneDriveCommercial;" ^
-  "if(!$onedrive){$onedrive=$env:OneDrive};" ^
-  "if(!$onedrive){$onedrive=Join-Path $env:USERPROFILE 'OneDrive - Wahl Clipper Corporation'};" ^
-  "if($onedrive -and (Test-Path $onedrive)){" ^
-  "  $bomPath=Join-Path $onedrive 'NPI Information - Documents\General\Project Management\5. Tools for NPI\1. Weekly BOM';" ^
-  "  if(Test-Path $bomPath){$locations+=@($bomPath)};" ^
-  "  $toolPath=Join-Path $onedrive 'NPI Information - Documents\General\Project Management\5. Tools for NPI\MasterCarton fit check tool';" ^
-  "  if(Test-Path $toolPath){$locations+=@($toolPath)}" ^
+  "if(Test-Path $toolDir){$locations+=@{Path=$toolDir;Label='tool directory'}};" ^
+  "$localBom=Join-Path $toolDir '1. Weekly BOM';" ^
+  "if(Test-Path $localBom){$locations+=@{Path=$localBom;Label='local 1. Weekly BOM'}};" ^
+  "$odMatches=@(Get-ChildItem -LiteralPath $env:USERPROFILE -Directory -ErrorAction SilentlyContinue | Where-Object {$_.Name -like 'OneDrive - Wahl Clipper Corporation*'});" ^
+  "foreach($od in $odMatches){" ^
+  "  $bomPath=Join-Path $od.FullName 'NPI Information - Documents\General\Project Management\5. Tools for NPI\1. Weekly BOM';" ^
+  "  if(Test-Path $bomPath){$locations+=@{Path=$bomPath;Label=('OneDrive NPI Weekly BOM ('+$od.Name+')')}};" ^
+  "  $toolPath=Join-Path $od.FullName 'NPI Information - Documents\General\Project Management\5. Tools for NPI\MasterCarton fit check tool';" ^
+  "  if(Test-Path $toolPath){$locations+=@{Path=$toolPath;Label=('OneDrive NPI tool folder ('+$od.Name+')')}}" ^
   "};" ^
-  "if(Test-Path (Join-Path $env:USERPROFILE 'Downloads')){$locations+=@(Join-Path $env:USERPROFILE 'Downloads')};" ^
-  "if(Test-Path (Join-Path $env:USERPROFILE 'Desktop')){$locations+=@(Join-Path $env:USERPROFILE 'Desktop')};" ^
+  "if(Test-Path (Join-Path $env:USERPROFILE 'Downloads')){$locations+=@{Path=(Join-Path $env:USERPROFILE 'Downloads');Label='Downloads'}};" ^
+  "if(Test-Path (Join-Path $env:USERPROFILE 'Desktop')){$locations+=@{Path=(Join-Path $env:USERPROFILE 'Desktop');Label='Desktop'}};" ^
   "$results=@();" ^
   "foreach($loc in $locations){" ^
-  "  if(!(Test-Path $loc)){continue};" ^
-  "  Write-Host ('  Scanning: '+$loc);" ^
-  "  foreach($entry in $namePrefs){" ^
-  "    $found=Get-ChildItem -LiteralPath $loc -Filter $entry.Pattern -File -ErrorAction SilentlyContinue | Where-Object {$_.Name -notlike '~$*'} | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1;" ^
+  "  Write-Host ('  Scanning: '+$loc.Path+' ('+$loc.Label+')');" ^
+  "  foreach($pref in $namePrefs){" ^
+  "    $found=Get-ChildItem -LiteralPath $loc.Path -Filter $pref.Pattern -File -ErrorAction SilentlyContinue | Where-Object {$_.Name -notlike '~$*'} | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1;" ^
   "    if($found){" ^
   "      $uri=([System.Uri]$found.FullName).AbsoluteUri;" ^
-  "      Write-Host ('    MATCHED: '+$found.Name+' ('+$entry.Label+')');" ^
-  "      $results+=@([pscustomobject]@{path=$uri;name=$found.Name;modifiedUtc=$found.LastWriteTimeUtc.ToString('o')});" ^
+  "      $entry=@{name=$found.Name;path=$found.FullName;url=$uri;lastWriteTimeUtc=$found.LastWriteTimeUtc.ToString('o');sourceType='dimension'};" ^
+  "      Write-Host ('    MATCHED: '+$found.Name+' ('+$pref.Label+')');" ^
+  "      Write-Host ('    path: '+$found.FullName);" ^
+  "      Write-Host ('    url : '+$uri);" ^
+  "      $results+=@($entry);" ^
   "      break" ^
   "    }" ^
   "  };" ^
@@ -60,7 +71,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "} else {" ^
   "  Write-Host ('    Selected: '+$results[0].name)" ^
   "};" ^
-  "$json=ConvertTo-Json -Compress -Depth 3 -InputObject @($results);" ^
+  "$json=ConvertTo-Json -Compress -Depth 4 -InputObject @($results);" ^
   "$manifestPath=Join-Path $toolDir 'WVN Master Carton Workbook Manifest.json';" ^
   "Set-Content -Encoding UTF8 -LiteralPath $manifestPath -Value $json;" ^
   "Write-Host ('  Manifest written: '+$manifestPath)"
@@ -73,44 +84,42 @@ echo [Weekly BOM search]
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$toolDir='%TOOL_DIR%';" ^
   "$locations=@();" ^
-  "if(Test-Path (Join-Path $toolDir '1. Weekly BOM')){$locations+=@(Join-Path $toolDir '1. Weekly BOM')};" ^
-  "$parent=Split-Path -Parent $toolDir;" ^
-  "$siblingBom=Join-Path $parent '1. Weekly BOM';" ^
-  "if(Test-Path $siblingBom){$locations+=@($siblingBom)};" ^
-  "$onedrive=$env:OneDriveCommercial;" ^
-  "if(!$onedrive){$onedrive=$env:OneDrive};" ^
-  "if(!$onedrive){$onedrive=Join-Path $env:USERPROFILE 'OneDrive - Wahl Clipper Corporation'};" ^
-  "if($onedrive -and (Test-Path $onedrive)){" ^
-  "  $bomPath=Join-Path $onedrive 'NPI Information - Documents\General\Project Management\5. Tools for NPI\1. Weekly BOM';" ^
-  "  if(Test-Path $bomPath){$locations+=@($bomPath)}" ^
+  "$localBom=Join-Path $toolDir '1. Weekly BOM';" ^
+  "if(Test-Path $localBom){$locations+=@{Path=$localBom;Label='local 1. Weekly BOM'}};" ^
+  "$odMatches=@(Get-ChildItem -LiteralPath $env:USERPROFILE -Directory -ErrorAction SilentlyContinue | Where-Object {$_.Name -like 'OneDrive - Wahl Clipper Corporation*'});" ^
+  "foreach($od in $odMatches){" ^
+  "  $bomPath=Join-Path $od.FullName 'NPI Information - Documents\General\Project Management\5. Tools for NPI\1. Weekly BOM';" ^
+  "  if(Test-Path $bomPath){$locations+=@{Path=$bomPath;Label=('OneDrive NPI Weekly BOM ('+$od.Name+')')}}" ^
   "};" ^
   "$downloadsBom=Join-Path $env:USERPROFILE 'Downloads\1. Weekly BOM';" ^
-  "if(Test-Path $downloadsBom){$locations+=@($downloadsBom)};" ^
+  "if(Test-Path $downloadsBom){$locations+=@{Path=$downloadsBom;Label='Downloads\1. Weekly BOM'}};" ^
   "$desktopBom=Join-Path $env:USERPROFILE 'Desktop\1. Weekly BOM';" ^
-  "if(Test-Path $desktopBom){$locations+=@($desktopBom)};" ^
-  "if(Test-Path $toolDir){$locations+=@($toolDir)};" ^
+  "if(Test-Path $desktopBom){$locations+=@{Path=$desktopBom;Label='Desktop\1. Weekly BOM'}};" ^
+  "if(Test-Path $toolDir){$locations+=@{Path=$toolDir;Label='tool directory'}};" ^
   "$months=@{JAN=1;FEB=2;MAR=3;APR=4;MAY=5;JUN=6;JUL=7;AUG=8;SEP=9;OCT=10;NOV=11;DEC=12};" ^
   "$files=@();" ^
   "foreach($loc in $locations){" ^
-  "  if(!(Test-Path $loc)){continue};" ^
-  "  Write-Host ('  Scanning: '+$loc);" ^
-  "  $inDir=Get-ChildItem -LiteralPath $loc -Filter '*.xlsx' -File -ErrorAction SilentlyContinue | Where-Object {$_.Name -notlike '~$*' -and $_.Name -like '*BOM*'};" ^
+  "  Write-Host ('  Scanning: '+$loc.Path+' ('+$loc.Label+')');" ^
+  "  $inDir=Get-ChildItem -LiteralPath $loc.Path -Filter '*.xlsx' -File -ErrorAction SilentlyContinue | Where-Object {$_.Name -notlike '~$*' -and $_.Name -like '*BOM*'};" ^
   "  foreach($f in $inDir){" ^
   "    $period=[datetime]::MinValue;" ^
   "    if($f.BaseName -match '(?i)\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\s+(\d{1,2})\b'){" ^
   "      $period=[datetime]::new($f.LastWriteTimeUtc.Year,$months[$Matches[1].ToUpperInvariant()],[int]$Matches[2],0,0,0,[DateTimeKind]::Utc)" ^
   "    };" ^
-  "    $files+=@([pscustomobject]@{path=([System.Uri]$f.FullName).AbsoluteUri;name=$f.Name;modifiedUtc=$f.LastWriteTimeUtc.ToString('o');period=$period})" ^
+  "    $uri=([System.Uri]$f.FullName).AbsoluteUri;" ^
+  "    $files+=@(@{name=$f.Name;path=$f.FullName;url=$uri;lastWriteTimeUtc=$f.LastWriteTimeUtc.ToString('o');sourceType='weekly_bom';period=$period})" ^
   "  }" ^
   "};" ^
-  "$files=$files | Sort-Object @{Expression='period';Descending=$true},@{Expression='modifiedUtc';Descending=$true} | ForEach-Object {[pscustomobject]@{path=$_.path;name=$_.name;modifiedUtc=$_.modifiedUtc}};" ^
+  "$files=$files | Sort-Object @{Expression='period';Descending=$true},@{Expression='lastWriteTimeUtc';Descending=$true} | ForEach-Object {[pscustomobject]@{name=$_.name;path=$_.path;url=$_.url;lastWriteTimeUtc=$_.lastWriteTimeUtc;sourceType=$_.sourceType}};" ^
   "if($files.Count -eq 0){" ^
   "  Write-Host '    WARNING: No Weekly BOM files found in any search location.';" ^
   "  Write-Host '    You can still open a BOM manually in the browser (Workbook panel).'" ^
   "} else {" ^
-  "  Write-Host ('    Selected latest BOM: '+$files[0].name)" ^
+  "  Write-Host ('    Selected latest BOM: '+$files[0].name);" ^
+  "  Write-Host ('    path: '+$files[0].path);" ^
+  "  Write-Host ('    url : '+$files[0].url)" ^
   "};" ^
-  "$json=ConvertTo-Json -Compress -Depth 3 -InputObject @($files);" ^
+  "$json=ConvertTo-Json -Compress -Depth 4 -InputObject @($files);" ^
   "$manifestPath=Join-Path $toolDir 'Weekly BOM Manifest.json';" ^
   "Set-Content -Encoding UTF8 -LiteralPath $manifestPath -Value $json;" ^
   "Write-Host ('  Manifest written: '+$manifestPath)"
@@ -129,11 +138,9 @@ echo.
 echo [Browser]
 set "CHROME="
 
-rem Check Chrome via LOCALAPPDATA (user install, most common)
 if exist "%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe" (
   set "CHROME=%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe"
 )
-rem Check Chrome via Program Files (system install)
 if not defined CHROME if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" (
   set "CHROME=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
 )
@@ -142,12 +149,11 @@ if not defined CHROME if exist "%ProgramFiles(x86)%\Google\Chrome\Application\ch
 )
 
 if defined CHROME (
-  echo   Selected: Chrome ^(%CHROME%^)
+  echo   Selected: Chrome ^(!CHROME!^)
   start "" "!CHROME!" --user-data-dir="%TEMP%\WVN-Master-Carton-Tool-%RANDOM%" --allow-file-access-from-files "%HTML_FILE%"
   exit /b
 )
 
-rem Fallback to Edge
 set "EDGE="
 if exist "%LOCALAPPDATA%\Microsoft\Edge\Application\msedge.exe" (
   set "EDGE=%LOCALAPPDATA%\Microsoft\Edge\Application\msedge.exe"
