@@ -197,6 +197,9 @@ class DataNormalizer {
   static denseHeader(row, mapper){const out=[],len=row?.length||0;for(let i=0;i<len;i++)out.push(mapper((row&&i in row)?row[i]:''));return out}
   static headerMap(header){const entries=[];for(let i=0;i<(header?.length||0);i++){const key=String(header[i]??'').trim();if(key)entries.push([key,i])}return new Map(entries)}
   static rowsFromHeader(rows,header){const map=this.headerMap(header);return rows.map(row=>Object.fromEntries([...map].map(([key,i])=>[key,row?.[i]??''])))}
+  static normalizeHeaderName(value){return String(value??'').trim().toLowerCase().replace(/\s+/g,' ').replace(/[_-]+/g,' ')}
+  static buildHeaderIndex(headerRow){const index=new Map();const row=Array.from({length:Array.isArray(headerRow)?headerRow.length:0},(_,i)=>headerRow[i]==null?'':headerRow[i]);row.forEach((cell,i)=>{const key=this.normalizeHeaderName(cell);if(!key)return;if(!index.has(key))index.set(key,i)});return index}
+  static findHeaderIndex(headerIndex,aliases){for(const alias of aliases){const key=this.normalizeHeaderName(alias);if(headerIndex.has(key))return headerIndex.get(key)}return -1}
   static FG_COLUMNS=['fg_id','fg_name','fg_width_mm','fg_depth_mm','fg_height_mm','target_qty'];
   static CARTON_COLUMNS=['carton_id','carton_name','carton_width_mm','carton_depth_mm','carton_height_mm','carton_lifecycle'];
   static normalize(sheets) {
@@ -208,30 +211,86 @@ class DataNormalizer {
     if(!fgs.length)throw new Error('The FG sheet has no data rows.'); if(!cartons.length)throw new Error('The carton sheet has no data rows.'); return {fgs,cartons,fgSheet:fgSheet.name,cartonSheet:cartonSheet.name,relationSheet:fgSheet.name,dimensionSheet:fgSheet.name,cartonDimensionSheet:cartonSheet.name};
   }
   static fromSourceSchema(sheets) {
-    // Detect dimension sheet: needs item_number, unit, width, depth, height
-    const dimSheet=sheets.find(s=>{const hr=this.detectHeaderRow(s.rows,['item_number','unit','width','depth','height'],20);const h=this.denseHeader(s.rows[hr],c=>this.key(String(c??'')));return ['item_number','unit','width','depth','height'].every(x=>h.includes(this.key(x)))});
-    // Detect carton sheet: needs carton_id, carton_name, carton dimensions
-    const cartonSheet=sheets.find(s=>{const hr=this.detectHeaderRow(s.rows,['carton_id','carton_name','carton_width_cm','carton_depth_cm','carton_height_cm'],20);const h=this.denseHeader(s.rows[hr],c=>this.key(String(c??'')));return ['carton_id','carton_name','carton_width_cm','carton_depth_cm','carton_height_cm'].every(x=>h.includes(this.key(x)))});
+    // Detect dimension sheet: prefer sheet name "Dimension"
+    const dimSheet=sheets.find(s=>s.name==='Dimension')||sheets.find(s=>{
+      const hr=this.detectHeaderRow(s.rows,['item_number','unit','width','depth','height'],20);
+      const h=this.denseHeader(s.rows[hr],c=>this.canonicalKey(String(c??'')));
+      return ['item_number','unit','width','depth','height'].every(x=>h.includes(x));
+    });
+    // Detect carton sheet: prefer sheet name "Mastercarton_Dimensions"
+    const cartonSheet=sheets.find(s=>s.name==='Mastercarton_Dimensions')||sheets.find(s=>{
+      const hr=this.detectHeaderRow(s.rows,['carton_id','carton_name','carton_width_cm','carton_depth_cm','carton_height_cm'],20);
+      const h=this.denseHeader(s.rows[hr],c=>this.canonicalKey(String(c??'')));
+      return ['carton_id','carton_name','carton_width_cm','carton_depth_cm','carton_height_cm'].every(x=>h.includes(x));
+    });
     if(!dimSheet||!cartonSheet)return null;
-    // Detect relation sheet (optional): needs fg_id/finishgood_id, fg_name, and mastercarton_id or qtyperfg
-    const relSheet=sheets.find(s=>{const hr=this.detectHeaderRow(s.rows,['fg_id','mastercarton_id'],20);const h=this.denseHeader(s.rows[hr],c=>this.key(String(c??'')));const hasFg=h.includes('fg_id')||h.some(c=>c==='finishgood_id'||c==='finished_good_id');const hasMc=h.includes('mastercarton_id');return hasFg&&hasMc})||null;
-    // Re-detect dimension/carton headers with found sheet rows
+    // Detect relation sheet (optional)
+    const relSheet=sheets.find(s=>{
+      const hr=this.detectHeaderRow(s.rows,['fg_id','mastercarton_id'],20);
+      const h=this.denseHeader(s.rows[hr],c=>this.canonicalKey(String(c??'')));
+      const hasFg=h.includes('fg_id')||h.some(c=>c==='finishgood_id'||c==='finished_good_id');
+      const hasMc=h.includes('mastercarton_id');
+      return hasFg&&hasMc;
+    })||null;
+    // --- Parse dimension rows with safe column index (first occurrence wins) ---
     const dimHeaderRow=this.detectHeaderRow(dimSheet.rows,['item_number','unit','width','depth','height'],20);
-    const dimHeader=this.denseHeader(dimSheet.rows[dimHeaderRow],c=>this.key(String(c??'')));
-    const dimRows=this.rowsFromHeader(dimSheet.rows.slice(dimHeaderRow+1),dimHeader);
-    const cartonHeaderRow=this.detectHeaderRow(cartonSheet.rows,['carton_id','carton_name','carton_width_cm','carton_depth_cm','carton_height_cm'],20);
-    const cartonHeader=this.denseHeader(cartonSheet.rows[cartonHeaderRow],c=>this.key(String(c??'')));
-    const cartonRows=this.rowsFromHeader(cartonSheet.rows.slice(cartonHeaderRow+1),cartonHeader);
-    // Only positive EA/color-box dimensions are valid.
+    const dimHeaderCells=Array.from({length:(dimSheet.rows[dimHeaderRow]||[]).length},(_,i)=>(dimSheet.rows[dimHeaderRow]&&i in dimSheet.rows[dimHeaderRow])?dimSheet.rows[dimHeaderRow][i]:'');
+    const dimIdx=this.buildHeaderIndex(dimHeaderCells);
+    const dimItemCol=this.findHeaderIndex(dimIdx,['Item number','Item No','Item','Item ID','FG','FG ID','Finished Good ID']);
+    const dimUnitCol=this.findHeaderIndex(dimIdx,['Unit','UOM']);
+    const dimWidthCol=this.findHeaderIndex(dimIdx,['Width','W']);
+    const dimDepthCol=this.findHeaderIndex(dimIdx,['Depth','Length','D','L']);
+    const dimHeightCol=this.findHeaderIndex(dimIdx,['Height','H']);
+    const dimMaxLen=dimHeaderCells.length;
+    const dimRows=[];
+    for(const row of dimSheet.rows.slice(dimHeaderRow+1)){
+      const cells=Array.from({length:dimMaxLen},(_,i)=>(row&&i in row)?row[i]:'');
+      const unit=String(cells[dimUnitCol]??'').trim().toUpperCase();
+      if(unit!=='EA')continue;
+      const id=String(cells[dimItemCol]??'').trim();
+      if(!id)continue;
+      const w=this.num(cells[dimWidthCol]),d=this.num(cells[dimDepthCol]),h=this.num(cells[dimHeightCol]);
+      if(![w,d,h].every(Number.isFinite))continue;
+      dimRows.push({item_number:id,width:w,depth:d,height:h});
+    }
     const dimensionByItem=new Map(),dimensionSignatures=new Map(),dimensionConflicts=new Set();
-    for(const r of dimRows){if(this.text(r.unit).toUpperCase()!=='EA')continue;const id=this.text(r.item_number),values=[this.num(r.width),this.num(r.depth),this.num(r.height)];if(!id||!values.every(Number.isFinite))continue;const signature=values.map(n=>Number(n.toFixed(6))).join('|');if(dimensionSignatures.has(id)&&dimensionSignatures.get(id)!==signature)dimensionConflicts.add(id);dimensionSignatures.set(id,signature);dimensionByItem.set(id,r);}
-    // Parse relation rows with alias support
-    const relRows=relSheet?(()=>{const hr=this.detectHeaderRow(relSheet.rows,['fg_id','mastercarton_id'],20);const h=this.denseHeader(relSheet.rows[hr],c=>this.canonicalKey(String(c??''),'fg_relation'));return this.rowsFromHeader(relSheet.rows.slice(hr+1),h)})():[];
+    for(const r of dimRows){
+      const id=String(r.item_number).trim(),values=[r.width,r.depth,r.height];
+      const signature=values.map(n=>Number(n.toFixed(6))).join('|');
+      if(dimensionSignatures.has(id)&&dimensionSignatures.get(id)!==signature)dimensionConflicts.add(id);
+      dimensionSignatures.set(id,signature);dimensionByItem.set(id,r);
+    }
+    // --- Parse carton rows with safe column index ---
+    const cartonHeaderRow=this.detectHeaderRow(cartonSheet.rows,['carton_id','carton_name','carton_width_cm','carton_depth_cm','carton_height_cm'],20);
+    const cartonHeaderCells=Array.from({length:(cartonSheet.rows[cartonHeaderRow]||[]).length},(_,i)=>(cartonSheet.rows[cartonHeaderRow]&&i in cartonSheet.rows[cartonHeaderRow])?cartonSheet.rows[cartonHeaderRow][i]:'');
+    const cartonIdx=this.buildHeaderIndex(cartonHeaderCells);
+    const cIdCol=this.findHeaderIndex(cartonIdx,['carton_id','Carton ID','carton id','cartonid','mc id']);
+    const cNameCol=this.findHeaderIndex(cartonIdx,['carton_name','Carton Name','carton name','cartonname','mc name']);
+    const cWCol=this.findHeaderIndex(cartonIdx,['carton_width_cm','carton width cm','width cm','width_cm','mc width']);
+    const cDCol=this.findHeaderIndex(cartonIdx,['carton_depth_cm','carton depth cm','depth cm','depth_cm','mc depth']);
+    const cHCol=this.findHeaderIndex(cartonIdx,['carton_height_cm','carton height cm','height cm','height_cm','mc height']);
+    const cLifeCol=this.findHeaderIndex(cartonIdx,['carton_lifecycle','carton lifecycle','cartonlifecycle','lifecycle']);
+    const cQtyCol=this.findHeaderIndex(cartonIdx,['fg_per_carton','fg per carton','fgpercarton','fg per mastercarton','qtyperfg']);
+    const cartonMaxLen=cartonHeaderCells.length;
+    const cartonRows=[];
+    for(const row of cartonSheet.rows.slice(cartonHeaderRow+1)){
+      const cells=Array.from({length:cartonMaxLen},(_,i)=>(row&&i in row)?row[i]:'');
+      const id=String(cells[cIdCol]??'').trim();
+      const name=String(cells[cNameCol]??'').trim();
+      if(!id&&!name)continue;
+      cartonRows.push({carton_id:id,carton_name:name,carton_width_cm:cells[cWCol],carton_depth_cm:cells[cDCol],carton_height_cm:cells[cHCol],carton_lifecycle:cells[cLifeCol],fg_per_carton:cells[cQtyCol]});
+    }
+    // --- Parse relation rows (FG_Carton_Lith_Lable or similar) ---
+    const relRows=relSheet?(()=>{
+      const hr=this.detectHeaderRow(relSheet.rows,['fg_id','mastercarton_id'],20);
+      const h=this.denseHeader(relSheet.rows[hr],c=>this.canonicalKey(String(c??''),'fg_relation'));
+      return this.rowsFromHeader(relSheet.rows.slice(hr+1),h);
+    })():[];
     const fgById=new Map();
     relRows.forEach((r,i)=>{const id=this.text(r.fg_id)||this.text(r.finishgood_id)||this.text(r.finished_good_id)||this.text(r.finishgood_name)||'';if(!id)return;const hasDimensionRecord=dimensionByItem.has(id),d=dimensionByItem.get(id)||{},mvpId=this.text(r.mastercarton_id)||this.text(r.mastercarton_name)||'',mvpName=this.text(r.mastercarton_name)||this.text(r.mastercarton_id)||'';let target=this.int(r.fg_per_mastercarton)||this.int(r.qtypermastercarton)||this.int(r.qty_per_mastercarton);if(!Number.isInteger(target)||target<1)target=NaN;fgById.set(id,{fg_id:id,fg_name:this.text(r.fg_name)||this.text(r.finishgood_name)||this.text(r.finished_good_name)||'',width:this.num(d.width)*this.CM_TO_MM,depth:this.num(d.depth)*this.CM_TO_MM,height:this.num(d.height)*this.CM_TO_MM,target,assignedCartonId:mvpId,assignedCartonName:mvpName,mvpAssignedCartonId:mvpId,mvpAssignedCartonName:mvpName,fgLifecycle:this.text(r.fg_lifecycle)||'',assignedCartonLifecycle:this.text(r.carton_lifecycle)||'',hasDimensionRecord,dimensionConflict:dimensionConflicts.has(id),row:i+2})});
     for(const [id,d] of dimensionByItem)if(!fgById.has(id))fgById.set(id,{fg_id:id,fg_name:'',width:this.num(d.width)*this.CM_TO_MM,depth:this.num(d.depth)*this.CM_TO_MM,height:this.num(d.height)*this.CM_TO_MM,target:NaN,assignedCartonId:'',assignedCartonName:'',mvpAssignedCartonId:'',mvpAssignedCartonName:'',hasDimensionRecord:true,dimensionConflict:dimensionConflicts.has(id)});
     const fgs=[...fgById.values()],cartons=cartonRows.map((r,i)=>({carton_id:this.text(r.carton_id),carton_name:this.text(r.carton_name),width:this.num(r.carton_width_cm)*this.CM_TO_MM,depth:this.num(r.carton_depth_cm)*this.CM_TO_MM,height:this.num(r.carton_height_cm)*this.CM_TO_MM,defaultQty:this.int(r.fg_per_carton),lifecycle:this.text(r.carton_lifecycle),row:i+2})).filter(x=>x.carton_id||x.carton_name);
-    if(!fgs.length)throw new Error('Dimension_FG_packaging has no valid EA FG rows.');if(!cartons.length)throw new Error('Mastercarton_Dimensions has no carton rows.');return {fgs,cartons,fgSheet:relSheet?`${dimSheet.name} + ${relSheet.name}`:dimSheet.name,cartonSheet:cartonSheet.name,relationSheet:relSheet?.name||'',dimensionSheet:dimSheet.name,cartonDimensionSheet:cartonSheet.name};
+    if(!fgs.length)throw new Error('Dimension sheet has no valid EA FG rows.');if(!cartons.length)throw new Error('Mastercarton_Dimensions has no carton rows.');return {fgs,cartons,fgSheet:relSheet?`${dimSheet.name} + ${relSheet.name}`:dimSheet.name,cartonSheet:cartonSheet.name,relationSheet:relSheet?.name||'',dimensionSheet:dimSheet.name,cartonDimensionSheet:cartonSheet.name};
   }
   static rows(sheet){const headerRowIdx=sheet.headerRow||0;return this.rowsFromHeader(sheet.rows.slice(headerRowIdx+1),sheet.header)}
   static rawRows(sheet){const headerRowIdx=sheet.headerRow||0;return sheet.rows.slice(headerRowIdx+1)}
