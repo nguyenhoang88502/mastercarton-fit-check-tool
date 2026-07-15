@@ -27,6 +27,208 @@
   .loader-text{color:#fff;font-weight:600;font-size:14px;letter-spacing:.02em;text-shadow:0 1px 3px rgba(0,0,0,.4)}
   html[data-theme="dark"] .loader-overlay{background:rgba(0,0,0,.7)}
   .shared-carton-panel .table-wrap{max-height:320px;overflow:auto}.shared-carton-panel table{table-layout:auto;min-width:900px}.shared-carton-panel th,.shared-carton-panel td{padding:8px 10px;vertical-align:middle}.shared-carton-panel .dim-cell{white-space:nowrap}.shared-carton-panel .id-cell{white-space:nowrap;font-weight:600}.shared-carton-panel .num-cell{text-align:right;white-space:nowrap}
+
+.audit-section {
+  border: 1px solid #c4addd;
+  border-left: 5px solid #7b52ab;
+  background: linear-gradient(135deg, var(--panel), var(--soft));
+}
+
+.audit-heading {
+  align-items: flex-start;
+}
+
+.audit-form-clean {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1fr) minmax(130px, .55fr) minmax(190px, .8fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.audit-form-clean label {
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.audit-form-clean input,
+.audit-form-clean select {
+  height: 36px;
+  border: 1px solid #aeb9c3;
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: var(--input);
+  color: var(--ink);
+}
+
+.audit-form-clean .audit-note {
+  grid-column: 1 / 4;
+}
+
+.audit-actions-row {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: end;
+}
+
+.audit-actions-row button {
+  min-height: 36px;
+}
+
+.audit-results-clean {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.audit-results-clean[hidden] {
+  display: none;
+}
+
+.audit-summary {
+  grid-column: 1 / -1;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--soft);
+  font-weight: 700;
+}
+
+.audit-summary.good { border-left: 5px solid var(--good); }
+.audit-summary.warn { border-left: 5px solid var(--warn); }
+.audit-summary.bad { border-left: 5px solid var(--bad); }
+
+.audit-card {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  padding: 12px;
+  min-width: 0;
+}
+
+.audit-card.current {
+  border-top: 4px solid var(--warn);
+}
+
+.audit-card.optimized {
+  border-top: 4px solid var(--good);
+}
+
+.audit-card h3 {
+  font-size: 14px;
+  margin: 0 0 10px;
+  color: var(--ink);
+}
+
+.audit-metric {
+  font-size: 26px;
+  font-weight: bold;
+  margin: 4px 0;
+}
+
+.audit-metric.good { color: var(--good); }
+.audit-metric.warn { color: var(--warn); }
+.audit-metric.bad { color: var(--bad); }
+
+.audit-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+  margin: 10px 0;
+}
+
+.audit-stats div {
+  border-bottom: 1px solid var(--line);
+  padding: 5px 0;
+}
+
+.audit-stats span {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.audit-explanation {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--soft);
+  margin: 8px 0;
+}
+
+.audit-result-table {
+  grid-column: 1 / -1;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.audit-result-table table {
+  min-width: 980px;
+}
+
+.audit-result-table th,
+.audit-result-table td {
+  white-space: nowrap;
+}
+
+.audit-result-table .name-cell {
+  white-space: normal;
+  min-width: 180px;
+}
+
+.audit-result-table .num-cell {
+  text-align: right;
+}
+
+.audit-warning {
+  color: var(--bad);
+  font-weight: 700;
+}
+
+.audit-ok {
+  color: var(--good);
+  font-weight: 700;
+}
+
+@media(max-width: 900px) {
+  .audit-form-clean {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .audit-form-clean .audit-note,
+  .audit-actions-row {
+    grid-column: 1 / -1;
+  }
+
+  .audit-results-clean {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-summary,
+  .audit-result-table {
+    grid-column: auto;
+  }
+}
+
+@media(max-width: 620px) {
+  .audit-form-clean {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-actions-row {
+    justify-content: stretch;
+  }
+
+  .audit-actions-row button {
+    width: 100%;
+  }
+}
 </style>
 </head>
 <body>
@@ -51,6 +253,65 @@
     <div id="sharedCartonTable" class="table-wrap"></div>
     <div class="footnote" data-i18n="sharedCartonFootnote">Suggestions use physical fit only. Existing cartons with matching dimensions are listed as matches, not new lines.</div>
   </section>
+
+<section class="section workflow-card audit-section" id="auditSection">
+  <div class="section-heading audit-heading">
+    <div>
+      <h2 data-i18n="auditTitle">Historical BOM Existing-Carton Audit</h2>
+      <div class="source-note" data-i18n="auditSubtitle">
+        Audit one FG/current-carton pairing and recommend the best existing carton only. This section never creates a new carton line.
+      </div>
+    </div>
+  </div>
+
+  <form id="auditForm" class="audit-form-clean">
+    <label>
+      <span data-i18n="auditFgId">Finished Good ID</span>
+      <input id="auditFgId" type="text" maxlength="80" required placeholder="e.g., 1010505">
+    </label>
+
+    <label>
+      <span data-i18n="auditMcId">Current Master Carton ID</span>
+      <input id="auditMcId" type="text" maxlength="80" required placeholder="Auto-filled or type carton ID">
+      <span id="auditMcNote" class="footnote" data-i18n="auditMcEnterFg">
+        Enter FG ID to auto-fill from Weekly BOM
+      </span>
+    </label>
+
+    <label>
+      <span data-i18n="auditThreshold">Underutilization threshold (%)</span>
+      <input id="auditThreshold" type="number" min="1" max="100" step="1" value="75">
+    </label>
+
+    <label>
+      <span data-i18n="productionConfirmedLabel">Production-confirmed packing?</span>
+      <select id="auditProductionConfirmed">
+        <option value="unknown" data-i18n="unknown">Unknown</option>
+        <option value="yes" data-i18n="yes">Yes</option>
+        <option value="no" data-i18n="no">No</option>
+      </select>
+    </label>
+
+    <label class="audit-note">
+      <span data-i18n="packingEvidenceLabel">Packing note / evidence</span>
+      <input id="auditPackingNote" type="text" maxlength="300" placeholder="e.g., operator packs 4 pcs with mixed orientation">
+    </label>
+
+    <div class="audit-actions-row">
+      <button class="primary" type="submit" data-i18n="auditCurrentCarton">Audit current carton</button>
+      <button type="button" id="auditClearButton" data-i18n="clearAudit">Clear audit</button>
+    </div>
+  </form>
+
+  <div id="auditResults" class="audit-results-clean" hidden>
+    <div id="auditSummary" class="audit-summary"></div>
+    <div id="auditCurrent" class="audit-card current"></div>
+    <div id="auditSuggested" class="audit-card optimized"></div>
+    <div id="auditAlternativesTable" class="audit-result-table"></div>
+    <span id="auditActionStatus" hidden></span>
+  </div>
+</section>
+
   <section class="section selection">
     <label for="fgSearchInput" data-i18n="searchFgId">Search FG ID:</label><input id="fgSearchInput" type="search" autocomplete="off" data-i18n-placeholder="fgSearchPlaceholder" placeholder="Type FG ID…" disabled><label for="fgSelect" data-i18n="selectFg">Existing FG:</label><select id="fgSelect" disabled><option value="">Loading workbook…</option></select><span id="selectedDataStatus" class="link-badge neutral" hidden></span>
     <span id="fgInfo" class="fg-info">FG size: —</span>
@@ -114,6 +375,98 @@ class I18n {
     Object.assign(this.text.vi,{suggestSharedCarton:'Tạo thùng dùng chung mới',sharedCartonTitle:'Phương án thùng dùng chung mới được tạo',sharedCartonAdvisory:'CHỈ ĐỌC — Kích thước thùng dùng chung được tạo cần xác nhận bằng mẫu thực tế.',sharedCartonFootnote:'Chỉ hiển thị kích thước thùng mới được tạo. Không xếp hạng thùng hiện có ở đây. Kích thước trong dùng để kiểm tra fit; kích thước ngoài gồm độ dày thành thùng 10 mm mỗi bên.',sharedCartonKind:'Loại đề xuất',existingMatch:'Thùng hiện có — tham khảo',newSharedLine:'Dòng thùng dùng chung mới',sharedFgCount:'Số FG hiện có hỗ trợ',noSharedSuggestion:'Không có phương án thùng dùng chung nào',noSharedSuggestionDetail:'Không có phương án thùng mới nào đạt 90% mức sử dụng cho NPI. Hãy kiểm tra lại số lượng mục tiêu hoặc kích thước.',sharedAddsValue:'Mang lại giá trị dùng chung',sharedExistingStrong:'Đã có thùng hiện có với mức dùng chung tốt',suggestedExistingCarton:'Thùng hiện có tốt nhất được đề xuất',betterExistingCartonFound:'Đã tìm thấy thùng hiện có tốt hơn',noBetterExistingCartonFound:'Không có thùng hiện có nào chứa được số lượng mục tiêu này.',auditExistingOnlyNote:'Chỉ xét thùng hiện có — phần audit không tạo mã thùng mới.',insideDimensions:'Trong L×R×C mm',outsideDimensions:'Ngoài L×R×C mm',wallAllowance:'Thành thùng: 10 mm/mặt',supportsExistingFgs:'Hỗ trợ FG hiện có',viewSuggestedExisting3d:'Xem 3D thùng hiện có đề xuất',volumeReduction:'Giảm thể tích',utilizationGain:'Cải thiện mức sử dụng',notExistingCartonId:'Không phải mã thùng hiện có',autoFilledEditable:'Tự điền từ BOM tuần; có thể chỉnh sửa',optimizedForExistingFgs:'Tối ưu để hỗ trợ các FG hiện có',generatedNewDims:'Kích thước thùng mới được tạo',newSharedLineProposal:'Đề xuất mã thùng dùng chung mới',existingRefOnly:'Thùng hiện có — chỉ tham khảo',noAssignmentFound:'Không tìm thấy Master Carton được gán trong BOM tuần; nhập thùng thủ công',manualOverrideNote:'Ghi đè thùng thủ công; có thể chỉnh sửa',clearAll:'Xóa tất cả',clearAllDone:'Đã xóa toàn bộ ô nhập',notSupportedFgs:'Không hỗ trợ',manualNpiUtilization:'Mức dùng NPI',noGeneratedAbove90:'Không có phương án thùng mới nào đạt 90% mức sử dụng cho NPI. Hãy kiểm tra lại số lượng mục tiêu hoặc kích thước.',existingCartonRefs:'Thùng hiện có để tham khảo',auditSuggestExisting:'Đánh giá và đề xuất thùng hiện có',auditMcAuto:'Tự điền từ BOM tuần; có thể chỉnh sửa',auditMcNone:'Không tìm thấy thùng trong BOM tuần; hãy nhập mã thùng thủ công',auditMcManual:'Đang dùng mã thùng nhập tay; có thể chỉnh sửa',auditMcWaiting:'Đang chờ dữ liệu BOM tuần',auditMcEnterFg:'Nhập mã FG để tự điền từ BOM tuần',auditFgNotFound:'Không tìm thấy mã FG {id} trong dữ liệu kích thước đã tải.',auditFgMissingDims:'Mã FG {id} thiếu hoặc có kích thước mâu thuẫn.',auditCartonNotFound:'Không tìm thấy mã Master Carton {id} hoặc thiếu kích thước hợp lệ.',auditTargetMissing:'Không tìm thấy số lượng mục tiêu của FG này trong BOM tuần. Không thể đánh giá thùng hiện có một cách tin cậy.',auditCurrentPass:'Thùng hiện tại vừa và đạt ngưỡng sử dụng.',auditCurrentFail:'Thùng hiện tại không vừa. Đang tìm thùng hiện có phù hợp nhất.',auditCurrentUnderThreshold:'Thùng hiện tại vừa nhưng thấp hơn ngưỡng sử dụng. Đang tìm thùng hiện có tốt hơn.',noAuditCandidateEvaluated:'Không có thùng hiện có nào để đánh giá.',auditClosestDoesNotFit:'Thùng hiện có gần nhất — vẫn không vừa',auditNoFittingExists:'Không có thùng hiện có nào chứa đủ số lượng mục tiêu. Đây là thùng hiện có gần nhất, không phải là đạt.',auditTop5Title:'Top 5 Thùng Hiện Có Ứng Viên',auditFittingLabel:'thùng vừa',auditClosestLabel:'thùng gần nhất (có thể không vừa)',currentCartonIsBest:'Thùng hiện tại đã là lựa chọn hiện có tốt nhất',shortage:'Thiếu hụt',auditSubtitle:'Đánh giá một cặp FG/thùng hiện tại và chỉ đề xuất thùng hiện có tốt nhất. Phần này không tạo mã thùng mới.',auditCurrentCarton:'Đánh giá thùng hiện tại',clearAudit:'Xóa audit',auditCurrentCard:'Kiểm tra thùng hiện tại',auditSuggestionCard:'Thùng hiện có tốt nhất được đề xuất',auditClosestCard:'Thùng hiện có gần nhất — vẫn không vừa',auditNoFitSummary:'Thùng hiện tại không vừa. Đang tìm thùng hiện có phù hợp nhất.',auditUnderSummary:'Thùng hiện tại vừa nhưng thấp hơn ngưỡng sử dụng. Đang tìm thùng hiện có tốt hơn.',auditAcceptableSummary:'Thùng hiện tại chấp nhận được. Hiển thị thùng hiện có tốt nhất để so sánh.',auditNoExistingFits:'Không có thùng hiện có nào chứa đủ số lượng mục tiêu. Đây là thùng gần nhất, không phải kết quả đạt.',auditNoCandidate:'Không thể đánh giá ứng viên thùng hiện có nào.',auditFgMissing:'Không tìm thấy FG hoặc thiếu kích thước hợp lệ.',auditCartonMissing:'Không tìm thấy Master Carton hiện tại hoặc thiếu kích thước hợp lệ.',auditInputMissing:'Nhập mã FG và mã Master Carton hiện tại.',auditTopAlternatives:'Các thùng hiện có phù hợp nhất',auditPass:'ĐẠT',auditFail:'KHÔNG ĐẠT',auditStillFail:'KHÔNG VỪA',auditShortage:'Thiếu',auditCapacity:'Sức chứa',auditTarget:'Mục tiêu',auditUtilization:'Mức sử dụng',auditThresholdLabel:'Ngưỡng',auditVolumeReduction:'Giảm thể tích',auditUtilizationGain:'Tăng mức sử dụng',auditLifecycle:'Vòng đời',auditView3d:'Xem 3D'});
     Object.assign(this.text.vi,{passSimpleGrid:'ĐẠT',rigidModelFail:'KHÔNG VỪA THEO KÍCH THƯỚC ĐÃ ĐO',manualValidationRequired:'CẦN KIỂM TRA THỰC TẾ',productionModelLimitation:'CẦN KIỂM TRA CÁCH ĐÓNG SẢN XUẤT',explainPassSimpleGrid:'Số lượng mục tiêu vừa theo kích thước đã đo.',explainRigidModelFail:'Tổng thể tích FG đã đo lớn hơn thể tích thùng. Hãy kiểm tra kích thước EA và kích thước trong của thùng.',explainManualValidation:'Kiểm tra tự động chưa thể xác nhận đủ số lượng mục tiêu. Hãy thử mẫu thực tế.',explainProductionLimitation:'Sản xuất báo cáo đang dùng tổ hợp này nhưng kích thước đã đo không tái hiện được cách đóng. Hãy kiểm tra dữ liệu kích thước và cách đóng thực tế.'});
     for(const key of ['addNpi','sessionAdded','duplicateId','applyOptimized','overrideApplied']){delete this.text.en[key];delete this.text.vi[key]}
+    
+    Object.assign(this.text.en, {
+      auditTitle: "Historical BOM Existing-Carton Audit",
+      auditSubtitle: "Audit one FG/current-carton pairing and recommend the best existing carton only. This section never creates a new carton line.",
+      auditFgId: "Finished Good ID",
+      auditMcId: "Current Master Carton ID",
+      auditThreshold: "Underutilization threshold (%)",
+      auditCurrentCarton: "Audit current carton",
+      clearAudit: "Clear audit",
+      auditMcEnterFg: "Enter FG ID to auto-fill from Weekly BOM",
+      auditMcAuto: "Auto-filled from Weekly BOM; editable",
+      auditMcNone: "No Weekly BOM carton assignment found; enter carton manually",
+      auditMcManual: "Manual carton override; editable",
+      auditMcWaiting: "Waiting for Weekly BOM data",
+      auditCurrentCard: "Current carton check",
+      auditSuggestionCard: "Best existing carton suggestion",
+      auditClosestCard: "Best available existing carton — still does not fit",
+      auditNoFitSummary: "Current carton does not fit. Searching existing cartons for the best available option.",
+      auditUnderSummary: "Current carton fits but is below utilization threshold. Searching better existing cartons.",
+      auditAcceptableSummary: "Current carton is acceptable. Best existing alternative shown for comparison.",
+      auditNoExistingFits: "No existing carton fully fits this target. This is the closest existing carton, not a pass.",
+      auditNoCandidate: "No existing carton candidate could be evaluated.",
+      auditTargetMissing: "Target quantity not found for this FG in Weekly BOM. Cannot audit existing carton reliably.",
+      auditFgMissing: "FG not found or missing valid dimensions.",
+      auditCartonMissing: "Current Master Carton not found or missing valid dimensions.",
+      auditInputMissing: "Enter Finished Good ID and Current Master Carton ID.",
+      auditTopAlternatives: "Top existing carton alternatives",
+      auditPass: "PASS",
+      auditFail: "FAIL",
+      auditStillFail: "DOES NOT FIT",
+      auditShortage: "Shortage",
+      auditCapacity: "Capacity",
+      auditTarget: "Target",
+      auditUtilization: "Utilization",
+      auditThresholdLabel: "Threshold",
+      auditVolumeReduction: "Volume reduction",
+      auditUtilizationGain: "Utilization gain",
+      auditLifecycle: "Lifecycle",
+      auditView3d: "View 3D",
+      productionConfirmedLabel: "Production-confirmed packing?",
+      packingEvidenceLabel: "Packing note / evidence",
+      packingEvidencePlaceholder: "e.g., operator packs 4 pcs with mixed orientation",
+      unknown: "Unknown",
+      yes: "Yes",
+      no: "No"
+    });
+
+    Object.assign(this.text.vi, {
+      auditTitle: "Đánh giá thùng hiện có theo BOM lịch sử",
+      auditSubtitle: "Đánh giá một cặp FG/thùng hiện tại và chỉ đề xuất thùng hiện có tốt nhất. Phần này không tạo mã thùng mới.",
+      auditFgId: "Mã thành phẩm FG",
+      auditMcId: "Mã Master Carton hiện tại",
+      auditThreshold: "Ngưỡng sử dụng thấp (%)",
+      auditCurrentCarton: "Đánh giá thùng hiện tại",
+      clearAudit: "Xóa audit",
+      auditMcEnterFg: "Nhập mã FG để tự điền từ BOM tuần",
+      auditMcAuto: "Tự điền từ BOM tuần; có thể chỉnh sửa",
+      auditMcNone: "Không tìm thấy thùng trong BOM tuần; hãy nhập mã thùng thủ công",
+      auditMcManual: "Đang dùng mã thùng nhập tay; có thể chỉnh sửa",
+      auditMcWaiting: "Đang chờ dữ liệu BOM tuần",
+      auditCurrentCard: "Kiểm tra thùng hiện tại",
+      auditSuggestionCard: "Thùng hiện có tốt nhất được đề xuất",
+      auditClosestCard: "Thùng hiện có gần nhất — vẫn không vừa",
+      auditNoFitSummary: "Thùng hiện tại không vừa. Đang tìm thùng hiện có phù hợp nhất.",
+      auditUnderSummary: "Thùng hiện tại vừa nhưng thấp hơn ngưỡng sử dụng. Đang tìm thùng hiện có tốt hơn.",
+      auditAcceptableSummary: "Thùng hiện tại chấp nhận được. Hiển thị thùng hiện có tốt nhất để so sánh.",
+      auditNoExistingFits: "Không có thùng hiện có nào chứa đủ số lượng mục tiêu. Đây là thùng gần nhất, không phải kết quả đạt.",
+      auditNoCandidate: "Không thể đánh giá ứng viên thùng hiện có nào.",
+      auditTargetMissing: "Không tìm thấy số lượng mục tiêu của FG này trong BOM tuần. Không thể đánh giá thùng hiện có một cách tin cậy.",
+      auditFgMissing: "Không tìm thấy FG hoặc thiếu kích thước hợp lệ.",
+      auditCartonMissing: "Không tìm thấy Master Carton hiện tại hoặc thiếu kích thước hợp lệ.",
+      auditInputMissing: "Nhập mã FG và mã Master Carton hiện tại.",
+      auditTopAlternatives: "Các thùng hiện có phù hợp nhất",
+      auditPass: "ĐẠT",
+      auditFail: "KHÔNG ĐẠT",
+      auditStillFail: "KHÔNG VỪA",
+      auditShortage: "Thiếu",
+      auditCapacity: "Sức chứa",
+      auditTarget: "Mục tiêu",
+      auditUtilization: "Mức sử dụng",
+      auditThresholdLabel: "Ngưỡng",
+      auditVolumeReduction: "Giảm thể tích",
+      auditUtilizationGain: "Tăng mức sử dụng",
+      auditLifecycle: "Vòng đời",
+      auditView3d: "Xem 3D",
+      productionConfirmedLabel: "Thực tế sản xuất đã đóng được?",
+      packingEvidenceLabel: "Ghi chú / bằng chứng cách đóng",
+      packingEvidencePlaceholder: "VD: công nhân đóng 4 cái bằng cách xoay xen kẽ",
+      unknown: "Không rõ",
+      yes: "Có",
+      no: "Không"
+    });
   }
   static t(key,vars={}){let s=this.text[this.language][key]??this.text.en[key]??key;for(const [k,v] of Object.entries(vars))s=s.replaceAll(`{${k}}`,v);return s}
 }
@@ -565,7 +918,7 @@ class PackingVisualizer3D {
 
 function resolveWorkbookSource(raw){const entry=typeof raw==='string'?{path:raw}:raw||{};const value=entry.url||entry.href||entry.path||entry.name||entry.file||'';if(!value)return null;const isFileUrl=/^file:\/\/\//i.test(value);const isAbsoluteWin=/^[A-Za-z]:[\\/]/.test(value);const isRelative=/^\.\.?[\\/]/.test(value)||(!isFileUrl&&!isAbsoluteWin&&/[\\/]/.test(value));const isSibling=!isFileUrl&&!isAbsoluteWin&&!isRelative&&/\.(xlsx|xlsm)$/i.test(value);let url='',type='',name=entry.name||'';if(isFileUrl){url=value;type='fileUrl'}else if(isAbsoluteWin){const cleaned=value.replace(/\\/g,'/');const encoded=cleaned.split('/').map((seg,i)=>i===0&&/^[A-Za-z]:$/i.test(seg)?seg:encodeURIComponent(seg)).join('/');url='file:///'+encoded.replace(/^file:\/\/+/,'file:///');type='absolutePath'}else if(isRelative){try{url=new URL(value,location.href).href;type='relativePath'}catch(_){url=encodeURI(value);type='relativePath'}}else if(isSibling){try{url=new URL('./'+encodeURIComponent(value),location.href).href;type='siblingName'}catch(_){url=encodeURI(value);type='siblingName'}}else{url=encodeURI(value);type='unknown'}if(!name)name=decodeURIComponent((url.split('/').pop()||value).split('?')[0]);return {value,url,type,name}}
 class UiController {
-  constructor(){this.file=document.querySelector('#fileInput');this.drop=document.querySelector('#dropZone');this.select=document.querySelector('#fgSelect');this.target=document.querySelector('#targetQty');this.targetLabel=document.querySelector('#targetLabel');this.fgInfo=document.querySelector('#fgInfo');this.msg=document.querySelector('#message');this.existing=document.querySelector('#existingTable');this.existingStatus=document.querySelector('#existingStatus');this.proposals=document.querySelector('#proposalPanel');this.proposalTable=document.querySelector('#proposalTable');this.proposalStatus=document.querySelector('#proposalStatus');this.temporaryId=document.querySelector('#temporaryId');this.dataTools=document.querySelector('#dataTools');this.linkagePanel=document.querySelector('#linkagePanel');this.linkageOverall=document.querySelector('#linkageOverall');this.linkageFlow=document.querySelector('#linkageFlow');this.linkageCards=document.querySelector('#linkageCards');this.loaderOverlay=document.querySelector('#loaderOverlay');this.loaderText=document.querySelector('#loaderText');this.visual=new PackingVisualizer3D(document.querySelector('#packingSvg'),document.querySelector('#visualSummary'));this.data=null;this.current=null;this.activeContext='fit';this.manualMode=false;this.tempCartonId='';this.theme='light';this.weeklyBomState='loading';this._fgSearchTimer=null;this._dimensionSourceName='';this.sources={workbook:{href:'',name:'',manual:false},bom:{href:'',name:'',manual:false}};this.bind();this.applyLanguage();}
+  constructor(){this.file=document.querySelector('#fileInput');this.drop=document.querySelector('#dropZone');this.select=document.querySelector('#fgSelect');this.target=document.querySelector('#targetQty');this.targetLabel=document.querySelector('#targetLabel');this.fgInfo=document.querySelector('#fgInfo');this.msg=document.querySelector('#message');this.existing=document.querySelector('#existingTable');this.existingStatus=document.querySelector('#existingStatus');this.proposals=document.querySelector('#proposalPanel');this.proposalTable=document.querySelector('#proposalTable');this.proposalStatus=document.querySelector('#proposalStatus');this.temporaryId=document.querySelector('#temporaryId');this.dataTools=document.querySelector('#dataTools');this.linkagePanel=document.querySelector('#linkagePanel');this.linkageOverall=document.querySelector('#linkageOverall');this.linkageFlow=document.querySelector('#linkageFlow');this.linkageCards=document.querySelector('#linkageCards');this.loaderOverlay=document.querySelector('#loaderOverlay');this.loaderText=document.querySelector('#loaderText');this.visual=new PackingVisualizer3D(document.querySelector('#packingSvg'),document.querySelector('#visualSummary'));this.data=null;this.current=null;this.activeContext='fit';this.manualMode=false;this.tempCartonId='';this.theme='light';this.weeklyBomState='loading';this._fgSearchTimer=null;this._dimensionSourceName='';this.sources={workbook:{href:'',name:'',manual:false},bom:{href:'',name:'',manual:false}};this.auditMcUserEdited = false;this.lastAuditAutoFilledFgId = '';this.lastAuditAutoFilledCartonId = '';this.auditAutoFillTimer = null;this.auditModuleBound = false;this.bind();this.applyLanguage();}
   showLoader(text='Loading data…'){this.loaderText.textContent=text;this.loaderOverlay.classList.add('active')}
   hideLoader(){this.loaderOverlay.classList.remove('active')}
   async loadWorkbookFromManifestEntry(entry,label='workbook'){const resolved=resolveWorkbookSource(entry);if(!resolved)throw new Error(`No usable source found in ${label} manifest entry.`);console.debug(`[${label} manifest] resolved: type=${resolved.type}, name=${resolved.name}, url=${resolved.url}`);this.showLoader(`${this.t('reading')} ${resolved.name}…`);try{const response=await fetch(resolved.url,{cache:'no-store'});if(!response.ok&&response.status!==0)throw new Error(`${response.status} ${response.statusText}`);const blob=await response.blob();const file=new File([blob],resolved.name,{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});console.debug(`[${label} manifest] fetched ${blob.size} bytes from ${resolved.type}`);return {file,sourceHref:/^file:/i.test(resolved.url)?resolved.url:''};}catch(e){console.error(`[${label} manifest] fetch failed: ${e.message}`);throw e}}
@@ -582,6 +935,7 @@ class UiController {
     document.querySelector('#themeToggle').addEventListener('click',()=>this.toggleTheme());document.querySelector('#resetButton').addEventListener('click',()=>this.reset());document.querySelector('#clearAllButton').addEventListener('click',()=>this.clearAllInputs());
     document.querySelector('#rotateLeft').addEventListener('click',()=>{this.visual.rotation=(this.visual.rotation+1)%24;this.visual.render()});document.querySelector('#rotateRight').addEventListener('click',()=>{this.visual.rotation=(this.visual.rotation-1)%24;this.visual.render()});document.querySelector('#resetView').addEventListener('click',()=>{this.visual.rotation=0;this.visual.pitch=0;this.visual.render()});
     document.querySelector('#ghostToggle').addEventListener('click',()=>{this.visual.ghosts=!this.visual.ghosts;this.updateControlText();this.visual.render()});
+    this.bindAuditModule();
   }
   applyLanguage(){document.documentElement.lang=I18n.language;document.title=this.t('title');document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=this.t(el.dataset.i18n));document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>el.placeholder=this.t(el.dataset.i18nPlaceholder));document.querySelector('#languageToggle').textContent=I18n.language==='en'?'EN / VI':'VI / EN';document.querySelector('#dataToggle').textContent=this.t(this.dataTools.hidden?'showData':'hideData');document.querySelector('#themeToggle').textContent=this.t(this.theme==='light'?'themeDark':'themeLight');this.updateControlText();this.refreshSourceLinks();this.refreshBomAlert();if(this.data)this.populateFgSelect(this.select.value);else this.select.innerHTML=`<option value="">${escapeHtml(this.t('searchFg'))}</option>`;if(!this.current){this.fgInfo.textContent=this.t('fgSize')+': —';this.existingStatus.textContent=this.t('awaiting');this.existing.innerHTML=`<div class="empty">${escapeHtml(this.t('emptyStart'))}</div>`;this.visual.empty(this.t('emptyVisual'));}}
   updateControlText(){document.querySelector('#ghostToggle').textContent=`${this.t('ghost')}: ${this.t(this.visual.ghosts?'on':'off')}`}
@@ -661,7 +1015,7 @@ class UiController {
   }
   renderProposals(rows){this.proposalStatus.textContent=rows.length?`${rows.length} ${this.t('practicalCandidates')}`:this.t('noProposal');this.proposalStatus.className='status '+(rows.length?'good':'bad');if(!rows.length){this.proposalTable.innerHTML=`<div class="empty">${escapeHtml(this.t('noProposalDetail'))}</div>`;return}const table=document.createElement('table');const insideLabel=this.t('insideDimensions'),outsideLabel=this.t('outsideDimensions'),dimsOutside=c=>`${fmt(c.width+OUTER_DIM_ALLOWANCE_MM)} × ${fmt(c.depth+OUTER_DIM_ALLOWANCE_MM)} × ${fmt(c.height+OUTER_DIM_ALLOWANCE_MM)} mm`;table.innerHTML=`<thead><tr><th>${this.t('rank')}</th><th>${this.t('tempId')}</th><th>${this.t('proposalName')}</th><th>${insideLabel} L×W×H</th><th>${outsideLabel} L×W×H</th><th class="right">${this.t('selectedCapacity')}</th><th>${this.t('selectedArrangement')}</th><th class="right">${this.t('utilization')}</th><th class="right">${this.t('supportsExistingFgs')}</th><th class="right">${this.t('averageUtil')}</th><th class="right">${this.t('minimumUtil')}</th><th class="right">${this.t('cartonVolume')}</th><th>${this.t('note')}</th><th></th></tr></thead>`;const body=document.createElement('tbody');rows.forEach((x,i)=>{const tr=document.createElement('tr'),sc=x.sharedScore,compCount=sc?sc.supportedCompleteCount:x.supportedCount,avgU=sc?sc.averageUtilization:x.avgUtil,minU=sc?sc.minimumUtilization:x.minUtil,fgSupport=sc?sc.supportedFgCount:(x.supportedCount||0);tr.innerHTML=`<td>${i+1}</td><td>${escapeHtml(x.carton.proposalId||this.tempCartonId)}</td><td>${escapeHtml(x.carton.carton_name)}</td><td>${dims(x.carton)}</td><td>${escapeHtml(dimsOutside(x.carton))}</td><td class="right">${fmt(x.selectedFit.capacity)}</td><td>${x.selectedFit.arrangement}</td><td class="right">${pct(x.selectedFit.volumeUtilization)}</td><td class="right">${fmt(compCount)}</td><td class="right">${pct(avgU)}</td><td class="right">${pct(minU)}</td><td class="right">${fmt(x.cartonVolume)} mm³</td><td class="mark-warn">${escapeHtml(this.t('notExistingCartonId'))} · ${escapeHtml(this.t('wallAllowance'))} · ${escapeHtml(this.t('sampleRequired'))}</td><td><button type="button" class="view-btn">${this.t('view3d')}</button></td>`;const view=()=>{body.querySelectorAll('tr').forEach(r=>r.classList.remove('selected'));tr.classList.add('selected');this.visual.set({fg:this.current,carton:x.carton,fit:x.selectedFit,kind:'proposal'});};tr.addEventListener('click',view);tr.querySelector('button').addEventListener('click',e=>{e.stopPropagation();view()});body.append(tr)});table.append(body);this.proposalTable.replaceChildren(table);body.querySelector('tr')?.classList.add('selected');}
   resetResults(){document.querySelector('#selectedDataStatus').hidden=true;document.querySelector('#weeklyBomPanel').hidden=true;document.querySelector('#sharedCartonPanel').hidden=true;document.querySelector('#sharedCartonTable').innerHTML='';this.current=null;this.activeContext='fit';this.manualMode=false;this.tempCartonId='';this.temporaryId.textContent='';this.targetLabel.hidden=true;this.linkagePanel.hidden=true;this.linkageOverall.textContent='';this.linkageFlow.textContent='';this.linkageCards.textContent='';this.fgInfo.textContent=this.t('fgSize')+': —';this.existingStatus.textContent=this.t('awaiting');this.existingStatus.className='status';this.existing.innerHTML=`<div class="empty">${escapeHtml(this.t('emptyStart'))}</div>`;this.proposals.hidden=true;this.visual.empty(this.t('emptyVisual'));}
-  reset(){this.file.value='';this.select.disabled=true;this.select.innerHTML=`<option value="">${escapeHtml(this.t('searchFg'))}</option>`;const search=document.querySelector('#fgSearchInput');search.value='';search.disabled=true;this.data=null;this.setSourceLink('workbook','','');this.drop.textContent=this.t('dropExcel');document.querySelector('#manualForm').reset();document.querySelector('#manualQty').value='3';this.message('');this.resetResults();this.loadManifest();}
+  reset(){this.file.value='';this.select.disabled=true;this.select.innerHTML=`<option value="">${escapeHtml(this.t('searchFg'))}</option>`;const search=document.querySelector('#fgSearchInput');search.value='';search.disabled=true;this.data=null;this.setSourceLink('workbook','','');this.drop.textContent=this.t('dropExcel');document.querySelector('#manualForm').reset();document.querySelector('#manualQty').value='3';this.message('');this.resetResults();if (typeof this.clearAuditModule === 'function') this.clearAuditModule();this.loadManifest();}
   clearAllInputs(){
     document.querySelector('#manualFgId').value='';
     document.querySelector('#manualLength').value='';document.querySelector('#manualWidth').value='';document.querySelector('#manualHeight').value='';
@@ -669,8 +1023,906 @@ class UiController {
     const search=document.querySelector('#fgSearchInput');search.value='';if(this.data)search.disabled=false;
     this.select.value='';this.target.value='';this.targetLabel.hidden=true;
     clearTimeout(this._fgSearchTimer);
-    this.resetResults();this.message(this.t('clearAllDone'),'info');
+    this.resetResults();
+    if (typeof this.clearAuditModule === 'function') this.clearAuditModule();
+    this.message(this.t('clearAllDone'),'info');
   }
+  message(text,type=''){this.msg.innerHTML=text?`<div class="${type==='error'?'error':'footnote'}">${escapeHtml(text)}</div>`:''}
+
+  bindAuditModule() {
+    if (this.auditModuleBound) return;
+    this.auditModuleBound = true;
+
+    const form = document.querySelector('#auditForm');
+    if (form) {
+      form.addEventListener('submit', (e) => this.handleAuditSubmit(e));
+    }
+
+    const fgInput = document.querySelector('#auditFgId');
+    if (fgInput) {
+      const triggerAutoFill = () => {
+        clearTimeout(this.auditAutoFillTimer);
+        this.auditAutoFillTimer = setTimeout(() => this.autoFillAuditMasterCarton(), 300);
+      };
+      fgInput.addEventListener('input', triggerAutoFill);
+      fgInput.addEventListener('change', triggerAutoFill);
+      fgInput.addEventListener('blur', triggerAutoFill);
+    }
+
+    const mcInput = document.querySelector('#auditMcId');
+    if (mcInput) {
+      mcInput.addEventListener('input', () => {
+        this.auditMcUserEdited = true;
+        this.updateAuditMcNote('manual');
+      });
+    }
+
+    const clearBtn = document.querySelector('#auditClearButton');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => this.clearAuditModule());
+    }
+
+    const tableContainer = document.querySelector('#auditAlternativesTable');
+    if (tableContainer) {
+      tableContainer.addEventListener('click', (e) => {
+        const tr = e.target.closest('tr');
+        if (tr) {
+          const btn = tr.querySelector('[data-audit-carton-id]');
+          if (btn) {
+            tableContainer.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
+            tr.classList.add('selected');
+            const cartonId = btn.getAttribute('data-audit-carton-id');
+            this.viewAuditCarton3d(cartonId);
+          }
+        }
+      });
+    }
+
+    const suggestionContainer = document.querySelector('#auditSuggested');
+    if (suggestionContainer) {
+      suggestionContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-audit-carton-id]');
+        if (btn) {
+          const cartonId = btn.getAttribute('data-audit-carton-id');
+          this.viewAuditCarton3d(cartonId);
+        }
+      });
+    }
+  }
+
+  clearAuditModule() {
+    const fgInput = document.querySelector('#auditFgId');
+    if (fgInput) fgInput.value = '';
+    const mcInput = document.querySelector('#auditMcId');
+    if (mcInput) mcInput.value = '';
+    const thresholdInput = document.querySelector('#auditThreshold');
+    if (thresholdInput) thresholdInput.value = '75';
+    const pcSelect = document.querySelector('#auditProductionConfirmed');
+    if (pcSelect) pcSelect.value = 'unknown';
+    const noteInput = document.querySelector('#auditPackingNote');
+    if (noteInput) noteInput.value = '';
+
+    const results = document.querySelector('#auditResults');
+    if (results) results.hidden = true;
+
+    const summary = document.querySelector('#auditSummary');
+    if (summary) summary.innerHTML = '';
+    const currentCard = document.querySelector('#auditCurrent');
+    if (currentCard) currentCard.innerHTML = '';
+    const suggestedCard = document.querySelector('#auditSuggested');
+    if (suggestedCard) suggestedCard.innerHTML = '';
+    const alternativesTable = document.querySelector('#auditAlternativesTable');
+    if (alternativesTable) alternativesTable.innerHTML = '';
+
+    const actionStatus = document.querySelector('#auditActionStatus');
+    if (actionStatus) {
+      actionStatus.hidden = true;
+      actionStatus.innerHTML = '';
+    }
+
+    this.auditMcUserEdited = false;
+    this.lastAuditAutoFilledFgId = '';
+    this.lastAuditAutoFilledCartonId = '';
+    clearTimeout(this.auditAutoFillTimer);
+
+    this.updateAuditMcNote('enterFg');
+  }
+
+  autoFillAuditMasterCarton() {
+    const fgInput = document.querySelector('#auditFgId');
+    const mcInput = document.querySelector('#auditMcId');
+    const fgId = String(fgInput?.value || '').trim();
+
+    if (!fgId) {
+      this.updateAuditMcNote('enterFg');
+      return;
+    }
+
+    if (!this.data) {
+      this.updateAuditMcNote('waiting');
+      return;
+    }
+
+    const assigned = this.findWeeklyBomAssignedCartonIdForAudit(fgId);
+    const current = String(mcInput?.value || '').trim();
+    const fgChanged = fgId !== this.lastAuditAutoFilledFgId;
+
+    const canOverwrite =
+      !current ||
+      current === this.lastAuditAutoFilledCartonId ||
+      fgChanged ||
+      !this.auditMcUserEdited;
+
+    if (assigned && canOverwrite) {
+      mcInput.value = assigned;
+      this.lastAuditAutoFilledFgId = fgId;
+      this.lastAuditAutoFilledCartonId = assigned;
+      this.auditMcUserEdited = false;
+      this.updateAuditMcNote('auto');
+      return;
+    }
+
+    if (!assigned && canOverwrite) {
+      mcInput.value = '';
+      this.lastAuditAutoFilledFgId = fgId;
+      this.lastAuditAutoFilledCartonId = '';
+      this.auditMcUserEdited = false;
+      this.updateAuditMcNote('none');
+      return;
+    }
+
+    if (this.auditMcUserEdited) {
+      this.updateAuditMcNote('manual');
+    }
+  }
+
+  updateAuditMcNote(mode) {
+    const noteEl = document.querySelector('#auditMcNote');
+    if (!noteEl) return;
+    let key = 'auditMcEnterFg';
+    if (mode === 'enterFg') key = 'auditMcEnterFg';
+    else if (mode === 'waiting') key = 'auditMcWaiting';
+    else if (mode === 'auto') key = 'auditMcAuto';
+    else if (mode === 'none') key = 'auditMcNone';
+    else if (mode === 'manual') key = 'auditMcManual';
+    noteEl.textContent = this.t(key);
+    noteEl.setAttribute('data-i18n', key);
+  }
+
+  findWeeklyBomAssignedCartonIdForAudit(fgId) {
+    if (!fgId) return '';
+    const normId = value => String(value || '').trim().toUpperCase();
+    const fgKey = normId(fgId);
+
+    const fg = this.getFgForAudit(fgId);
+    if (fg) {
+      if (fg.assignedCartonId) return String(fg.assignedCartonId).trim();
+      if (fg.assignedCarton && fg.assignedCarton.id) return String(fg.assignedCarton.id).trim();
+      if (fg.chosenBomCartonRow && fg.chosenBomCartonRow.itemNumber) return String(fg.chosenBomCartonRow.itemNumber).trim();
+      if (fg.weeklyBomAssignment && fg.weeklyBomAssignment.itemNumber) return String(fg.weeklyBomAssignment.itemNumber).trim();
+      if (fg.bomCartonCandidates && fg.bomCartonCandidates.length && fg.bomCartonCandidates[0]) return String(fg.bomCartonCandidates[0]).trim();
+    }
+
+    let bomRows = [];
+    if (this.weeklyBom && Array.isArray(this.weeklyBom.rows)) bomRows = this.weeklyBom.rows;
+    else if (Array.isArray(this.weeklyBomRows)) bomRows = this.weeklyBomRows;
+    else if (this.data && Array.isArray(this.data.weeklyBomRows)) bomRows = this.data.weeklyBomRows;
+    else if (this.data && this.data.weeklyBom && Array.isArray(this.data.weeklyBom.rows)) bomRows = this.data.weeklyBom.rows;
+
+    if (bomRows && bomRows.length) {
+      const matchingRows = bomRows.filter(row => {
+        const val = row.fg || row.FG || row.finishedGood || row.topItemId || row.topItemID || row.parentFg;
+        return val && normId(val) === fgKey;
+      });
+
+      for (const row of matchingRows) {
+        if (this.isRealMasterCartonBomRow(row)) {
+          if (row.itemNumber) {
+            return String(row.itemNumber).trim();
+          }
+        }
+      }
+    }
+    return '';
+  }
+
+  getFgForAudit(fgId) {
+    if (!fgId || !this.data) return null;
+    const normId = value => String(value || '').trim().toUpperCase();
+    const targetKey = normId(fgId);
+
+    const checkFields = (fg) => {
+      if (!fg) return false;
+      const val = fg.id || fg.fg || fg.fgId || fg.fg_id || fg.itemNumber || fg.item || fg.topItemId;
+      return val && normId(val) === targetKey;
+    };
+
+    if (this.data.fgById instanceof Map) {
+      for (const [key, fg] of this.data.fgById.entries()) {
+        if (normId(key) === targetKey || checkFields(fg)) {
+          return fg;
+        }
+      }
+    }
+
+    if (Array.isArray(this.data.fgs)) {
+      for (const fg of this.data.fgs) {
+        if (checkFields(fg)) {
+          return fg;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  getCartonForAudit(cartonId) {
+    if (!cartonId || !this.data) return null;
+    const normId = value => String(value || '').trim().toUpperCase();
+    const targetKey = normId(cartonId);
+
+    const checkFields = (c) => {
+      if (!c) return false;
+      const val = c.id || c.cartonId || c.carton_id || c.itemNumber;
+      return val && normId(val) === targetKey;
+    };
+
+    if (this.data.cartonById instanceof Map) {
+      for (const [key, c] of this.data.cartonById.entries()) {
+        if (normId(key) === targetKey || checkFields(c)) {
+          return c;
+        }
+      }
+    }
+
+    if (Array.isArray(this.data.cartons)) {
+      for (const c of this.data.cartons) {
+        if (checkFields(c)) {
+          return c;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  getAuditTargetQty(fgId, currentCartonId, fg) {
+    const normId = value => String(value || '').trim().toUpperCase();
+    const fgKey = normId(fgId);
+    const mcKey = normId(currentCartonId);
+
+    let bomRows = [];
+    if (this.weeklyBom && Array.isArray(this.weeklyBom.rows)) bomRows = this.weeklyBom.rows;
+    else if (Array.isArray(this.weeklyBomRows)) bomRows = this.weeklyBomRows;
+    else if (this.data && Array.isArray(this.data.weeklyBomRows)) bomRows = this.data.weeklyBomRows;
+    else if (this.data && this.data.weeklyBom && Array.isArray(this.data.weeklyBom.rows)) bomRows = this.data.weeklyBom.rows;
+
+    if (bomRows && bomRows.length) {
+      const matchRow = bomRows.find(row => {
+        const fVal = row.fg || row.FG || row.finishedGood || row.topItemId || row.topItemID || row.parentFg;
+        const iVal = row.itemNumber;
+        return fVal && normId(fVal) === fgKey && iVal && normId(iVal) === mcKey;
+      });
+      if (matchRow) {
+        const qty = this.deriveTargetFromBomRow(matchRow);
+        if (Number.isInteger(qty) && qty > 0) return qty;
+      }
+    }
+
+    if (fg && Number.isInteger(fg.targetQty) && fg.targetQty > 0) {
+      return fg.targetQty;
+    }
+
+    if (fg && Number.isInteger(fg.target) && fg.target > 0) {
+      return fg.target;
+    }
+
+    if (bomRows && bomRows.length) {
+      const fgRows = bomRows.filter(row => {
+        const fVal = row.fg || row.FG || row.finishedGood || row.topItemId || row.topItemID || row.parentFg;
+        return fVal && normId(fVal) === fgKey;
+      });
+      for (const row of fgRows) {
+        if (this.isRealMasterCartonBomRow(row)) {
+          const qty = this.deriveTargetFromBomRow(row);
+          if (Number.isInteger(qty) && qty > 0) return qty;
+        }
+      }
+    }
+
+    return NaN;
+  }
+
+  deriveTargetFromBomRow(row) {
+    if (!row) return NaN;
+
+    const perSeriesVal = row.perSeries !== undefined ? row.perSeries :
+                         row.per_series !== undefined ? row.per_series :
+                         row["Per series"] !== undefined ? row["Per series"] : undefined;
+    const perSeries = Number(perSeriesVal);
+    if (Number.isFinite(perSeries) && perSeries > 1) {
+      return Math.floor(perSeries);
+    }
+
+    const normVal = row.norm !== undefined ? row.norm :
+                    row.Norm !== undefined ? row.Norm : undefined;
+    const norm = Number(normVal);
+    if (Number.isFinite(norm) && norm > 0) {
+      return norm < 1 ? Math.round(1 / norm) : Math.floor(norm);
+    }
+
+    const quantityVal = row.quantity !== undefined ? row.quantity :
+                        row.Quantity !== undefined ? row.Quantity :
+                        row.qty !== undefined ? row.qty :
+                        row.QTY !== undefined ? row.QTY : undefined;
+    const quantity = Number(quantityVal);
+    if (Number.isFinite(quantity) && quantity > 0) {
+      return quantity < 1 ? Math.round(1 / quantity) : Math.floor(quantity);
+    }
+
+    return NaN;
+  }
+
+  getAuditRowsForFg(fgId) {
+    if (!fgId) return [];
+    const normId = value => String(value || '').trim().toUpperCase();
+    const fgKey = normId(fgId);
+
+    let bomRows = [];
+    if (this.weeklyBom && Array.isArray(this.weeklyBom.rows)) bomRows = this.weeklyBom.rows;
+    else if (Array.isArray(this.weeklyBomRows)) bomRows = this.weeklyBomRows;
+    else if (this.data && Array.isArray(this.data.weeklyBomRows)) bomRows = this.data.weeklyBomRows;
+    else if (this.data && this.data.weeklyBom && Array.isArray(this.data.weeklyBom.rows)) bomRows = this.data.weeklyBom.rows;
+
+    return bomRows.filter(row => {
+      const val = row.fg || row.FG || row.finishedGood || row.topItemId || row.topItemID || row.parentFg;
+      return val && normId(val) === fgKey;
+    });
+  }
+
+  isRealMasterCartonBomRow(row) {
+    if (!row) return false;
+    const normId = value => String(value || '').trim().toUpperCase();
+    const itemNumber = String(row.itemNumber || '').trim();
+    if (!itemNumber) return false;
+
+    let matchesExisting = false;
+    if (this.data && Array.isArray(this.data.cartons)) {
+      const itemKey = normId(itemNumber);
+      matchesExisting = this.data.cartons.some(c => normId(c.carton_id) === itemKey);
+    }
+
+    const productName = String(row.productName || row.product || row.itemDescription || '').trim();
+    const isCartonName = /master\s*carton|carton/i.test(productName);
+    const excludeRegex = /carton\s*label|lith\s*label|fire\s*label|lithium\s*label|warning\s*label|rating\s*label|label\s*for|UPC|SCC|barcode/i;
+
+    if (matchesExisting) {
+      return !excludeRegex.test(productName);
+    }
+
+    return isCartonName && !excludeRegex.test(productName);
+  }
+
+  getBoxDimsMm(obj) {
+    if (!obj) return null;
+    const getVal = (aliases) => {
+      for (const alias of aliases) {
+        if (obj[alias] !== undefined) {
+          const val = Number(obj[alias]);
+          if (Number.isFinite(val) && val > 0) return val;
+        }
+      }
+      return NaN;
+    };
+
+    const length = getVal(['length', 'depth', 'l', 'cartonLength', 'cartonDepth', 'innerLength', 'insideLength']);
+    const width = getVal(['width', 'w', 'cartonWidth', 'innerWidth', 'insideWidth']);
+    const height = getVal(['height', 'h', 'cartonHeight', 'innerHeight', 'insideHeight']);
+
+    if (Number.isFinite(length) && Number.isFinite(width) && Number.isFinite(height)) {
+      return { length, width, height };
+    }
+    return null;
+  }
+
+  hasValidBoxDims(obj) {
+    return !!this.getBoxDimsMm(obj);
+  }
+
+  boxVolumeMm3(obj) {
+    const dims = this.getBoxDimsMm(obj);
+    if (!dims) return 0;
+    return dims.length * dims.width * dims.height;
+  }
+
+  evaluateAuditFit(fg, carton, targetQty) {
+    const fgDims = this.getBoxDimsMm(fg);
+    const mcDims = this.getBoxDimsMm(carton);
+
+    if (!fgDims || !mcDims) {
+      return {
+        pass: false,
+        capacity: 0,
+        utilization: 0,
+        arrangement: '',
+        orientation: '',
+        shortage: targetQty,
+        error: 'Invalid dimensions'
+      };
+    }
+
+    const fgBox = {
+      ...fg,
+      width: fgDims.width,
+      depth: fgDims.length,
+      height: fgDims.height,
+      target: targetQty
+    };
+    const cartonBox = {
+      ...carton,
+      width: mcDims.width,
+      depth: mcDims.length,
+      height: mcDims.height
+    };
+
+    try {
+      let rawResult = null;
+      if (typeof CartonFitEngine !== 'undefined' && typeof CartonFitEngine.evaluate === 'function') {
+        rawResult = CartonFitEngine.evaluate(fgBox, cartonBox);
+      } else if (typeof CartonFitEngine !== 'undefined' && typeof CartonFitEngine.check === 'function') {
+        rawResult = CartonFitEngine.check(fgBox, cartonBox);
+      } else if (typeof this.evaluateCartonFit === 'function') {
+        rawResult = this.evaluateCartonFit(fgBox, cartonBox, targetQty);
+      } else if (typeof this.checkCartonFit === 'function') {
+        rawResult = this.checkCartonFit(fgBox, cartonBox, targetQty);
+      }
+
+      if (!rawResult) {
+        throw new Error('No packing engine found');
+      }
+
+      const pass = !!rawResult.passes;
+      const capacity = Number(rawResult.capacity) || 0;
+      const shortage = Math.max(0, targetQty - capacity);
+
+      const fgVol = fgDims.length * fgDims.width * fgDims.height;
+      const mcVol = mcDims.length * mcDims.width * mcDims.height;
+      let utilization = rawResult.volumeUtilization;
+      if (utilization === undefined) {
+        utilization = (fgVol * targetQty) / mcVol;
+      }
+
+      return {
+        pass,
+        capacity,
+        utilization: Number(utilization) || 0,
+        arrangement: rawResult.arrangement || '',
+        orientation: fitOrientation(rawResult) || '',
+        shortage,
+        raw: rawResult
+      };
+    } catch (e) {
+      return {
+        pass: false,
+        capacity: 0,
+        utilization: 0,
+        arrangement: '',
+        orientation: '',
+        shortage: targetQty,
+        error: e.message
+      };
+    }
+  }
+
+  findBestExistingCartonsForAudit(fg, currentCarton, targetQty, thresholdPct) {
+    const normId = value => String(value || '').trim().toUpperCase();
+    const currentIdKey = normId(currentCarton.carton_id);
+
+    const evaluatedCandidates = [];
+    for (const carton of this.data.cartons) {
+      if (!this.hasValidBoxDims(carton)) continue;
+      const cid = String(carton.carton_id || '').trim();
+      if (/^SHARED-LINE/i.test(cid) || /^NPI-MC/i.test(cid) || /proposal/i.test(cid) || cid === 'ENGINEERING PROPOSAL') continue;
+
+      const fit = this.evaluateAuditFit(fg, carton, targetQty);
+      evaluatedCandidates.push({ carton, fit });
+    }
+
+    const fittingCandidates = evaluatedCandidates.filter(c => c.fit.pass);
+    const closestCandidates = evaluatedCandidates.filter(c => !c.fit.pass);
+
+    const isActive = (lifecycle) => /^active$/i.test(String(lifecycle || '').trim());
+
+    fittingCandidates.sort((a, b) => {
+      const activeA = isActive(a.carton.lifecycle);
+      const activeB = isActive(b.carton.lifecycle);
+      if (activeA !== activeB) return activeB ? 1 : -1;
+      if (Math.abs(b.fit.utilization - a.fit.utilization) > 1e-6) return b.fit.utilization - a.fit.utilization;
+      const volA = this.boxVolumeMm3(a.carton);
+      const volB = this.boxVolumeMm3(b.carton);
+      if (Math.abs(volA - volB) > 1e-6) return volA - volB;
+      const surplusA = a.fit.capacity - targetQty;
+      const surplusB = b.fit.capacity - targetQty;
+      if (surplusA !== surplusB) return surplusA - surplusB;
+      return String(a.carton.carton_id || '').localeCompare(String(b.carton.carton_id || ''), undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    closestCandidates.sort((a, b) => {
+      if (a.fit.capacity !== b.fit.capacity) return b.fit.capacity - a.fit.capacity;
+      if (a.fit.shortage !== b.fit.shortage) return a.fit.shortage - b.fit.shortage;
+      if (Math.abs(b.fit.utilization - a.fit.utilization) > 1e-6) return b.fit.utilization - a.fit.utilization;
+      const volA = this.boxVolumeMm3(a.carton);
+      const volB = this.boxVolumeMm3(b.carton);
+      if (Math.abs(volA - volB) > 1e-6) return volA - volB;
+      const activeA = isActive(a.carton.lifecycle);
+      const activeB = isActive(b.carton.lifecycle);
+      if (activeA !== activeB) return activeB ? 1 : -1;
+      return String(a.carton.carton_id || '').localeCompare(String(b.carton.carton_id || ''), undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    let best = null;
+    let bestStillFails = false;
+
+    if (fittingCandidates.length > 0) {
+      best = fittingCandidates[0];
+      bestStillFails = false;
+    } else if (closestCandidates.length > 0) {
+      best = closestCandidates[0];
+      bestStillFails = true;
+    }
+
+    let topAlternatives = [];
+    if (fittingCandidates.length > 0) {
+      const isOnlyFitting = fittingCandidates.length === 1 && normId(fittingCandidates[0].carton.carton_id) === currentIdKey;
+      if (isOnlyFitting) {
+        topAlternatives = [...fittingCandidates];
+      } else {
+        topAlternatives = fittingCandidates.filter(c => normId(c.carton.carton_id) !== currentIdKey);
+      }
+      topAlternatives = topAlternatives.slice(0, 5);
+    } else {
+      topAlternatives = closestCandidates.filter(c => normId(c.carton.carton_id) !== currentIdKey).slice(0, 5);
+    }
+
+    return {
+      currentFit: this.evaluateAuditFit(fg, currentCarton, targetQty),
+      best,
+      bestStillFails,
+      fittingCandidates,
+      closestCandidates,
+      topAlternatives
+    };
+  }
+
+  handleAuditSubmit(event) {
+    if (event) event.preventDefault();
+
+    if (!this.data) {
+      this.renderAuditError(this.t('loadNeeded'));
+      return;
+    }
+
+    const fgInput = document.querySelector('#auditFgId');
+    const mcInput = document.querySelector('#auditMcId');
+    const thresholdInput = document.querySelector('#auditThreshold');
+
+    const fgId = String(fgInput?.value || '').trim();
+    const mcId = String(mcInput?.value || '').trim();
+    const threshold = Number(thresholdInput?.value) || 75;
+
+    if (!fgId || !mcId) {
+      this.renderAuditError(this.t('auditInputMissing'));
+      return;
+    }
+
+    const fg = this.getFgForAudit(fgId);
+    if (!fg) {
+      this.renderAuditError(this.t('auditFgMissing'));
+      return;
+    }
+
+    const fgDims = this.getBoxDimsMm(fg);
+    if (!fgDims) {
+      this.renderAuditError(this.t('auditFgMissing'));
+      return;
+    }
+
+    const currentCarton = this.getCartonForAudit(mcId);
+    if (!currentCarton) {
+      this.renderAuditError(this.t('auditCartonMissing'));
+      return;
+    }
+
+    const mcDims = this.getBoxDimsMm(currentCarton);
+    if (!mcDims) {
+      this.renderAuditError(this.t('auditCartonMissing'));
+      return;
+    }
+
+    const targetQty = this.getAuditTargetQty(fgId, mcId, fg);
+    if (isNaN(targetQty) || targetQty <= 0) {
+      this.renderAuditError(this.t('auditTargetMissing'));
+      return;
+    }
+
+    try {
+      const result = this.findBestExistingCartonsForAudit(fg, currentCarton, targetQty, threshold);
+      result.fg = fg;
+      result.currentCarton = currentCarton;
+      result.targetQty = targetQty;
+      result.threshold = threshold;
+      this.renderAuditResult(result);
+    } catch (e) {
+      this.renderAuditError(e.message);
+    }
+  }
+
+  renderAuditError(message) {
+    const results = document.querySelector('#auditResults');
+    if (results) results.hidden = false;
+
+    const summary = document.querySelector('#auditSummary');
+    if (summary) {
+      summary.className = 'audit-summary bad';
+      summary.innerHTML = `<span class="audit-warning">${escapeHtml(message)}</span>`;
+    }
+
+    const currentCard = document.querySelector('#auditCurrent');
+    if (currentCard) currentCard.innerHTML = '';
+    const suggestedCard = document.querySelector('#auditSuggested');
+    if (suggestedCard) suggestedCard.innerHTML = '';
+    const alternativesTable = document.querySelector('#auditAlternativesTable');
+    if (alternativesTable) alternativesTable.innerHTML = '';
+  }
+
+  renderAuditResult(result) {
+    const resultsPanel = document.querySelector('#auditResults');
+    if (resultsPanel) resultsPanel.hidden = false;
+
+    const summary = document.querySelector('#auditSummary');
+    if (summary) {
+      const currentFit = result.currentFit;
+      if (!currentFit.pass) {
+        summary.className = 'audit-summary bad';
+        summary.textContent = this.t('auditNoFitSummary');
+      } else if (currentFit.utilization * 100 < result.threshold) {
+        summary.className = 'audit-summary warn';
+        summary.textContent = this.t('auditUnderSummary');
+      } else {
+        summary.className = 'audit-summary good';
+        summary.textContent = this.t('auditAcceptableSummary');
+      }
+    }
+
+    this.renderAuditCurrentCard(result);
+    this.renderAuditSuggestionCard(result);
+    this.renderAuditAlternativesTable(result);
+  }
+
+  renderAuditCurrentCard(result) {
+    const cardEl = document.querySelector('#auditCurrent');
+    if (!cardEl) return;
+
+    const pcSelect = document.querySelector('#auditProductionConfirmed');
+    const noteInput = document.querySelector('#auditPackingNote');
+    const pcValue = pcSelect ? pcSelect.value : 'unknown';
+    const noteValue = noteInput ? noteInput.value.trim() : '';
+
+    const fg = result.fg;
+    const currentCarton = result.currentCarton;
+    const fit = result.currentFit;
+    const targetQty = result.targetQty;
+    const threshold = result.threshold;
+
+    const statusText = fit.pass ? this.t('auditPass') : this.t('auditFail');
+    const statusClass = fit.pass ? 'good' : 'bad';
+
+    const fgDimsStr = dims(fg);
+    const mcDimsStr = dims(currentCarton);
+
+    cardEl.innerHTML = `
+      <h3>${escapeHtml(this.t('auditCurrentCard'))}</h3>
+      <div class="audit-metric ${statusClass}">${escapeHtml(statusText)}</div>
+      <div class="audit-stats">
+        <div><span>${escapeHtml(this.t('auditFgId'))}</span><strong>${escapeHtml(fg.fg_id)}</strong></div>
+        <div><span>${escapeHtml(this.t('auditMcId'))}</span><strong>${escapeHtml(currentCarton.carton_id)}</strong></div>
+        <div><span>${escapeHtml(this.t('auditTarget'))}</span><strong>${fmt(targetQty)}</strong></div>
+        <div><span>${escapeHtml(this.t('fgDimensionData'))}</span><strong>${escapeHtml(fgDimsStr)}</strong></div>
+        <div><span>${escapeHtml(this.t('cartonDimensionData'))}</span><strong>${escapeHtml(mcDimsStr)}</strong></div>
+        <div><span>${escapeHtml(this.t('capacity'))}</span><strong>${fmt(fit.capacity)}</strong></div>
+        <div><span>${escapeHtml(this.t('auditShortage'))}</span><strong>${fmt(fit.shortage)}</strong></div>
+        <div><span>${escapeHtml(this.t('auditUtilization'))}</span><strong class="${fit.utilization * 100 >= threshold ? 'mark-good' : 'mark-bad'}">${pct(fit.utilization)}</strong></div>
+        <div><span>${escapeHtml(this.t('auditThresholdLabel'))}</span><strong>${fmt(threshold)}%</strong></div>
+        <div><span>${escapeHtml(this.t('productionConfirmedLabel'))}</span><strong>${escapeHtml(this.t(pcValue))}</strong></div>
+      </div>
+      ${noteValue ? `<div class="audit-explanation"><strong>${escapeHtml(this.t('packingEvidenceLabel'))}:</strong> ${escapeHtml(noteValue)}</div>` : ''}
+    `;
+  }
+
+  renderAuditSuggestionCard(result) {
+    const cardEl = document.querySelector('#auditSuggested');
+    if (!cardEl) return;
+
+    if (!result.best) {
+      cardEl.innerHTML = `
+        <h3>${escapeHtml(this.t('auditSuggestionCard'))}</h3>
+        <div class="empty">${escapeHtml(this.t('auditNoCandidate'))}</div>
+      `;
+      return;
+    }
+
+    const best = result.best;
+    const carton = best.carton;
+    const fit = best.fit;
+    const bestStillFails = result.bestStillFails;
+
+    const currentVol = this.boxVolumeMm3(result.currentCarton);
+    const bestVol = this.boxVolumeMm3(carton);
+    const volReduction = currentVol - bestVol;
+    const volRedPct = currentVol > 0 ? volReduction / currentVol : 0;
+    const utilGain = fit.utilization - result.currentFit.utilization;
+
+    if (!bestStillFails) {
+      cardEl.innerHTML = `
+        <h3>${escapeHtml(this.t('auditSuggestionCard'))}</h3>
+        <div class="audit-metric good">${escapeHtml(this.t('auditPass'))}</div>
+        <div class="audit-stats">
+          <div><span>${escapeHtml(this.t('cartonId'))}</span><strong>${escapeHtml(carton.carton_id)}</strong></div>
+          <div><span>${escapeHtml(this.t('cartonName'))}</span><strong>${escapeHtml(carton.carton_name || '—')}</strong></div>
+          <div><span>${escapeHtml(this.t('cartonDims'))}</span><strong>${escapeHtml(dims(carton))}</strong></div>
+          <div><span>${escapeHtml(this.t('capacity'))}</span><strong>${fmt(fit.capacity)}</strong></div>
+          <div><span>${escapeHtml(this.t('auditUtilization'))}</span><strong class="mark-good">${pct(fit.utilization)}</strong></div>
+          <div><span>${escapeHtml(this.t('auditVolumeReduction'))}</span><strong>${pct(volRedPct)} (${fmt(volReduction)} mm³)</strong></div>
+          <div><span>${escapeHtml(this.t('auditUtilizationGain'))}</span><strong class="${utilGain >= 0 ? 'mark-good' : 'mark-bad'}">${utilGain >= 0 ? '+' : ''}${pct(utilGain)}</strong></div>
+          <div><span>${escapeHtml(this.t('auditLifecycle'))}</span><strong>${escapeHtml(carton.lifecycle || '—')}</strong></div>
+        </div>
+        <div style="margin-top: 10px;">
+          <button type="button" class="view-btn primary" data-audit-carton-id="${escapeHtml(carton.carton_id)}">${escapeHtml(this.t('auditView3d'))}</button>
+        </div>
+      `;
+    } else {
+      cardEl.innerHTML = `
+        <h3>${escapeHtml(this.t('auditClosestCard'))}</h3>
+        <div class="audit-metric bad">${escapeHtml(this.t('auditStillFail'))}</div>
+        <div class="notice" style="margin: 0 0 10px 0;">${escapeHtml(this.t('auditNoExistingFits'))}</div>
+        <div class="audit-stats">
+          <div><span>${escapeHtml(this.t('cartonId'))}</span><strong>${escapeHtml(carton.carton_id)}</strong></div>
+          <div><span>${escapeHtml(this.t('cartonName'))}</span><strong>${escapeHtml(carton.carton_name || '—')}</strong></div>
+          <div><span>${escapeHtml(this.t('cartonDims'))}</span><strong>${escapeHtml(dims(carton))}</strong></div>
+          <div><span>${escapeHtml(this.t('capacity'))}</span><strong>${fmt(fit.capacity)}</strong></div>
+          <div><span>${escapeHtml(this.t('auditShortage'))}</span><strong>${fmt(fit.shortage)}</strong></div>
+          <div><span>${escapeHtml(this.t('auditUtilization'))}</span><strong>${pct(fit.utilization)}</strong></div>
+          <div><span>${escapeHtml(this.t('auditLifecycle'))}</span><strong>${escapeHtml(carton.lifecycle || '—')}</strong></div>
+        </div>
+        <div style="margin-top: 10px;">
+          <button type="button" class="view-btn primary" data-audit-carton-id="${escapeHtml(carton.carton_id)}">${escapeHtml(this.t('auditView3d'))}</button>
+        </div>
+      `;
+    }
+  }
+
+  renderAuditAlternativesTable(result) {
+    const wrap = document.querySelector('#auditAlternativesTable');
+    if (!wrap) return;
+
+    const alternatives = result.topAlternatives;
+    if (!alternatives || !alternatives.length) {
+      wrap.innerHTML = `<div class="empty">${escapeHtml(this.t('auditNoCandidate'))}</div>`;
+      return;
+    }
+
+    const table = document.createElement('table');
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>${escapeHtml(this.t('rank'))}</th>
+          <th>${escapeHtml(this.t('cartonId'))}</th>
+          <th class="name-cell">${escapeHtml(this.t('cartonName'))}</th>
+          <th>${escapeHtml(this.t('cartonDims'))}</th>
+          <th>${escapeHtml(this.t('result'))}</th>
+          <th class="right num-cell">${escapeHtml(this.t('capacity'))}</th>
+          <th class="right num-cell">${escapeHtml(this.t('auditShortage'))}</th>
+          <th class="right num-cell">${escapeHtml(this.t('auditUtilization'))}</th>
+          <th>${escapeHtml(this.t('auditLifecycle'))}</th>
+          <th class="center"></th>
+        </tr>
+      </thead>
+    `;
+
+    const body = document.createElement('tbody');
+    alternatives.forEach((x, i) => {
+      const carton = x.carton;
+      const fit = x.fit;
+      const rank = i + 1;
+      const tr = document.createElement('tr');
+
+      const passText = fit.pass ? this.t('auditPass') : this.t('auditStillFail');
+      const passClass = fit.pass ? 'result-pass' : 'result-fail';
+
+      tr.innerHTML = `
+        <td>${rank}</td>
+        <td><strong>${escapeHtml(carton.carton_id)}</strong></td>
+        <td class="name-cell">${escapeHtml(carton.carton_name || '—')}</td>
+        <td>${escapeHtml(dims(carton))}</td>
+        <td class="${passClass}">${escapeHtml(passText)}</td>
+        <td class="right num-cell">${fmt(fit.capacity)}</td>
+        <td class="right num-cell">${fmt(fit.shortage)}</td>
+        <td class="right num-cell">${pct(fit.utilization)}</td>
+        <td>${escapeHtml(carton.lifecycle || '—')}</td>
+        <td class="center">
+          <button type="button" class="view-btn" data-audit-carton-id="${escapeHtml(carton.carton_id)}">${escapeHtml(this.t('auditView3d'))}</button>
+        </td>
+      `;
+
+      body.append(tr);
+    });
+
+    table.append(body);
+    wrap.replaceChildren(table);
+  }
+
+  viewAuditCarton3d(cartonId) {
+    const statusEl = document.querySelector('#auditActionStatus');
+    if (statusEl) {
+      statusEl.hidden = true;
+      statusEl.textContent = '';
+    }
+
+    const fgInput = document.querySelector('#auditFgId');
+    const fgId = String(fgInput?.value || '').trim();
+
+    if (!fgId || !cartonId) {
+      return;
+    }
+
+    const fg = this.getFgForAudit(fgId);
+    const carton = this.getCartonForAudit(cartonId);
+
+    if (!fg || !carton) {
+      return;
+    }
+
+    const targetQty = this.getAuditTargetQty(fgId, cartonId, fg);
+    if (isNaN(targetQty) || targetQty <= 0) {
+      return;
+    }
+
+    try {
+      const fitResult = this.evaluateAuditFit(fg, carton, targetQty);
+      if (this.visual) {
+        const fgBox = {
+          ...fg,
+          width: fg.width,
+          depth: fg.depth,
+          height: fg.height,
+          target: targetQty
+        };
+        const mcDims = this.getBoxDimsMm(carton);
+        const cartonBox = {
+          ...carton,
+          width: mcDims.width,
+          depth: mcDims.length,
+          height: mcDims.height
+        };
+
+        this.visual.set({
+          fg: fgBox,
+          carton: cartonBox,
+          fit: fitResult.raw,
+          kind: 'existing',
+          productionConfirmed: 'unknown'
+        });
+      } else {
+        throw new Error('Visualizer not available');
+      }
+    } catch (e) {
+      if (statusEl) {
+        statusEl.hidden = false;
+        statusEl.textContent = `Could not load 3D view: ${e.message}`;
+      }
+    }
+  }
+
   message(text,type=''){this.msg.innerHTML=text?`<div class="${type==='error'?'error':'footnote'}">${escapeHtml(text)}</div>`:''}
 }
 const toolUi=new UiController();
