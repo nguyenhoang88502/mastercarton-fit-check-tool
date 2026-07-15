@@ -1,6 +1,6 @@
 # WVN Master Carton Fit Tool — Maintainer Notes
 
-Single-file offline browser tool. Checks whether an FG package fits into an existing master carton, proposes new carton dimensions when none fits. HTML + embedded JS (XLSX parser, packing engine, SVG 3D visualizer, EN/VI localization). No Node, Python, server, CDN, or external dependency.
+Single-file offline browser tool for WAHL Vietnam. Manual NPI carton check with new shared-carton generation, existing-FG fit evaluation against the loaded master-carton list, and FG/MasterCarton data-link cross-check. HTML + embedded JS (XLSX parser, packing engine, SVG 3D visualizer, EN/VI localization). No Node, Python, server, CDN, or external dependency.
 
 ## Files
 
@@ -117,21 +117,27 @@ Key helper functions: `resolveWorkbookSource()` (~388), `fmt()`, `pct()`, `dims(
 - `NewCartonGenerator` patterns and clearance (5 mm)
 - `OrthogonalPackingSolver` maxTarget (12), maxNodes (150,000)
 - Downstream mm-only contract
-- Manual NPI form and audit form logic
+- Manual NPI form logic and shared-carton generation
 - `FitInterpretation` status codes
+- Source workbook link infrastructure (manifest-driven, `file:///` URLs must NOT be filtered)
 
 ## Key behaviors for a new maintainer to verify
 
-1. **Launch**: Run `.cmd` → both manifests generated → HTML auto-loads dimension and BOM → no fallback warning
+1. **Launch**: Run `.cmd` → both manifests generated → HTML auto-loads dimension and BOM → no fallback warning → source workbook links appear in "Source workbooks:" row
 2. **Paths**: `TOOL_DIR` username parsing drives `USER_ROOT` and company OneDrive paths. Copy the folder to another machine under `C:\Users\<name>\...`, run the `.cmd`, and manifests resolve from that user's OneDrive Weekly BOM folder when present.
 3. **Data completeness**: FG dropdown shows ✓ Data complete / ⚠ Missing with specific missing fields
 4. **Weekly BOM is sole source of truth**: Assignment, carton ID, and target quantity come exclusively from the Weekly BOM. FG_MasterCarton and carton.defaultQty are never used as fallback for assignment or target during automatic reconciliation.
 5. **Fallback mode**: When BOM fails, amber banner + provisional FG_MasterCarton data used
-6. **JS syntax**: Extract `<script>` content, `node --check` — must pass
-7. **Browser console**: Zero uncaught errors after startup and after selecting an FG
-8. **EN/VI**: Toggle after results displayed, confirm all labels translate
-9. **Dark mode**: Toggle, verify tables, inputs, cards, SVG wireframe all render
-10. **3D rotation**: Drag and buttons must not mutate FG/carton/fit dimensions
+6. **Source workbook links**: Clickable `file:///` links for dimension workbook and Weekly BOM appear after manifest loading. Manual file selection shows a note that the browser hides the original path.
+7. **JS syntax**: Extract `<script>` content, `node --check` — must pass
+8. **Browser console**: Zero uncaught errors after startup and after selecting an FG
+9. **EN/VI**: Toggle after results displayed, confirm all labels translate
+10. **Dark mode**: Toggle, verify tables, inputs, cards, SVG wireframe all render
+11. **3D rotation**: Drag and buttons must not mutate FG/carton/fit dimensions
+
+## Historical BOM Existing-Carton Audit (removed)
+
+The Historical BOM Existing-Carton Audit section was removed (commit `9a79b12`). It was a standalone audit module that evaluated one FG/current-carton pair against all existing cartons. It was removed because the implementation was tangled and unreliable. If re-added, it must be a self-contained module that never generates new carton dimensions, never calls `NewCartonGenerator` or `SharedCartonLineGenerator`, and never shows temporary/SHARED-LINE IDs.
 
 ## Known constraints
 
