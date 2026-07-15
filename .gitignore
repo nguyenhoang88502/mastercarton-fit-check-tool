@@ -5,6 +5,7 @@
 # Launcher-generated local manifests
 Weekly BOM Manifest.json
 WVN Master Carton Workbook Manifest.json
+Weekly BOM Carton Index.json
 
 # Local inspection and parsing artifacts
 *.inspect.ndjson

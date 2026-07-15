@@ -1225,17 +1225,11 @@
       <div class="engineering-settings-body">
       <div id="dashboardKpis" class="kpi-grid"></div>
       <div class="settings-grid">
-        <label><span data-i18n="toleranceMode">Tolerance mode</span><select id="settingToleranceMode"><option value="absolute" data-i18n="absoluteMode">Absolute allowance (mm)</option><option value="percentage" data-i18n="percentageMode">Percentage allowance (%)</option></select></label>
-        <label><span class="shared-fg-allow-label" data-i18n="fgMeasurementError">FG measurement uncertainty (mm/axis)</span><input id="settingFgError" type="number" min="0" step="0.5" value="5"></label>
-        <label><span class="shared-carton-allow-label" data-i18n="cartonMeasurementError">Carton measurement uncertainty (mm/axis)</span><input id="settingCartonError" type="number" min="0" step="0.5" value="5"></label>
-        <label><span data-i18n="wallThickness">Wall thickness (mm/wall)</span><input id="settingWall" type="number" min="0" step="0.5" value="5"></label>
-        <label><span data-i18n="foldDeduction">Opening/fold deduction (mm)</span><input id="settingFold" type="number" min="0" step="0.5" value="10"></label>
-        <label><span data-i18n="openingAxis">Opening axis</span><select id="settingOpeningAxis"><option value="auto" data-i18n="autoUnknown">Auto / Unknown</option><option value="length" data-i18n="length">Length</option><option value="width" data-i18n="width">Width</option><option value="height" data-i18n="height">Height</option></select></label>
         <label><span data-i18n="minimumUtilization">Minimum utilization (%)</span><input id="settingMinUtil" type="number" min="1" max="100" step="1" value="85"></label>
         <label><span data-i18n="clearance">Clearance (mm)</span><input id="settingClearance" type="number" min="0" step="0.5" value="5"></label>
         <label><span data-i18n="roundingIncrement">Rounding increment (mm)</span><input id="settingRounding" type="number" min="1" step="1" value="5"></label>
-        <label><span data-i18n="resetTolerance">Tolerance defaults</span><button type="button" id="sharedTolReset" data-i18n="resetTolerance">Reset to default</button></label>
       </div>
+      <p class="footnote" data-i18n="fiveScenarioNote">Fit uses five fixed paired dimension scenarios from nominal to 95% FG / 105% carton dimensions. Every scenario tests all six orthogonal orientations.</p>
       <p class="notice" data-i18n="engineeringAdvisory">Engineering advisory only — physical sample validation required.</p>
       </div>
     </details>
@@ -1273,31 +1267,12 @@
                 id="manualHeight" type="number" min="0.1" step="0.1" required placeholder="mm"><span
                 class="unit">mm</span></label></div>
         </div>
-        <div class="form-block tolerance-block legacy-tolerance-settings" style="grid-column: 1/-1; margin-top: 5px;">
-          <h3 data-i18n="toleranceSettings">Tolerance settings</h3>
-          <div class="tolerance-panel">
-            <label><span data-i18n="toleranceMode">Tolerance mode:</span>
-              <select id="manualTolMode" class="tol-mode-select">
-                <option value="absolute" data-i18n="absoluteMode">Absolute allowance (mm)</option>
-                <option value="percentage" data-i18n="percentageMode">Percentage allowance (%)</option>
-              </select>
-            </label>
-            <label><span class="tol-fg-allow-label" data-i18n="fgGrowthAllowance">FG growth allowance:</span>
-              <input type="number" id="manualFgAllow" class="tol-fg-allow-input" min="0" step="0.1" style="width: 80px;">
-            </label>
-            <label><span class="tol-carton-allow-label" data-i18n="cartonInsideReduction">Carton inside-dimension reduction:</span>
-              <input type="number" id="manualCartonAllow" class="tol-carton-allow-input" min="0" step="0.1" style="width: 80px;">
-            </label>
-            <button type="button" id="manualTolReset" class="tol-reset-btn" data-i18n="resetTolerance">Reset to default</button>
-          </div>
-          <p class="footnote" data-i18n="toleranceNote" style="margin-top: 6px; margin-bottom: 0;">Approval scenario uses the configured worst-case allowance: FG dimensions increase and usable carton dimensions decrease. Tolerance values are engineering assumptions and require calibration.</p>
-        </div>
         <div class="form-block target-block">
           <h3 data-i18n="targetGroup">Target quantity</h3><label class="target-qty"><span data-i18n="targetQty">Target
               quantity</span><input id="manualQty" type="number" min="1" step="1" required value="3"
               placeholder="3"></label>
         </div>
-        <div class="form-block allowance-summary"><span data-i18n="toleranceSettings">Tolerance settings</span><output id="manualAllowanceSummary">FG +5 mm / carton -5 mm</output><button id="openEngineeringSettings" type="button" data-i18n="engineeringAssumptions">Engineering assumptions</button></div>
+        <div class="form-block allowance-summary"><span data-i18n="fitScenarios">Fit scenarios</span><output id="manualAllowanceSummary">5 paired scenarios · 6 orientations each</output><button id="openEngineeringSettings" type="button" data-i18n="engineeringAssumptions">Engineering assumptions</button></div>
         <div class="manual-actions"><button class="primary" type="submit" data-i18n="checkCartons">Check
             cartons</button><button id="suggestSharedCartonBtn" type="button" data-i18n="suggestSharedCarton">Suggest
             shared carton line</button></div>
@@ -1383,21 +1358,6 @@
         <span id="fgInfo" class="fg-info">FG size: —</span>
         <label id="targetLabel" hidden><span data-i18n="targetQty">Target quantity</span>: <input id="targetQty"
             type="number" min="1" step="1"></label>
-      </div>
-      <div class="tolerance-panel legacy-tolerance-settings">
-        <label><span data-i18n="toleranceMode">Tolerance mode:</span>
-          <select id="existingTolMode" class="tol-mode-select">
-            <option value="absolute" data-i18n="absoluteMode">Absolute allowance (mm)</option>
-            <option value="percentage" data-i18n="percentageMode">Percentage allowance (%)</option>
-          </select>
-        </label>
-        <label><span class="tol-fg-allow-label" data-i18n="fgGrowthAllowance">FG growth allowance:</span>
-          <input type="number" id="existingFgAllow" class="tol-fg-allow-input" min="0" step="0.1" style="width: 80px;">
-        </label>
-        <label><span class="tol-carton-allow-label" data-i18n="cartonInsideReduction">Carton inside-dimension reduction:</span>
-          <input type="number" id="existingCartonAllow" class="tol-carton-allow-input" min="0" step="0.1" style="width: 80px;">
-        </label>
-        <button type="button" id="existingTolReset" class="tol-reset-btn" data-i18n="resetTolerance">Reset to default</button>
       </div>
     </section>
     <section id="linkagePanel" class="section linkage-panel workflow-panel" data-workflow-panel="fg-lookup" hidden>
@@ -1721,6 +1681,8 @@
         Object.assign(this.text.vi, {
           workflows:'Quy trình', dashboard:'Bảng điều khiển', newProductNav:'Sản phẩm mới', fgLookup:'Tra cứu FG', cartonAudit:'Đánh giá thùng', batchAudit:'Đánh giá hàng loạt', cartonLookup:'Tra cứu thùng', cancelTask:'Hủy', cancellingTask:'Đang hủy an toàn…', processing:'Đang xử lý', loadingData:'Đang tải dữ liệu', engineeringAssumptions:'Giả định kỹ thuật', engineeringAdvisory:'Chỉ dùng để tư vấn. Xác nhận vật liệu thùng, định lượng giấy, độ nén, quy định, xếp pallet và mẫu thực tế trước khi phát hành.', fgMeasurementError:'Sai số đo FG (± mm)', cartonMeasurementError:'Sai số đo thùng (± mm)', wallThickness:'Độ dày thành (mm / mặt)', foldDeduction:'Khấu trừ miệng / nếp gấp (mm)', openingAxis:'Trục mở thùng', autoUnknown:'Tự động / chưa biết (xấu nhất)', minimumUtilization:'Mức sử dụng tối thiểu (%)', clearance:'Khoảng hở đóng gói (mm)', roundingIncrement:'Làm tròn đề xuất (mm)', batchAuditNote:'Đánh giá mọi FG đủ điều kiện bằng cùng quy tắc fit bảo thủ và đề xuất.', runBatchAudit:'Chạy đánh giá hàng loạt', exportCsv:'Xuất CSV', all:'Tất cả kết quả', under85:'Dưới ngưỡng', searchIncomplete:'Tìm kiếm chưa hoàn tất', missingData:'Thiếu dữ liệu', replacementAvailable:'Có thùng thay thế', newCartonRequired:'Cần thùng mới', bomConflict:'Xung đột BOM', lookupCarton:'Tra cứu thùng', auditAllUsingCarton:'Đánh giá mọi FG dùng thùng này', sideBySideComparison:'So sánh đóng gói song song', currentBaseline:'Hiện tại / cơ sở', suggestedAlternative:'Phương án đề xuất', syncViews:'Đồng bộ góc nhìn', ghost:'Khung mờ', buildingIndexes:'Đang tạo chỉ mục', rowsIndexed:'dòng đã lập chỉ mục', missingFgDimensions:'Thiếu kích thước FG', missingTarget:'Thiếu số lượng mục tiêu', missingCartonAssignment:'Thiếu gán thùng', missingCartonDimensions:'Thiếu kích thước thùng', openingAxisUnknownWarning:'Chưa biết trục mở; sử dụng khấu trừ bảo thủ nhất trong ba trục.', invalidCartonDimensions:'Kích thước ngoài của thùng bị thiếu hoặc không hợp lệ.', deductionsExceedDimensions:'Khấu trừ thành, sai số đo hoặc nếp gấp vượt kích thước thùng.', extremeAspectRatio:'Tỷ lệ kích thước thùng quá lớn; cần kỹ thuật xem xét.', dataReady:'Dữ liệu sẵn sàng', dataNotReady:'Dữ liệu chưa sẵn sàng', eligibleFgs:'FG đủ điều kiện', finishedGoods:'Thành phẩm', activeCartons:'Thùng đang hoạt động', bomRows:'Dòng BOM', phase:'Giai đoạn', status:'Trạng thái', warnings:'Cảnh báo', bestExisting:'Thùng hiện có tốt nhất', bestNew:'Thùng mới tốt nhất', utilizationPct:'Mức sử dụng %', searchComplete:'Tìm kiếm hoàn tất', cartonUsers:'FG được gán', noResults:'Không có kết quả', auditComplete:'Đánh giá hàng loạt hoàn tất', batchCancelled:'Đã hủy đánh giá hàng loạt', cartonNotIndexed:'Không tìm thấy thùng trong dữ liệu đã tải.', noCartonUsers:'Không có FG nào được gán cho thùng này.', portfolioConsolidation:'Cơ hội hợp nhất danh mục', dimensionModel:'Mô hình kích thước ngoài sang trong'
         });
+        Object.assign(this.text.en, { fitScenarios:'Fit scenarios', fiveScenarioNote:'Fit uses five fixed paired dimension scenarios from nominal to 95% FG / 105% carton dimensions. Every scenario tests all six orthogonal orientations.', fit:'FIT', fitWithAllowance:'FIT WITH DIMENSION ALLOWANCE', bomConfirmedModelMismatch:'BOM CONFIRMED — MODEL MISMATCH', simplifiedBomMismatch:'Current BOM pairing — simplified model could not reproduce the packing. Check measured dimensions or actual production arrangement.', below85Warning:'Fits, but utilization is below the 85% target.', selectedScenario:'Selected scenario', fgCartonMultipliers:'FG / carton multipliers', compactBomReady:'Compact carton BOM index loaded', compactBomFallback:'Compact carton BOM preprocessing was unavailable. The browser is using the full workbook fallback.', wallAllowance:'No wall deduction is applied by the fit model', proposalFootnote:'Generated dimensions use the five-scenario fit model, 5 mm clearance, and the shared rounding increment. Physical sample validation is required.' });
+        Object.assign(this.text.vi, { fitScenarios:'Kịch bản xếp thùng', fiveScenarioNote:'Phép tính dùng năm kịch bản kích thước ghép cặp cố định, từ danh nghĩa đến 95% FG / 105% thùng. Mỗi kịch bản kiểm tra đủ sáu hướng vuông góc.', fit:'VỪA', fitWithAllowance:'VỪA KHI CÓ DUNG SAI KÍCH THƯỚC', bomConfirmedModelMismatch:'BOM ĐÃ XÁC NHẬN — MÔ HÌNH KHÔNG KHỚP', simplifiedBomMismatch:'Cặp BOM hiện tại — mô hình đơn giản không tái hiện được cách xếp. Kiểm tra kích thước đo thực tế hoặc cách đóng gói sản xuất.', below85Warning:'Vừa, nhưng mức sử dụng thấp hơn mục tiêu 85%.', selectedScenario:'Kịch bản đã chọn', fgCartonMultipliers:'Hệ số FG / thùng', compactBomReady:'Đã tải chỉ mục BOM thùng gọn nhẹ', compactBomFallback:'Không có dữ liệu BOM thùng đã tiền xử lý. Trình duyệt đang dùng phương án dự phòng đọc toàn bộ workbook.', wallAllowance:'Mô hình fit không khấu trừ độ dày thành thùng', proposalFootnote:'Kích thước đề xuất dùng mô hình năm kịch bản, khoảng hở 5 mm và bước làm tròn dùng chung. Cần xác nhận bằng mẫu thực tế.' });
         for (const key of ['addNpi', 'sessionAdded', 'duplicateId', 'applyOptimized', 'overrideApplied']) { delete this.text.en[key]; delete this.text.vi[key] }
       }
       static t(key, vars = {}) { let s = this.text[this.language][key] ?? this.text.en[key] ?? key; for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, v); return s }
@@ -1910,6 +1872,8 @@
         return rows.filter(r => this.key(r.fg) === fgKey).filter(r => { const id = this.key(r.itemNumber), name = String(r.productName || ''); return id && (cartonIds.has(id) || (this.cartonDescription.test(name) && !labelExclusions.test(name))) }).filter(r => { const id = this.key(r.itemNumber); if (seen.has(id)) return false; seen.add(id); return true });
       }
       static deriveTargetFromBomRow(row) {
+        const compactTarget = Number(row?.targetQuantity);
+        if (Number.isInteger(compactTarget) && compactTarget > 0) return compactTarget;
         const perSeries = Number(row?.perSeries);
         if (Number.isFinite(perSeries) && perSeries > 1) { const target = Math.floor(perSeries); return target > 0 ? target : NaN }
         const norm = Number(row?.norm);
@@ -2017,42 +1981,24 @@
     }
 
     class OrthogonalPackingSolver {
-      static maxTarget = 12;
-      static maxNodes = 150000;
       static epsilon = 1e-7;
-      static uniqueOrientations(fg) { const seen = new Set(); return CartonFitEngine.permutations(fg).filter(o => { const key = `${o.length}|${o.width}|${o.height}`; if (seen.has(key)) return false; seen.add(key); return true }) }
-      static find(fg, carton, target, options = {}) {
-        const limit = options.maxNodes || this.maxNodes;
-        if (!Number.isInteger(target) || target < 1) return { status: 'invalid', complete: true, nodes: 0, placements: null };
-        if (target > this.maxTarget) return { status: 'target-limit', complete: false, nodes: 0, placements: null };
-        const fgVolume = fg.width * fg.depth * fg.height, cartonVolume = carton.width * carton.depth * carton.height;
-        if (fgVolume * target > cartonVolume + this.epsilon) return { status: 'volume-impossible', complete: true, nodes: 0, placements: null };
-        const orientations = this.uniqueOrientations(fg).filter(o => o.length <= carton.width + this.epsilon && o.width <= carton.depth + this.epsilon && o.height <= carton.height + this.epsilon);
-        if (!orientations.length) return { status: 'axis-impossible', complete: true, nodes: 0, placements: null };
-        const placed = [], memo = new Set(); let nodes = 0, aborted = false, solution = null;
-        const overlap = (a, b) => a.x < b.x + b.length - this.epsilon && a.x + a.length > b.x + this.epsilon && a.y < b.y + b.width - this.epsilon && a.y + a.width > b.y + this.epsilon && a.z < b.z + b.height - this.epsilon && a.z + a.height > b.z + this.epsilon;
-        const stateKey = () => placed.map(p => `${p.x},${p.y},${p.z},${p.length},${p.width},${p.height}`).sort().join(';');
-        const points = () => { const xs = [0], ys = [0], zs = [0]; for (const p of placed) { xs.push(p.x + p.length); ys.push(p.y + p.width); zs.push(p.z + p.height) } const unique = a => { const seen = new Set(), out = []; for (const n of a) { const key = n.toFixed(9); if (!seen.has(key)) { seen.add(key); out.push(n) } } return out }; const out = []; for (const z of unique(zs)) for (const y of unique(ys)) for (const x of unique(xs)) if (x <= carton.width + this.epsilon && y <= carton.depth + this.epsilon && z <= carton.height + this.epsilon) out.push({ x, y, z }); return out.sort((a, b) => a.z - b.z || a.y - b.y || a.x - b.x) };
-        const search = () => {
-          if (++nodes > limit) { aborted = true; return false }
-          if (placed.length === target) { solution = placed.map(p => ({ ...p })); return true }
-          const key = stateKey(); if (memo.has(key)) return false;
-          for (const point of points()) for (const o of orientations) { const p = { x: point.x, y: point.y, z: point.z, length: o.length, width: o.width, height: o.height, orientation_id: o.orientation_id }; if (p.x + p.length > carton.width + this.epsilon || p.y + p.width > carton.depth + this.epsilon || p.z + p.height > carton.height + this.epsilon || placed.some(q => overlap(p, q))) continue; placed.push(p); if (search()) return true; placed.pop(); if (aborted) return false }
-          memo.add(key); return false;
-        };
-        const found = search(); return { status: found ? 'found' : aborted ? 'node-limit' : 'exhausted', complete: !aborted, nodes, placements: solution };
+      static find(fg, carton, target) {
+        const evaluated = CartonFitEngine.evaluateGrid({ ...fg, target }, carton);
+        return { status: evaluated?.passes ? 'found-uniform-grid' : 'no-uniform-grid-fit', complete: true, nodes: 0, placements: null, fit: evaluated };
       }
     }
     class FitSettings {
       static defaults = Object.freeze({
-        toleranceMode: 'absolute',
-        fgAllowanceMm: 5,
-        cartonAllowanceMm: 5,
-        fgAllowancePct: 10,
-        cartonAllowancePct: 10,
-        tryMixedPacking: true,
-        mixedSearchMaxNodes: 150000,
-        mixedSearchMaxTarget: 12
+        scenarios: Object.freeze([
+          Object.freeze({ id: 1, fgMultiplier: 1.0000, cartonMultiplier: 1.0000 }),
+          Object.freeze({ id: 2, fgMultiplier: 0.9875, cartonMultiplier: 1.0125 }),
+          Object.freeze({ id: 3, fgMultiplier: 0.9750, cartonMultiplier: 1.0250 }),
+          Object.freeze({ id: 4, fgMultiplier: 0.9625, cartonMultiplier: 1.0375 }),
+          Object.freeze({ id: 5, fgMultiplier: 0.9500, cartonMultiplier: 1.0500 })
+        ]),
+        minimumUtilizationPct: 85,
+        clearanceMm: 5,
+        roundingIncrementMm: 5
       });
       static current = { ...FitSettings.defaults };
       static reset() {
@@ -2084,10 +2030,10 @@
     }
 
     class DimensionSettings {
-      static defaults = Object.freeze({ toleranceMode:'absolute', fgMeasurementErrorMm: 5, cartonMeasurementErrorMm: 5, fgMeasurementErrorPct:10, cartonMeasurementErrorPct:10, wallThicknessMm: 5, openingFoldDeductionMm: 10, openingAxis: 'auto', minimumUtilizationPct: 85, clearanceMm: 5, roundingIncrementMm: 5, mixedSearchMaxNodes: 150000, mixedSearchMaxTarget: 12 });
+      static defaults = Object.freeze({ minimumUtilizationPct: 85, clearanceMm: 5, roundingIncrementMm: 5 });
       static current = { ...DimensionSettings.defaults };
       static reset() { this.current = { ...this.defaults } }
-      static signature(settings = this.current) { return ['toleranceMode','fgMeasurementErrorMm','cartonMeasurementErrorMm','fgMeasurementErrorPct','cartonMeasurementErrorPct','wallThicknessMm','openingFoldDeductionMm','openingAxis','minimumUtilizationPct','clearanceMm','roundingIncrementMm','mixedSearchMaxNodes','mixedSearchMaxTarget'].map(k => settings[k]).join('|') }
+      static signature(settings = this.current) { return [settings.minimumUtilizationPct, settings.clearanceMm, settings.roundingIncrementMm].join('|') }
     }
 
     function normalizeId(value) { return String(value ?? '').trim().toUpperCase() }
@@ -2119,66 +2065,22 @@
 
     class ToleranceClassifier {
       static STATUS = Object.freeze({
-        ROBUST_PASS: 'ROBUST_PASS',
-        NOMINAL_ONLY: 'NOMINAL_ONLY',
-        FAVORABLE_ONLY: 'FAVORABLE_ONLY',
-        FAIL: 'FAIL',
-        INCONCLUSIVE_SEARCH: 'INCONCLUSIVE_SEARCH',
-        DATA_INVALID: 'DATA_INVALID'
+        FIT: 'FIT',
+        FIT_WITH_DIMENSION_ALLOWANCE: 'FIT_WITH_DIMENSION_ALLOWANCE',
+        BOM_CONFIRMED_MODEL_MISMATCH: 'BOM_CONFIRMED_MODEL_MISMATCH',
+        DOES_NOT_FIT: 'DOES_NOT_FIT',
+        MISSING_DATA: 'MISSING_DATA'
       });
 
-      static classify(results) {
-        if (!results || !results.ROBUST || !results.NOMINAL || !results.FAVORABLE) {
-          return this.STATUS.DATA_INVALID;
-        }
-
-        const r = results.ROBUST;
-        const n = results.NOMINAL;
-        const f = results.FAVORABLE;
-
-        if (r.invalid || n.invalid || f.invalid) {
-          return this.STATUS.DATA_INVALID;
-        }
-
-        if (!CartonFitEngine.validFG(r.evaluatedFgDimensions) || !CartonFitEngine.validCarton(r.evaluatedCartonDimensions) ||
-            !CartonFitEngine.validFG(n.evaluatedFgDimensions) || !CartonFitEngine.validCarton(n.evaluatedCartonDimensions) ||
-            !CartonFitEngine.validFG(f.evaluatedFgDimensions) || !CartonFitEngine.validCarton(f.evaluatedCartonDimensions)) {
-          return this.STATUS.DATA_INVALID;
-        }
-
-        if (r.passes) {
-          return this.STATUS.ROBUST_PASS;
-        }
-
-        const robustInc = r.mixedSearch && ['node-limit', 'target-limit'].includes(r.mixedSearch.status);
-        const nominalInc = n.mixedSearch && ['node-limit', 'target-limit'].includes(n.mixedSearch.status);
-        const favorableInc = f.mixedSearch && ['node-limit', 'target-limit'].includes(f.mixedSearch.status);
-
-        if (robustInc) {
-          return this.STATUS.INCONCLUSIVE_SEARCH;
-        }
-
-        if (n.passes) {
-          return this.STATUS.NOMINAL_ONLY;
-        }
-
-        if (nominalInc) {
-          return this.STATUS.INCONCLUSIVE_SEARCH;
-        }
-
-        if (f.passes) {
-          return this.STATUS.FAVORABLE_ONLY;
-        }
-
-        if (favorableInc) {
-          return this.STATUS.INCONCLUSIVE_SEARCH;
-        }
-
-        return this.STATUS.FAIL;
+      static classify(result, bomConfirmed = false) {
+        const decision = result?.decision || result;
+        if (!decision || decision.missingData) return this.STATUS.MISSING_DATA;
+        if (decision.passes) return Number(decision.selectedScenario) === 1 ? this.STATUS.FIT : this.STATUS.FIT_WITH_DIMENSION_ALLOWANCE;
+        return bomConfirmed ? this.STATUS.BOM_CONFIRMED_MODEL_MISMATCH : this.STATUS.DOES_NOT_FIT;
       }
     }
 
-    class CartonFitEngine {
+    class DisabledLegacyCartonFitEngine {
       static _cache = new Map(); static _CACHE_MAX = 5000;
       static _cacheKey(fg, carton, scenario, settings, tryMixed, maxNodes) {
         const mode = settings.toleranceMode;
@@ -2431,18 +2333,55 @@
       static validCarton(c) { return [c?.width, c?.depth, c?.height].every(n => Number.isFinite(n) && n > 0) }
     }
 
-    const PRODUCTION_CONFIRMED_PACKING = [{ fgId: '1004079', cartonId: '1000405', cartonDimensionsMm: { width: 272, depth: 250, height: 145 }, note: 'User confirmed this legacy pairing is packed in production; rigid simple-grid model cannot reproduce it.' }];
+    class CartonFitEngine {
+      static SCENARIOS = FitSettings.defaults.scenarios;
+      static _cache = new Map();
+      static _CACHE_MAX = 5000;
+      static clearCache() { this._cache.clear() }
+      static validFG(f) { return [f?.width, f?.depth, f?.height].every(n => Number.isFinite(n) && n > 0) && Number.isInteger(f?.target) && f.target > 0 }
+      static validCarton(c) { return [c?.width, c?.depth, c?.height].every(n => Number.isFinite(n) && n > 0) }
+      static permutations(fg) { const [l,w,h]=[Number(fg.width),Number(fg.depth),Number(fg.height)]; return [[1,l,w,h],[2,l,h,w],[3,w,l,h],[4,w,h,l],[5,h,l,w],[6,h,w,l]].map(([orientation_id,length,width,height])=>({orientation_id,length,width,height})) }
+      static cacheKey(fg, carton) { return [fg?.width,fg?.depth,fg?.height,fg?.target,carton?.width,carton?.depth,carton?.height].join('|') }
+      static put(key, value) { this._cache.set(key,value); if(this._cache.size>this._CACHE_MAX)this._cache.delete(this._cache.keys().next().value); return value }
+      static evaluateGrid(fg, carton, scenario = this.SCENARIOS[0]) {
+        if (!this.validFG(fg) || !this.validCarton(carton)) return null;
+        const orientationResults = this.permutations(fg).map(o => {
+          const alongLength=Math.floor(carton.width/o.length),alongWidth=Math.floor(carton.depth/o.width),alongHeight=Math.floor(carton.height/o.height),capacity=alongLength*alongWidth*alongHeight;
+          const arrangement={alongLength,alongWidth,alongHeight,toString(){return`${alongLength} × ${alongWidth} × ${alongHeight}`}};
+          return { ...o, alongLength, alongWidth, alongHeight, qtyLength:alongLength, qtyWidth:alongWidth, qtyHeight:alongHeight, capacity, capacitySurplus:capacity-fg.target, arrangement, arrangementText:String(arrangement), remainingLength:carton.width-alongLength*o.length, remainingWidth:carton.depth-alongWidth*o.width, remainingHeight:carton.height-alongHeight*o.height };
+        });
+        const passing=orientationResults.filter(x=>x.capacity>=fg.target).sort((a,b)=>a.capacitySurplus-b.capacitySurplus||a.alongHeight-b.alongHeight||a.orientation_id-b.orientation_id);
+        const fallback=[...orientationResults].sort((a,b)=>b.capacity-a.capacity||a.alongHeight-b.alongHeight||a.orientation_id-b.orientation_id)[0];
+        const best=passing[0]||fallback,cartonVolume=carton.width*carton.depth*carton.height,requiredVolume=fg.target*fg.width*fg.depth*fg.height,utilization=requiredVolume/cartonVolume;
+        return { ...best, passes:passing.length>0, selectedScenario:scenario.id, scenario:`SCENARIO_${scenario.id}`, fgMultiplier:scenario.fgMultiplier, cartonMultiplier:scenario.cartonMultiplier, orientedFgDimensions:{length:best.length,width:best.width,height:best.height}, evaluatedFgDimensions:{...fg}, evaluatedCartonDimensions:{...carton}, cartonUsableDimensions:{...carton}, arrangement:best.arrangement, requiredQuantity:fg.target, targetQty:fg.target, capacitySurplus:best.capacity-fg.target, utilization, volumeUtilization:utilization, volumeUtilizationPct:utilization*100, cartonVolume, requiredVolume, packingMode:'uniform', uniformCapacity:best.capacity, uniformBest:{...best}, orientationResults, orientationsTested:6, capacityLowerBound:false, searchComplete:true, mixedSearch:{status:'disabled-simple-five-scenario',complete:true,nodes:0}, warnings:[] };
+      }
+      static evaluateFiveScenarios(fg, carton, options = {}) {
+        if (!this.validFG(fg) || !this.validCarton(carton)) return { passes:false,missingData:true,status:'MISSING_DATA',classification:'MISSING_DATA',selectedScenario:null,scenarioResults:[],selectedFit:null,warnings:[I18n.t('dataIncomplete')] };
+        const key=`${this.cacheKey(fg,carton)}|${options.bomConfirmed?'B':'N'}`; if(this._cache.has(key))return this._cache.get(key);
+        const scenarioResults=this.SCENARIOS.map(s=>{const scaledFg={...fg,width:fg.width*s.fgMultiplier,depth:fg.depth*s.fgMultiplier,height:fg.height*s.fgMultiplier};const scaledCarton={...carton,width:carton.width*s.cartonMultiplier,depth:carton.depth*s.cartonMultiplier,height:carton.height*s.cartonMultiplier};return this.evaluateGrid(scaledFg,scaledCarton,s)});
+        const passing=scenarioResults.filter(x=>x.passes).sort((a,b)=>b.utilization-a.utilization||a.selectedScenario-b.selectedScenario||a.capacitySurplus-b.capacitySurplus||a.arrangement.alongHeight-b.arrangement.alongHeight||a.orientation_id-b.orientation_id);
+        const selectedFit=passing[0]||null,classification=selectedFit?(selectedFit.selectedScenario===1?'FIT':'FIT_WITH_DIMENSION_ALLOWANCE'):(options.bomConfirmed?'BOM_CONFIRMED_MODEL_MISMATCH':'DOES_NOT_FIT'),displayFit=selectedFit||scenarioResults[0];
+        const warnings=[];if(selectedFit&&selectedFit.utilization<.85)warnings.push(I18n.t('below85Warning'));if(classification==='BOM_CONFIRMED_MODEL_MISMATCH')warnings.push(I18n.t('simplifiedBomMismatch'));
+        return this.put(key,{ passes:!!selectedFit,missingData:false,status:classification,classification,selectedScenario:selectedFit?.selectedScenario??null,fgMultiplier:selectedFit?.fgMultiplier??null,cartonMultiplier:selectedFit?.cartonMultiplier??null,selectedFit,displayFit,scenarioResults,requiredQuantity:fg.target,capacity:displayFit.capacity,capacitySurplus:displayFit.capacity-fg.target,utilization:displayFit.utilization,volumeUtilization:displayFit.utilization,volumeUtilizationPct:displayFit.utilization*100,packingStatus:'uniform',searchComplete:true,warnings });
+      }
+      static evaluate(fg, carton, options = {}) { const d=this.evaluateFiveScenarios(fg,carton,options); const fit=d.selectedFit||d.displayFit; return fit?{...fit,decision:d,classification:d.classification,status:d.classification}:null }
+      static evaluateScenario(fg, carton, scenario) { const id=Number(scenario?.id||scenario)||(/^SCENARIO_(\d)$/i.test(String(scenario))?Number(RegExp.$1):String(scenario).toUpperCase()==='NOMINAL'?1:1),s=this.SCENARIOS.find(x=>x.id===id)||this.SCENARIOS[0],scaledFg={...fg,width:fg.width*s.fgMultiplier,depth:fg.depth*s.fgMultiplier,height:fg.height*s.fgMultiplier},scaledCarton={...carton,width:carton.width*s.cartonMultiplier,depth:carton.depth*s.cartonMultiplier,height:carton.height*s.cartonMultiplier};return this.evaluateGrid(scaledFg,scaledCarton,s) }
+      static evaluateToleranced(fg, carton) { return this.evaluateGrid(fg,carton,this.SCENARIOS[0]) }
+      static evaluateAllScenarios(fg, carton, settings, options = {}) { return this.evaluateFiveScenarios(fg,carton,options) }
+    }
+
+    const PRODUCTION_CONFIRMED_PACKING = [{ fgId: '1004079', cartonId: '1000405', cartonDimensionsMm: { width: 272, depth: 250, height: 145 }, note: 'User confirmed this legacy pairing is packed in production; simplified five-scenario grid model cannot reproduce it.' }];
 
     class FitInterpretation {
       static interpret({ fg, carton, targetQty, fit, productionConfirmed = 'unknown', utilizationThreshold = NaN }) {
-        const confirmation = ['yes', 'no'].includes(productionConfirmed) ? productionConfirmed : 'unknown', target = Number(targetQty), threshold = Number(utilizationThreshold), fgValid = [fg?.width, fg?.depth, fg?.height].every(n => Number.isFinite(n) && n > 0), cartonValid = CartonFitEngine.validCarton(carton), fitValid = !!fit && Number.isFinite(fit.capacity), fgVolume = fgValid ? fg.width * fg.depth * fg.height : NaN, cartonVolume = cartonValid ? carton.width * carton.depth * carton.height : NaN, targetVolume = Number.isFinite(fgVolume) && Number.isInteger(target) && target > 0 ? fgVolume * target : NaN, bomVolumetricUtilization = Number.isFinite(targetVolume) && Number.isFinite(cartonVolume) ? targetVolume / cartonVolume : NaN, maxPackedUtilization = fitValid && Number.isFinite(fgVolume) && Number.isFinite(cartonVolume) ? fgVolume * fit.capacity / cartonVolume : NaN, rigidVolumePossible = Number.isFinite(targetVolume) && Number.isFinite(cartonVolume) ? targetVolume <= cartonVolume : null, orthogonalFits = fitValid && fit.passes === true, simpleGridFits = orthogonalFits && fit.packingMode !== 'mixed', simpleGridCapacity = fitValid ? (fit.uniformCapacity ?? fit.capacity) : NaN, verifiedCapacity = fitValid ? fit.capacity : NaN, underutilized = orthogonalFits && Number.isFinite(threshold) && threshold > 0 && bomVolumetricUtilization < threshold;
-        let statusCode = 'DATA_INCOMPLETE', labelKey = 'dataIncomplete', statusClass = 'bad', explanationKey = 'explainDataIncomplete';
-        if (fgValid && cartonValid && fitValid && Number.isInteger(target) && target > 0) { if (underutilized) { statusCode = 'UNDERUTILIZED'; labelKey = 'highWaste'; statusClass = 'bad'; explanationKey = 'explainUnderutilized' } else if (orthogonalFits && fit.packingMode === 'mixed') { statusCode = 'PASS_MIXED_ORTHOGONAL'; labelKey = 'passMixed'; statusClass = 'good'; explanationKey = 'explainPassMixed' } else if (simpleGridFits) { statusCode = 'PASS_SIMPLE_GRID'; labelKey = 'passSimpleGrid'; statusClass = 'good'; explanationKey = 'explainPassSimpleGrid' } else if (confirmation === 'yes') { statusCode = 'PRODUCTION_CONFIRMED_MODEL_LIMITATION'; labelKey = 'productionModelLimitation'; statusClass = 'warn'; explanationKey = 'explainProductionLimitation' } else if (!rigidVolumePossible) { statusCode = 'RIGID_MODEL_IMPOSSIBLE'; labelKey = 'rigidModelFail'; statusClass = 'warn'; explanationKey = 'explainRigidModelFail' } else if (fit.mixedSearch?.status === 'exhausted' || fit.mixedSearch?.status === 'axis-impossible') { statusCode = 'NO_ORTHOGONAL_FIT'; labelKey = 'noOrthogonalFit'; statusClass = 'warn'; explanationKey = 'explainNoOrthogonalFit' } else { statusCode = 'MANUAL_VALIDATION_REQUIRED'; labelKey = 'manualValidationRequired'; statusClass = 'warn'; explanationKey = 'explainManualValidation' } }
-        return { fgVolume, cartonVolume, targetVolume, bomVolumetricUtilization, maxPackedUtilization, rigidVolumePossible, orthogonalFits, simpleGridFits, simpleGridCapacity, verifiedCapacity, underutilized, utilizationThreshold: threshold, productionConfirmed: confirmation, statusCode, statusLabel: I18n.t(labelKey), statusClass, explanation: I18n.t(explanationKey), visualizerNotice: orthogonalFits ? '' : I18n.t('orthogonalPreview') + (confirmation === 'yes' ? ` ${I18n.t('productionVisualizerLimit')}` : '') };
+        const confirmation=['yes','no'].includes(productionConfirmed)?productionConfirmed:'unknown',target=Number(targetQty),threshold=Number(utilizationThreshold),fgValid=[fg?.width,fg?.depth,fg?.height].every(n=>Number.isFinite(n)&&n>0),cartonValid=CartonFitEngine.validCarton(carton),fitValid=!!fit&&Number.isFinite(fit.capacity),fgVolume=fgValid?fg.width*fg.depth*fg.height:NaN,cartonVolume=cartonValid?carton.width*carton.depth*carton.height:NaN,targetVolume=Number.isFinite(fgVolume)&&Number.isInteger(target)&&target>0?fgVolume*target:NaN,bomVolumetricUtilization=Number.isFinite(targetVolume)&&Number.isFinite(cartonVolume)?targetVolume/cartonVolume:NaN,maxPackedUtilization=fitValid&&Number.isFinite(fgVolume)&&Number.isFinite(cartonVolume)?fgVolume*fit.capacity/cartonVolume:NaN,orthogonalFits=fitValid&&fit.passes===true,simpleGridFits=orthogonalFits,simpleGridCapacity=fitValid?fit.capacity:NaN,verifiedCapacity=simpleGridCapacity,underutilized=orthogonalFits&&Number.isFinite(threshold)&&threshold>0&&bomVolumetricUtilization<threshold;
+        let statusCode='MISSING_DATA',statusLabel=I18n.t('dataIncomplete'),statusClass='bad',explanation=I18n.t('explainDataIncomplete');
+        if(fgValid&&cartonValid&&fitValid&&Number.isInteger(target)&&target>0){if(orthogonalFits){statusCode=fit.selectedScenario===1?'FIT':'FIT_WITH_DIMENSION_ALLOWANCE';statusLabel=I18n.t(fit.selectedScenario===1?'fit':'fitWithAllowance');statusClass=underutilized?'warn':'good';explanation=underutilized?I18n.t('below85Warning'):I18n.t('explainPassSimpleGrid')}else if(confirmation==='yes'){statusCode='BOM_CONFIRMED_MODEL_MISMATCH';statusLabel=I18n.t('bomConfirmedModelMismatch');statusClass='warn';explanation=I18n.t('simplifiedBomMismatch')}else{statusCode='DOES_NOT_FIT';statusLabel=I18n.t('doesNotFit');statusClass='bad';explanation=I18n.t('noOrthogonalFit')}}
+        return {fgVolume,cartonVolume,targetVolume,bomVolumetricUtilization,maxPackedUtilization,rigidVolumePossible:Number.isFinite(targetVolume)&&Number.isFinite(cartonVolume)?targetVolume<=cartonVolume:null,orthogonalFits,simpleGridFits,simpleGridCapacity,verifiedCapacity,underutilized,utilizationThreshold:threshold,productionConfirmed:confirmation,statusCode,statusLabel,statusClass,explanation,visualizerNotice:orthogonalFits?'':explanation};
       }
     }
 
-    class NewCartonGenerator {
+    class DisabledLegacyNewCartonGenerator {
       static clearance = 5; static increment = 5; // millimetres
       static exhaustiveTargetLimit = 200; // Exhaustive grid-pattern expansion is bounded for browser responsiveness.
       static controlledPatterns(target) { return [[1, 1, target], [1, 2, Math.ceil(target / 2)], [2, 2, Math.ceil(target / 4)], [2, 3, Math.ceil(target / 6)], [2, 2, 2], [3, 2, 2], [4, 3, 1]] }
@@ -2549,7 +2488,24 @@
       static round(n) { return Math.ceil(n / this.increment) * this.increment }
     }
 
-    class CartonScorer {
+    class NewCartonGenerator {
+      static clearance=5; static increment=5;
+      static controlledPatterns(target){return [[1,1,target],[1,2,Math.ceil(target/2)],[2,2,Math.ceil(target/4)],[2,3,Math.ceil(target/6)],[3,3,Math.ceil(target/9)]]}
+      static selectedPatterns(target){const out=new Map(),add=a=>{if(a.every(n=>Number.isInteger(n)&&n>0)&&a[0]*a[1]*a[2]>=target)out.set([...a].sort((x,y)=>x-y).join('|'),[...a].sort((x,y)=>x-y))};this.controlledPatterns(target).forEach(add);const max=Math.min(Math.max(target,1),12);for(let a=1;a<=max&&out.size<36;a++)for(let b=a;b<=max&&out.size<36;b++){const c=Math.ceil(target/(a*b));if(c>0)add([a,b,c])}return [...out.values()]}
+      static round(n,increment=this.increment){return Math.ceil(n/increment)*increment}
+      static generate(selected, fgs=[], options={}){
+        if(!CartonFitEngine.validFG(selected))return[];const clearance=Math.max(0,Number(options.clearance??options.settings?.clearanceMm??this.clearance)),increment=Math.max(1,Number(options.increment??options.settings?.roundingIncrementMm??this.increment)),candidates=new Map(),patterns=this.selectedPatterns(selected.target);
+        for(const o of CartonFitEngine.permutations(selected))for(const counts of patterns)for(const p of CartonFitEngine.permutations({width:counts[0],depth:counts[1],height:counts[2]})){const a=p.length,b=p.width,c=p.height;if(a*b*c<selected.target)continue;const width=this.round(o.length*a+clearance,increment),depth=this.round(o.width*b+clearance,increment),height=this.round(o.height*c+clearance,increment),dimsSorted=[width,depth,height].sort((x,y)=>x-y),key=dimsSorted.join('|');if(!candidates.has(key))candidates.set(key,{width,depth,height,carton_id:'ENGINEERING PROPOSAL',carton_name:'New carton proposal',lifecycle:'Proposed',proposedLayout:`${a} × ${b} × ${c}`})}
+        const existing=options.existingCartons||[],familyDistance=carton=>existing.length?Math.min(...existing.filter(CartonFitEngine.validCarton).map(c=>Math.abs(c.width-carton.width)+Math.abs(c.depth-carton.depth)+Math.abs(c.height-carton.height))):Infinity,rows=[];
+        for(const carton of candidates.values()){const decision=SharedDecisionEngine.evaluateAll(selected,carton,DimensionSettings.current);if(!decision.passes)continue;rows.push({carton,decision,fit:decision,selectedFit:decision.selectedFit,selectedUtil:decision.utilization,utilization:decision.utilization,capacity:decision.capacity,capacitySurplus:decision.capacitySurplus,cartonVolume:carton.width*carton.depth*carton.height,familyDistance:familyDistance(carton),warnings:[...decision.warnings]})}
+        rows.sort((a,b)=>b.utilization-a.utilization||Number(b.utilization>=.85)-Number(a.utilization>=.85)||a.cartonVolume-b.cartonVolume||a.capacitySurplus-b.capacitySurplus||a.familyDistance-b.familyDistance||dims(a.carton).localeCompare(dims(b.carton)));
+        const top=rows.slice(0,5),validFgs=(fgs||[]).filter(CartonFitEngine.validFG);
+        for(const row of top){const supported=[];for(const fg of validFgs){const d=SharedDecisionEngine.evaluateAll(fg,row.carton,DimensionSettings.current);if(d.passes)supported.push({fg,fit:d.selectedFit})}const utils=supported.map(x=>x.fit.utilization);row.supportedCount=supported.length;row.aboveCount=supported.filter(x=>x.fit.utilization>=.85).length;row.avgUtil=utils.length?mean(utils):0;row.minUtil=utils.length?Math.min(...utils):0;row.avgSurplus=supported.length?mean(supported.map(x=>x.fit.capacity-x.fg.target)):0}
+        return top;
+      }
+    }
+
+    class DisabledLegacyCartonScorer {
       static existing(fg, cartons, limit = 10, excludedCartonId = '') {
         const excluded = String(excludedCartonId || '').trim().toLowerCase();
         const settings = FitSettings.current;
@@ -2621,7 +2577,17 @@
       static active(v) { return /^active$/i.test(String(v || '').trim()) }
     }
 
-    class SharedDecisionEngine {
+    class CartonScorer {
+      static existing(fg,cartons,limit=5,excludedCartonId=''){
+        const excluded=normalizeId(excludedCartonId),rows=[];
+        for(const carton of cartons||[]){if(!CartonFitEngine.validCarton(carton)||normalizeId(carton.carton_id)===excluded)continue;const decision=SharedDecisionEngine.evaluateAll(fg,carton,DimensionSettings.current);if(!decision.passes)continue;rows.push({carton,decision,fit:SharedDecisionEngine.legacy(fg,carton,DimensionSettings.current),status:decision.classification,classification:decision.classification,capacity:decision.capacity,utilization:decision.utilization})}
+        rows.sort((a,b)=>b.utilization-a.utilization||Number(b.utilization>=.85)-Number(a.utilization>=.85)||a.decision.capacitySurplus-b.decision.capacitySurplus||a.decision.selectedScenario-b.decision.selectedScenario||(a.carton.width*a.carton.depth*a.carton.height)-(b.carton.width*b.carton.depth*b.carton.height)||Number(this.active(b.carton.lifecycle))-Number(this.active(a.carton.lifecycle))||String(a.carton.carton_id||'').localeCompare(String(b.carton.carton_id||''),undefined,{numeric:true,sensitivity:'base'}));
+        return rows.slice(0,Math.min(5,Math.max(1,Number(limit)||5)));
+      }
+      static active(v){return /^active$/i.test(String(v||'').trim())}
+    }
+
+    class DisabledLegacySharedDecisionEngine {
       static cache = new Map(); static CACHE_MAX = 5000;
       static clearCache() { this.cache.clear(); CartonFitEngine.clearCache() }
       static put(key, value) { this.cache.set(key, value); if (this.cache.size > this.CACHE_MAX) this.cache.delete(this.cache.keys().next().value); return value }
@@ -2651,28 +2617,39 @@
       static legacy(fg, carton, settings = DimensionSettings.current, options = {}) { const result = this.evaluateAll(fg, carton, settings, options); return { ROBUST: result.ROBUST, NOMINAL: result.NOMINAL, FAVORABLE: result.FAVORABLE } }
     }
 
+    class SharedDecisionEngine {
+      static cache=new Map();static CACHE_MAX=5000;
+      static clearCache(){this.cache.clear();CartonFitEngine.clearCache()}
+      static cacheKey(fg,carton,bomConfirmed){return[fg?.width,fg?.depth,fg?.height,fg?.target,carton?.width,carton?.depth,carton?.height,bomConfirmed?'B':'N'].join('|')}
+      static put(key,value){this.cache.set(key,value);if(this.cache.size>this.CACHE_MAX)this.cache.delete(this.cache.keys().next().value);return value}
+      static evaluateAll(fg,carton,settings=DimensionSettings.current,options={}){
+        const bomConfirmed=!!options.bomConfirmed,key=this.cacheKey(fg,carton,bomConfirmed);if(this.cache.has(key))return this.cache.get(key);const base=CartonFitEngine.evaluateFiveScenarios(fg,carton,{bomConfirmed}),selected=base.selectedFit,nominal=base.scenarioResults?.[0]||null,allowance=base.scenarioResults?.[4]||null,display=selected||base.displayFit||nominal;
+        const result={...base,status:base.classification,legacyStatus:base.classification,targetQty:fg?.target,capacity:display?.capacity??0,robustCapacity:display?.capacity??0,nominalCapacity:nominal?.capacity??0,utilization:display?.utilization??0,volumeUtilization:display?.utilization??0,volumeUtilizationPct:(display?.utilization??0)*100,packingStatus:'uniform',conservative:selected||display,nominal,favorable:allowance,ROBUST:selected||display,NOMINAL:nominal,FAVORABLE:allowance,selectedFit:selected||null,displayFit:display,searchComplete:true,warnings:[...new Set(base.warnings||[])]};
+        return this.put(key,result);
+      }
+      static legacy(fg,carton,settings=DimensionSettings.current,options={}){const decision=this.evaluateAll(fg,carton,settings,options),selected=decision.selectedFit||decision.displayFit;return{decision,selected,ROBUST:selected,NOMINAL:decision.nominal,FAVORABLE:decision.favorable,scenarioResults:decision.scenarioResults}}
+    }
+
     class RecommendationEngine {
       static integerLayouts(target) { const layouts=new Map(),add=v=>{const a=v.map(Number).sort((x,y)=>x-y);if(a.every(n=>Number.isInteger(n)&&n>0)&&a[0]*a[1]*a[2]>=target)layouts.set(a.join('|'),a)};NewCartonGenerator.controlledPatterns(target).forEach(add);const maxAxis=Math.min(Math.max(1,target),12);for(let a=1;a<=maxAxis;a++)for(let b=a;b<=Math.min(Math.ceil(target/a),12);b++){const c=Math.ceil(target/(a*b));if(c<1||c>Math.max(36,target))continue;add([a,b,c]);if(layouts.size>=36)return [...layouts.values()]}return [...layouts.values()] }
       static existing(fg, cartons, settings = DimensionSettings.current, limit = 5, excludedCartonId = '') {
-        const excluded = normalizeId(excludedCartonId), threshold = Number(settings.minimumUtilizationPct) / 100, robust = [], physicalCheck = [];
-        for (const carton of cartons || []) { if (!CartonFitEngine.validCarton(carton) || normalizeId(carton.carton_id) === excluded) continue; const decision = SharedDecisionEngine.evaluateAll(fg, carton, settings, { tryMixed:false }); const row = { carton, decision, fit: decision, status: decision.legacyStatus, classification: decision.classification, capacity: decision.robustCapacity, robustCapacity: decision.robustCapacity, nominalCapacity: decision.nominalCapacity, utilization: decision.utilization, lifecycle: carton.lifecycle, strategicReuseScore: 0 }; row.strategicReuseScore = (CartonScorer.active(carton.lifecycle) ? 100 : 0) + Math.max(0, 100 - Math.abs((row.capacity || 0) - fg.target) * 8) + Math.max(0, 100 - Math.abs((row.utilization || 0) - Math.max(threshold, .9)) * 200); if (decision.passes && decision.utilization >= threshold) robust.push(row); else if (decision.nominal?.passes) physicalCheck.push(row) }
-        const sort = (a,b) => b.strategicReuseScore - a.strategicReuseScore || b.utilization - a.utilization || (a.carton.width*a.carton.depth*a.carton.height)-(b.carton.width*b.carton.depth*b.carton.height); robust.sort(sort); physicalCheck.sort(sort);
-        const diverse = rows => { const seen = new Set(), out = []; for (const row of rows) { const key = [row.carton.width,row.carton.depth,row.carton.height].map(n=>Math.round(n)).sort((a,b)=>a-b).join('|'); if (seen.has(key)) continue; seen.add(key); out.push(row); if (out.length >= limit) break } return out };
-        const recommendations = diverse(robust), nominalOnly = diverse(physicalCheck); return { recommendations, nominalOnly, all: [...recommendations,...nominalOnly] };
+        const recommendations=CartonScorer.existing(fg,cartons,Math.min(5,limit),excludedCartonId);return{recommendations,nominalOnly:[],all:[...recommendations]};
       }
-      static newCartons(fg, settings = DimensionSettings.current, limit = 5) {
+      static disabledNewCartons(fg, settings = DimensionSettings.current, limit = 5) {
         if (!CartonFitEngine.validFG(fg)) return []; const error = Math.max(0, Number(settings.fgMeasurementErrorMm)||0), clearance = Math.max(0, Number(settings.clearanceMm)||0), wall = Math.max(0, Number(settings.wallThicknessMm)||0), cartonError = Math.max(0, Number(settings.cartonMeasurementErrorMm)||0), fold = Math.max(0, Number(settings.openingFoldDeductionMm)||0), inc = Math.max(1, Number(settings.roundingIncrementMm)||5), worstFg = { ...fg, width: fg.width + error, depth: fg.depth + error, height: fg.height + error }, candidates = new Map(), round = n => Math.ceil(n / inc) * inc;
         for (const o of CartonFitEngine.permutations(worstFg)) for (const counts of this.integerLayouts(fg.target)) for (const perm of CartonFitEngine.permutations({ width: counts[0], depth: counts[1], height: counts[2] })) { const a=perm.length,b=perm.width,c=perm.height; if (a*b*c < fg.target) continue; const usable = { width:o.length*a+clearance, depth:o.width*b+clearance, height:o.height*c+clearance }, addFoldAll = String(settings.openingAxis||'auto') === 'auto', outside = { width:round(usable.width+2*wall+cartonError+(addFoldAll||settings.openingAxis==='length'?fold:0)), depth:round(usable.depth+2*wall+cartonError+(addFoldAll||settings.openingAxis==='width'?fold:0)), height:round(usable.height+2*wall+cartonError+(addFoldAll||settings.openingAxis==='height'?fold:0)) }, key=[outside.width,outside.depth,outside.height].sort((x,y)=>x-y).join('|'); candidates.set(key,{ ...outside, carton_id:'ENGINEERING PROPOSAL', carton_name:'New carton proposal', lifecycle:'Proposed', proposedLayout:`${a} × ${b} × ${c}` }) }
         const rows = []; for (const carton of [...candidates.values()].slice(0,300)) { const decision=SharedDecisionEngine.evaluateAll(fg,carton,settings,{tryMixed:false}); if (!decision.passes) continue; const d=[carton.width,carton.depth,carton.height].sort((a,b)=>b-a), aspect=d[2]>0?d[0]/d[2]:Infinity; rows.push({ carton, decision, fit:decision, classification:decision.classification, capacity:decision.robustCapacity, robustCapacity:decision.robustCapacity, nominalCapacity:decision.nominalCapacity, utilization:decision.utilization, warnings:aspect>5?[I18n.t('extremeAspectRatio')]:decision.warnings }) }
         rows.sort((a,b)=>Math.abs((a.capacity||0)-fg.target)-Math.abs((b.capacity||0)-fg.target)||b.utilization-a.utilization||(a.carton.width*a.carton.depth*a.carton.height)-(b.carton.width*b.carton.depth*b.carton.height)); return rows.slice(0,limit);
       }
+      static newCartons(fg, settings = DimensionSettings.current, limit = 5) { return NewCartonGenerator.generate(fg,[fg],{settings,clearance:5,increment:5}).slice(0,Math.min(5,limit)) }
       static portfolioConsolidation(batchRows) { const groups=new Map(); for(const row of batchRows||[]){const c=row.bestNew?.carton;if(!c)continue;const key=[c.width,c.depth,c.height].map(Math.round).sort((a,b)=>a-b).join('|');if(!groups.has(key))groups.set(key,{dimensions:dims(c),fgCount:0,fgIds:[],averageUtilization:0,_sum:0});const g=groups.get(key);g.fgCount++;g.fgIds.push(row.fgId);g._sum+=Number(row.bestNew.utilization)||0} return [...groups.values()].map(g=>({...g,averageUtilization:g.fgCount?g._sum/g.fgCount:0})).sort((a,b)=>b.fgCount-a.fgCount) }
     }
 
     class BatchAuditEngine {
       static async run(store, settings, progress, taskId) {
-        const fgs=store.finishedGoods||[], rows=[]; progress?.updateTask({phase:'BATCH_AUDIT',detail:I18n.t('batchAudit'),current:0,total:fgs.length,indeterminate:false,cancellable:true},taskId);
-        for(let i=0;i<fgs.length;i++){const fg=fgs[i],warnings=store.dataWarningsByFg.get(normalizeId(fg.fg_id))||[],assignedId=store.assignedCartonByFg.get(normalizeId(fg.fg_id))||'',carton=store.cartonById.get(assignedId),eligible=CartonFitEngine.validFG(fg)&&!!carton&&CartonFitEngine.validCarton(carton),decision=eligible?SharedDecisionEngine.evaluateAll(fg,carton,settings):null;let existing={recommendations:[]},bestNew=null;if(CartonFitEngine.validFG(fg)&&(!decision?.passes||decision.utilization<Number(settings.minimumUtilizationPct)/100)){existing=RecommendationEngine.existing(fg,store.cartons,settings,1,assignedId);if(!existing.recommendations.length)bestNew=RecommendationEngine.newCartons(fg,settings,1)[0]||null}const bestExisting=existing.recommendations[0]||null,bomConflict=!!fg.bomCartonAmbiguous|| (!!fg.mvpAssignedCartonId&&!!fg.assignedCartonId&&normalizeId(fg.mvpAssignedCartonId)!==normalizeId(fg.assignedCartonId));rows.push({fgId:fg.fg_id,fgName:fg.fg_name,targetQty:fg.target,assignedCartonId:assignedId,eligible,excludedReason:eligible?'':warnings.join('; '),status:decision?.classification||'DATA_INCOMPLETE',classification:decision?.classification||'DATA_INCOMPLETE',packingStatus:decision?.packingStatus||'',capacity:decision?.capacity??'',robustCapacity:decision?.robustCapacity??'',nominalCapacity:decision?.nominalCapacity??'',utilization:decision?.utilization??'',searchComplete:decision?.conservative?.searchComplete??false,bomConflict,bestExisting,bestNew,replacementAvailable:!!bestExisting,newCartonRequired:!bestExisting&&!!bestNew,warnings:[...warnings,...(decision?.warnings||[])]});progress?.updateTask({current:i+1,detail:`${i+1} / ${fgs.length} FG`},taskId);if(progress)await progress.yieldToBrowser(taskId)} return {rows,summary:{total:rows.length,eligible:rows.filter(r=>r.eligible).length,pass:rows.filter(r=>r.status==='STANDARD_REUSE_RECOMMENDED').length,under85:rows.filter(r=>r.status==='FIT_BUT_LOW_UTILIZATION').length,searchIncomplete:rows.filter(r=>!r.searchComplete&&r.eligible).length,missingData:rows.filter(r=>!r.eligible).length,replacementAvailable:rows.filter(r=>r.replacementAvailable).length,newCartonRequired:rows.filter(r=>r.newCartonRequired).length,bomConflict:rows.filter(r=>r.bomConflict).length},portfolio:RecommendationEngine.portfolioConsolidation(rows)} }
+        const fgs=store.finishedGoods||[],rows=[],threshold=Math.max(0,Number(settings.minimumUtilizationPct)||85)/100;progress?.updateTask({phase:'BATCH_AUDIT',detail:I18n.t('batchAudit'),current:0,total:fgs.length,indeterminate:false,cancellable:true},taskId);
+        for(let start=0;start<fgs.length;start+=20){const end=Math.min(fgs.length,start+20);for(let i=start;i<end;i++){const fg=fgs[i],warnings=store.dataWarningsByFg.get(normalizeId(fg.fg_id))||[],assignedId=store.assignedCartonByFg.get(normalizeId(fg.fg_id))||'',carton=store.cartonById.get(assignedId),eligible=CartonFitEngine.validFG(fg)&&!!carton&&CartonFitEngine.validCarton(carton),decision=eligible?SharedDecisionEngine.evaluateAll(fg,carton,settings,{bomConfirmed:!!assignedId}):null;let existing={recommendations:[]},bestNew=null;if(CartonFitEngine.validFG(fg)&&(!decision?.passes||decision.utilization<threshold)){existing=RecommendationEngine.existing(fg,store.cartons,settings,1,assignedId);if(!existing.recommendations.length)bestNew=RecommendationEngine.newCartons(fg,settings,1)[0]||null}const bestExisting=existing.recommendations[0]||null,bomConflict=!!fg.bomCartonAmbiguous|| (!!fg.mvpAssignedCartonId&&!!fg.assignedCartonId&&normalizeId(fg.mvpAssignedCartonId)!==normalizeId(fg.assignedCartonId));rows.push({fg,carton,fgDimensions:dims(fg),cartonDimensions:carton?dims(carton):'',fgId:fg.fg_id,fgName:fg.fg_name,targetQty:fg.target,assignedCartonId:assignedId,eligible,excludedReason:eligible?'':warnings.join('; '),status:decision?.classification||'MISSING_DATA',classification:decision?.classification||'MISSING_DATA',packingStatus:'uniform',capacity:decision?.capacity??'',robustCapacity:decision?.capacity??'',nominalCapacity:decision?.nominalCapacity??'',selectedScenario:decision?.selectedScenario??'',fgMultiplier:decision?.fgMultiplier??'',cartonMultiplier:decision?.cartonMultiplier??'',utilization:decision?.utilization??'',searchComplete:true,bomConflict,bestExisting,bestNew,replacementAvailable:!!bestExisting,newCartonRequired:!bestExisting&&!!bestNew,warnings:[...warnings,...(decision?.warnings||[])]})}progress?.updateTask({current:end,detail:`${end} / ${fgs.length} FG`},taskId);if(progress)await progress.yieldToBrowser(taskId)}return{rows,summary:{total:rows.length,eligible:rows.filter(r=>r.eligible).length,pass:rows.filter(r=>['FIT','FIT_WITH_DIMENSION_ALLOWANCE'].includes(r.status)).length,under85:rows.filter(r=>r.eligible&&Number(r.utilization)<threshold&&['FIT','FIT_WITH_DIMENSION_ALLOWANCE'].includes(r.status)).length,searchIncomplete:0,missingData:rows.filter(r=>!r.eligible).length,replacementAvailable:rows.filter(r=>r.replacementAvailable).length,newCartonRequired:rows.filter(r=>r.newCartonRequired).length,bomConflict:rows.filter(r=>r.bomConflict).length,physicalConflicts:rows.filter(r=>r.status==='BOM_CONFIRMED_MODEL_MISMATCH').length},portfolio:RecommendationEngine.portfolioConsolidation(rows)}
+      }
     }
 
     class SharedCartonLineGenerator {
@@ -2723,7 +2700,7 @@
     class CsvExporter {
       static csv(rows) { return rows.map(r => r.map(v => '"' + String(v ?? '').replaceAll('"', '""') + '"').join(',')).join('\r\n') }
       static download(filename, rows) { const blob = new Blob(['\ufeff', this.csv(rows)], { type: 'text/csv;charset=utf-8' }), url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = filename; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000) }
-      static batchRows(rows) { return [['FG ID','FG name','Target qty','Assigned carton','Status','Packing status','Robust capacity','Nominal capacity','Utilization %','Search complete','BOM conflict','Best existing','Best new carton','Warnings'],...(rows||[]).map(r=>[r.fgId,r.fgName,r.targetQty,r.assignedCartonId,r.status,r.packingStatus,r.robustCapacity,r.nominalCapacity,Number.isFinite(r.utilization)?(r.utilization*100).toFixed(1):'',r.searchComplete,r.bomConflict,r.bestExisting?.carton?.carton_id||'',r.bestNew?.carton?dims(r.bestNew.carton):'',r.warnings?.join('; ')||''])] }
+      static batchRows(rows) { return [['FG ID','FG name','Current carton ID','BOM quantity','FG dimensions (mm)','Carton dimensions (mm)','Current utilization %','Fit classification','Search status','Data-quality warning','Best existing replacement','Replacement utilization %','Suggested new-carton dimensions (mm)','Suggested utilization %','Selected scenario','FG multiplier','Carton multiplier','Capacity','BOM conflict','Recommended action'],...(rows||[]).map(r=>{const action=!r.eligible?'MISSING DATA':r.status==='BOM_CONFIRMED_MODEL_MISMATCH'?'INVESTIGATE MODEL / PRODUCTION PACKING':r.bestExisting?'REVIEW EXISTING REPLACEMENT':r.bestNew?'VALIDATE NEW CARTON':['FIT','FIT_WITH_DIMENSION_ALLOWANCE'].includes(r.status)&&Number(r.utilization)<.85?'REVIEW UNDERUTILIZATION':'KEEP CURRENT CARTON';return[r.fgId,r.fgName,r.assignedCartonId,r.targetQty,r.fgDimensions||'',r.cartonDimensions||'',Number.isFinite(r.utilization)?(r.utilization*100).toFixed(1):'',r.status,r.searchComplete?'COMPLETE':'INCOMPLETE',r.warnings?.join('; ')||'',r.bestExisting?.carton?.carton_id||'',Number.isFinite(r.bestExisting?.utilization)?(r.bestExisting.utilization*100).toFixed(1):'',r.bestNew?.carton?dims(r.bestNew.carton):'',Number.isFinite(r.bestNew?.utilization)?(r.bestNew.utilization*100).toFixed(1):'',r.selectedScenario,r.fgMultiplier,r.cartonMultiplier,r.capacity,r.bomConflict,action]})] }
     }
     function mean(v) { return v.reduce((a, b) => a + b, 0) / v.length }
     function fmt(n, d = 0) { return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d }) : '—' }
@@ -2732,15 +2709,15 @@
     function escapeHtml(s) { return String(s ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c])) }
     function idKey(value) { return String(value ?? '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '') }
     function parseBomFilenameDate(filename) { const m = String(filename || '').match(/BOM\s*&?\s*FORMULA\s+([A-Za-z]+)\s+(\d{1,2})\s+D365\.xlsx/i); if (!m) return NaN; const MONTHS = { JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5, JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11 }; const mon = MONTHS[m[1].toUpperCase().slice(0, 3)]; if (mon === undefined) return NaN; const day = parseInt(m[2], 10); return (day >= 1 && day <= 31) ? new Date(2026, mon, day).getTime() : NaN }
-    function fitArrangement(fit) { return fit?.packingMode === 'mixed' ? I18n.t('mixedArrangement', { count: fit.placements?.length || fit.capacity || 0 }) : fit?.arrangement || '—' }
+    function fitArrangement(fit) { const a=fit?.arrangement; return a&&typeof a==='object'?`${a.alongLength} × ${a.alongWidth} × ${a.alongHeight}`:(fit?.arrangementText||a||'—') }
     function fitCapacity(fit) { return fit?.capacityLowerBound ? I18n.t('verifiedLowerBound', { count: fmt(fit.capacity) }) : fmt(fit?.capacity) }
     function fitSurplus(fit, target) { const value = Number(fit?.capacity) - Number(target); return fit?.capacityLowerBound ? `≥ ${fmt(value)}` : fmt(value) }
     function fitOrientation(fit) { return fit?.packingMode === 'mixed' ? I18n.t('mixedDimensions') : `${fit?.orientation_id}: ${fmt(fit?.length)} × ${fmt(fit?.width)} × ${fmt(fit?.height)} mm` }
-    function fitMethod(fit) { return I18n.t(fit?.packingMode === 'mixed' ? 'mixedOrthogonal' : 'uniformGrid') }
-    function fitFailureNote(fit) { return I18n.t(['exhausted', 'axis-impossible'].includes(fit?.mixedSearch?.status) ? 'mixedSearchExhausted' : ['node-limit', 'target-limit'].includes(fit?.mixedSearch?.status) ? 'mixedSearchIncomplete' : 'orthogonalPreview') }
+    function fitMethod() { return I18n.t('uniformGrid') }
+    function fitFailureNote() { return I18n.t('orthogonalPreview') }
 
-    const CARTON_WALL_THICKNESS_MM = 10;
-    const OUTER_DIM_ALLOWANCE_MM = CARTON_WALL_THICKNESS_MM * 2;
+    const CARTON_WALL_THICKNESS_MM = 0;
+    const OUTER_DIM_ALLOWANCE_MM = 0;
 
     function scoreNewCartonForSharedUse({ proposal, manualFg, manualTargetQty, allFgs }) {
       const inside = { width: proposal.width, depth: proposal.depth, height: proposal.height };
@@ -2808,9 +2785,9 @@
         document.querySelector('#bomFileInput').addEventListener('change', e => { const file = e.target.files[0]; if (file) this.reloadBomFile(file); e.target.value = '' });
         ['dragenter', 'dragover'].forEach(t => this.drop.addEventListener(t, e => { e.preventDefault(); this.drop.classList.add('over') }));
         ['dragleave', 'drop'].forEach(t => this.drop.addEventListener(t, e => { e.preventDefault(); this.drop.classList.remove('over') }));
-        this.drop.addEventListener('drop', e => this.reloadDimensionFile(e.dataTransfer.files[0])); this.select.addEventListener('change', () => this.choose()); document.querySelector('#fgSearchInput').addEventListener('input', e => { const q = e.target.value.trim(); this.populateFgSelect('', q); clearTimeout(this._fgSearchTimer); this._fgSearchTimer = setTimeout(() => this.applyFgSearch(q), 120) }); document.querySelector('#fgSearchInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); const sel = document.querySelector('#fgSelect'); if (sel.options.length > 1) { sel.value = sel.options[1].value; sel.dispatchEvent(new Event('change')) } } }); this.target.addEventListener('input', () => this.changeTarget());
+        this.drop.addEventListener('drop', e => this.reloadDimensionFile(e.dataTransfer.files[0])); this.select.addEventListener('change', () => this.choose()); document.querySelector('#fgSearchInput').addEventListener('input', e => { const q = e.target.value.trim(); this.populateFgSelect('', q); clearTimeout(this._fgSearchTimer); this._fgSearchTimer = setTimeout(() => this.applyFgSearch(q), 300) }); document.querySelector('#fgSearchInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); const sel = document.querySelector('#fgSelect'); if (sel.options.length > 1) { sel.value = sel.options[1].value; sel.dispatchEvent(new Event('change')) } } }); this.target.addEventListener('input', () => this.changeTarget());
         document.querySelector('#manualForm').addEventListener('submit', e => { e.preventDefault(); this.checkManual() }); document.querySelector('#suggestSharedCartonBtn').addEventListener('click', () => this.suggestSharedCartonLine());
-        document.querySelector('#openEngineeringSettings')?.addEventListener('click', () => { const settings=document.querySelector('#dashboardPanel'); settings.open=true; settings.scrollIntoView({behavior:'smooth',block:'start'}); document.querySelector('#settingFgError')?.focus({preventScroll:true}) });
+        document.querySelector('#openEngineeringSettings')?.addEventListener('click', () => { const settings=document.querySelector('#dashboardPanel'); settings.open=true; settings.scrollIntoView({behavior:'smooth',block:'start'}); document.querySelector('#settingMinUtil')?.focus({preventScroll:true}) });
         document.querySelector('#dataToggle').addEventListener('click', () => { this.dataTools.hidden = !this.dataTools.hidden; document.querySelector('#dataToggle').textContent = this.t(this.dataTools.hidden ? 'showData' : 'hideData') });
         document.querySelector('#languageToggle').addEventListener('click', () => { I18n.language = I18n.language === 'en' ? 'vi' : 'en'; this.applyLanguage(); this.renderDashboard(); if (this.current) this.run() });
         document.querySelector('#themeToggle').addEventListener('click', () => this.toggleTheme()); document.querySelector('#resetButton').addEventListener('click', () => this.reset()); document.querySelector('#clearAllButton').addEventListener('click', () => this.clearAllInputs());
@@ -2826,7 +2803,7 @@
           });
         }
         document.querySelectorAll('[data-workflow]').forEach(button => button.addEventListener('click', () => this.activateWorkflow(button.dataset.workflow)));
-        ['settingToleranceMode','settingFgError','settingCartonError','settingWall','settingFold','settingOpeningAxis','settingMinUtil','settingClearance','settingRounding'].forEach(id => document.querySelector(`#${id}`)?.addEventListener('change', () => { this.syncDimensionSettings(); this.renderDashboard(); if (this.current) this.run() }));
+        ['settingMinUtil','settingClearance','settingRounding'].forEach(id => document.querySelector(`#${id}`)?.addEventListener('change', () => { this.syncDimensionSettings(); this.renderDashboard(); if (this.current) this.recalculateCurrent() }));
         document.querySelector('#batchRunButton')?.addEventListener('click', () => this.runBatchAudit());
         document.querySelector('#batchExportButton')?.addEventListener('click', () => this.exportBatchCsv());
         document.querySelector('#batchFilter')?.addEventListener('change', () => { this.batchPage = 1; this.renderBatchResults() });
@@ -2860,18 +2837,11 @@
       }
       syncDimensionSettings() {
         const number = (id, fallback) => { const n = Number(document.querySelector(`#${id}`)?.value); return Number.isFinite(n) && n >= 0 ? n : fallback };
-        const mode = document.querySelector('#settingToleranceMode')?.value === 'percentage' ? 'percentage' : 'absolute';
-        const fgAllowance = mode === 'percentage' ? Math.min(99.9, number('settingFgError', 5)) : number('settingFgError', 5);
-        const cartonAllowance = mode === 'percentage' ? Math.min(99.9, number('settingCartonError', 5)) : number('settingCartonError', 5);
-        DimensionSettings.current = { ...DimensionSettings.current, toleranceMode:mode, fgMeasurementErrorMm:mode === 'absolute' ? fgAllowance : DimensionSettings.current.fgMeasurementErrorMm, cartonMeasurementErrorMm:mode === 'absolute' ? cartonAllowance : DimensionSettings.current.cartonMeasurementErrorMm, fgMeasurementErrorPct:mode === 'percentage' ? fgAllowance : DimensionSettings.current.fgMeasurementErrorPct, cartonMeasurementErrorPct:mode === 'percentage' ? cartonAllowance : DimensionSettings.current.cartonMeasurementErrorPct, wallThicknessMm:number('settingWall',5), openingFoldDeductionMm:number('settingFold',10), openingAxis:document.querySelector('#settingOpeningAxis')?.value || 'auto', minimumUtilizationPct:number('settingMinUtil',85), clearanceMm:number('settingClearance',5), roundingIncrementMm:Math.max(1,number('settingRounding',5)) };
-        FitSettings.current = { ...FitSettings.current, toleranceMode:mode, fgAllowanceMm:mode === 'absolute' ? fgAllowance : FitSettings.current.fgAllowanceMm, cartonAllowanceMm:mode === 'absolute' ? cartonAllowance : FitSettings.current.cartonAllowanceMm, fgAllowancePct:mode === 'percentage' ? fgAllowance : FitSettings.current.fgAllowancePct, cartonAllowancePct:mode === 'percentage' ? cartonAllowance : FitSettings.current.cartonAllowancePct, mixedSearchMaxNodes:DimensionSettings.current.mixedSearchMaxNodes, mixedSearchMaxTarget:DimensionSettings.current.mixedSearchMaxTarget };
-        for (const id of ['manualTolMode','existingTolMode']) { const el=document.querySelector(`#${id}`); if(el)el.value=mode }
-        for (const id of ['manualFgAllow','existingFgAllow']) { const el=document.querySelector(`#${id}`); if(el)el.value=fgAllowance }
-        for (const id of ['manualCartonAllow','existingCartonAllow']) { const el=document.querySelector(`#${id}`); if(el)el.value=cartonAllowance }
-        const summary=document.querySelector('#manualAllowanceSummary'); if(summary)summary.textContent=`FG +${fgAllowance} ${mode==='percentage'?'%':'mm'} / carton -${cartonAllowance} ${mode==='percentage'?'%':'mm'}`;
-        this.updateToleranceLabels(); SharedDecisionEngine.clearCache();
+        DimensionSettings.current={minimumUtilizationPct:number('settingMinUtil',85),clearanceMm:number('settingClearance',5),roundingIncrementMm:Math.max(1,number('settingRounding',5))};
+        FitSettings.current={...FitSettings.defaults,minimumUtilizationPct:DimensionSettings.current.minimumUtilizationPct,clearanceMm:DimensionSettings.current.clearanceMm,roundingIncrementMm:DimensionSettings.current.roundingIncrementMm};
+        const summary=document.querySelector('#manualAllowanceSummary');if(summary)summary.textContent='5 paired scenarios · 6 orientations each';SharedDecisionEngine.clearCache();
       }
-      updateToleranceLabels() { const percentage = (document.querySelector('#settingToleranceMode')?.value || FitSettings.current.toleranceMode) === 'percentage'; const fgText = percentage ? `${this.t('fgGrowthAllowance')} (%):` : this.t('fgMeasurementError'); const cartonText = percentage ? `${this.t('cartonInsideReduction')} (%):` : this.t('cartonMeasurementError'); document.querySelectorAll('.shared-fg-allow-label').forEach(el => el.textContent = fgText); document.querySelectorAll('.shared-carton-allow-label').forEach(el => el.textContent = cartonText) }
+      updateToleranceLabels() { const summary=document.querySelector('#manualAllowanceSummary');if(summary)summary.textContent='5 paired scenarios · 6 orientations each' }
       async initialize(launcherWorkbook = '') {
         const taskId = this.progress.startTask({ title:this.t('loadingData'), phase:'STARTING', detail:this.t('loadingData'), indeterminate:true, cancellable:false });
         try { if (launcherWorkbook) await this.loadSibling(launcherWorkbook); else await this.loadManifest(); if (!this.data) throw new Error('Dimension workbook could not be loaded. Use Workbook to select it manually.'); this.progress.setPhase('LOADING_WEEKLY_BOM', this.t('weeklyBomLoading'), taskId); await this.loadWeeklyBomManifest(); await this.rebuildStore(taskId); this.renderDashboard(); this.progress.completeTask(`${this.data.fgs.length.toLocaleString()} FG · ${this.data.cartons.length.toLocaleString()} cartons · ${(this.weeklyBom?.rows.length || 0).toLocaleString()} BOM rows`, taskId); this.hideLoader() } catch (e) { this.hideLoader(); this.progress.failTask(e, taskId); this.message(e?.message || String(e), 'error') }
@@ -2881,12 +2851,12 @@
       async rebuildStore(taskId = '') { if (!this.data) return; const ownTask = !this.progress.state.active, id = ownTask ? this.progress.startTask({title:this.t('buildingIndexes'),phase:'BUILDING_INDEXES',indeterminate:true,cancellable:true}) : taskId || this.progress.state.taskId; await this.store.build(this.data, this.weeklyBom, this.progress, id); this.store.ensureIndexes(); if (ownTask) this.progress.completeTask(this.t('dataReady'), id) }
       renderDashboard() { const root=document.querySelector('#dashboardKpis'),ready=document.querySelector('#dataReadyStatus');if(!root||!ready)return;const fgs=this.store.finishedGoods||this.data?.fgs||[],cartons=this.store.cartons||this.data?.cartons||[],bom=this.store.bomRows||this.weeklyBom?.rows||[],eligible=fgs.filter(f=>CartonFitEngine.validFG(f)&&!!(f.assignedCartonId||f.mvpAssignedCartonId)).length,active=cartons.filter(c=>CartonScorer.active(c.lifecycle)).length;root.innerHTML=[[this.t('finishedGoods'),fgs.length],[this.t('eligibleFgs'),eligible],[this.t('cartons'),cartons.length],[this.t('activeCartons'),active],[this.t('bomRows'),bom.length]].map(([label,value])=>`<div class="kpi"><span>${escapeHtml(label)}</span><strong>${Number(value).toLocaleString()}</strong></div>`).join('');ready.textContent=this.store.ready?`✓ ${this.t('dataReady')}`:this.t('dataNotReady');ready.className=`data-ready-pill ${this.store.ready?'good':'bad'}` }
       async runBatchAudit(customStore = null) { if(!this.store.ready){this.message(this.t('loadNeeded'),'error');return}const taskId=this.progress.startTask({title:this.t('batchAudit'),phase:'STARTING',detail:this.t('batchAuditNote'),cancellable:true,indeterminate:true});document.querySelector('#batchRunButton').disabled=true;try{this.batchResult=await BatchAuditEngine.run(customStore||this.store,DimensionSettings.current,this.progress,taskId);this.batchPage=1;this.renderBatchResults();this.renderBatchPortfolio();this.progress.completeTask(this.t('auditComplete'),taskId);document.querySelector('#batchExportButton').disabled=false}catch(e){if(e instanceof TaskCancelledError||this.progress.state.cancelled)this.progress.completeTask(this.t('batchCancelled'),taskId);else this.progress.failTask(e,taskId)}finally{document.querySelector('#batchRunButton').disabled=false} }
-      filteredBatchRows(){const rows=this.batchResult?.rows||[],f=document.querySelector('#batchFilter')?.value||'all';if(f==='all')return rows;if(f==='under85')return rows.filter(r=>r.status==='FIT_BUT_LOW_UTILIZATION');if(f==='doesNotFit')return rows.filter(r=>['DOES_NOT_FIT','FAVORABLE_ONLY_PHYSICAL_CHECK'].includes(r.status));if(f==='incomplete')return rows.filter(r=>!r.searchComplete&&r.eligible);if(f==='missing')return rows.filter(r=>!r.eligible);if(f==='replacement')return rows.filter(r=>r.replacementAvailable);if(f==='newRequired')return rows.filter(r=>r.newCartonRequired);if(f==='bomConflict')return rows.filter(r=>r.bomConflict);return rows}
+      filteredBatchRows(){const rows=this.batchResult?.rows||[],f=document.querySelector('#batchFilter')?.value||'all';if(f==='all')return rows;if(f==='under85')return rows.filter(r=>['FIT','FIT_WITH_DIMENSION_ALLOWANCE'].includes(r.status)&&Number(r.utilization)<.85);if(f==='doesNotFit')return rows.filter(r=>['DOES_NOT_FIT','BOM_CONFIRMED_MODEL_MISMATCH'].includes(r.status));if(f==='incomplete')return [];if(f==='missing')return rows.filter(r=>r.status==='MISSING_DATA'||!r.eligible);if(f==='replacement')return rows.filter(r=>r.replacementAvailable);if(f==='newRequired')return rows.filter(r=>r.newCartonRequired);if(f==='bomConflict')return rows.filter(r=>r.bomConflict);return rows}
       renderBatchResults(){const result=this.batchResult;if(!result)return;const s=result.summary,k=document.querySelector('#batchKpis');k.innerHTML=[['FG',s.total],[this.t('eligibleFgs'),s.eligible],[this.t('under85'),s.under85],[this.t('replacementAvailable'),s.replacementAvailable],[this.t('newCartonRequired'),s.newCartonRequired],[this.t('bomConflict'),s.bomConflict]].map(([a,b])=>`<div class="kpi"><span>${escapeHtml(a)}</span><strong>${b}</strong></div>`).join('');document.querySelector('#batchStatus').textContent=`${s.eligible} / ${s.total} ${this.t('eligibleFgs')}`;const rows=this.filteredBatchRows(),pages=Math.max(1,Math.ceil(rows.length/this.batchPageSize));this.batchPage=Math.min(this.batchPage,pages);const slice=rows.slice((this.batchPage-1)*this.batchPageSize,this.batchPage*this.batchPageSize),wrap=document.querySelector('#batchTable');wrap.innerHTML=slice.length?`<table><thead><tr><th>FG</th><th>${this.t('targetQty')}</th><th>${this.t('assignedCarton')}</th><th>${this.t('status')}</th><th>${this.t('capacity')}</th><th>${this.t('utilizationPct')}</th><th>${this.t('bestExisting')}</th><th>${this.t('bestNew')}</th><th>${this.t('warnings')}</th></tr></thead><tbody>${slice.map(r=>`<tr><td><strong>${escapeHtml(r.fgId)}</strong><br><small>${escapeHtml(r.fgName||'')}</small></td><td>${escapeHtml(r.targetQty)}</td><td>${escapeHtml(r.assignedCartonId||'—')}</td><td>${escapeHtml(r.status)}</td><td>${escapeHtml(r.robustCapacity)}</td><td>${Number.isFinite(r.utilization)?(r.utilization*100).toFixed(1)+'%':'—'}</td><td>${escapeHtml(r.bestExisting?.carton?.carton_id||'—')}</td><td>${escapeHtml(r.bestNew?.carton?dims(r.bestNew.carton):'—')}</td><td>${escapeHtml(r.warnings.join('; '))}</td></tr>`).join('')}</tbody></table>`:`<div class="empty">${escapeHtml(this.t('noResults'))}</div>`;const p=document.querySelector('#batchPagination');p.innerHTML=`<button type="button" ${this.batchPage<=1?'disabled':''}>‹</button><span>${this.batchPage} / ${pages} · ${rows.length}</span><button type="button" ${this.batchPage>=pages?'disabled':''}>›</button>`;const buttons=p.querySelectorAll('button');buttons[0].onclick=()=>{this.batchPage--;this.renderBatchResults()};buttons[1].onclick=()=>{this.batchPage++;this.renderBatchResults()}}
       async exportBatchCsv(){if(!this.batchResult)return;const taskId=this.progress.startTask({title:this.t('exportCsv'),phase:'PREPARING_CSV',detail:this.t('processing'),indeterminate:true,cancellable:false});try{await this.progress.yieldToBrowser(taskId);const rows=CsvExporter.batchRows(this.filteredBatchRows());this.progress.updateTask({phase:'CREATING_CSV',current:rows.length,total:rows.length,detail:`${rows.length.toLocaleString()} rows`},taskId);if(this.batchResult.portfolio?.length){rows.push([],['PORTFOLIO CONSOLIDATION'],['Proposed dimensions','FG count','Average utilization %','FG IDs'],...this.batchResult.portfolio.map(r=>[r.dimensions,r.fgCount,(r.averageUtilization*100).toFixed(1),r.fgIds.join(' | ')]))}await this.progress.yieldToBrowser(taskId);CsvExporter.download(`WVN_Master_Carton_Batch_Audit_${new Date().toISOString().slice(0,10)}.csv`,rows);this.progress.completeTask(`${rows.length.toLocaleString()} rows`,taskId)}catch(e){this.progress.failTask(e,taskId)}}
       renderBatchPortfolio(){const root=document.querySelector('#batchPortfolio'),rows=this.batchResult?.portfolio||[];root.innerHTML=rows.length?`<h3>${escapeHtml(this.t('portfolioConsolidation'))}</h3><table><thead><tr><th>${this.t('cartonDims')}</th><th>${this.t('finishedGoods')}</th><th>${this.t('averageUtil')}</th><th>FG IDs</th></tr></thead><tbody>${rows.slice(0,20).map(r=>`<tr><td>${escapeHtml(r.dimensions)}</td><td>${r.fgCount}</td><td>${pct(r.averageUtilization)}</td><td>${escapeHtml(r.fgIds.join(', '))}</td></tr>`).join('')}</tbody></table>`:''}
-      async lookupCarton(){if(!this.store.ready)return;const id=normalizeId(document.querySelector('#cartonLookupInput').value),taskId=this.progress.startTask({title:this.t('cartonLookup'),phase:'LOOKING_UP_CARTON',detail:id,indeterminate:true,cancellable:false});try{await this.progress.yieldToBrowser(taskId);const carton=this.store.cartonById.get(id),summary=document.querySelector('#cartonLookupSummary'),wrap=document.querySelector('#cartonLookupTable'),users=this.store.fgsByCartonId.get(id)||[];this.lookupCartonRows=users;if(!carton){summary.textContent=this.t('cartonNotIndexed');wrap.innerHTML='';this.progress.completeTask(this.t('cartonNotIndexed'),taskId);return}summary.innerHTML=`<strong>${escapeHtml(carton.carton_id)}</strong> · ${escapeHtml(carton.carton_name||'')} · ${escapeHtml(dims(carton))} · ${users.length} ${escapeHtml(this.t('cartonUsers'))}`;wrap.innerHTML=users.length?`<table><thead><tr><th>FG</th><th>${this.t('targetQty')}</th><th>${this.t('status')}</th><th>${this.t('capacity')}</th><th>${this.t('utilizationPct')}</th></tr></thead><tbody>${users.map(f=>{const d=CartonFitEngine.validFG(f)?SharedDecisionEngine.evaluateAll(f,carton,DimensionSettings.current):null;return `<tr><td><strong>${escapeHtml(f.fg_id)}</strong><br><small>${escapeHtml(f.fg_name||'')}</small></td><td>${escapeHtml(f.target)}</td><td>${escapeHtml(d?.classification||'DATA_INCOMPLETE')}</td><td>${escapeHtml(d?.robustCapacity??'—')}</td><td>${Number.isFinite(d?.utilization)?(d.utilization*100).toFixed(1)+'%':'—'}</td></tr>`}).join('')}</tbody></table>`:`<div class="empty">${escapeHtml(this.t('noCartonUsers'))}</div>`;this.progress.completeTask(`${users.length.toLocaleString()} ${this.t('cartonUsers')}`,taskId)}catch(e){this.progress.failTask(e,taskId)}}
-      async exportCartonLookup(){const taskId=this.progress.startTask({title:this.t('exportCsv'),phase:'PREPARING_CSV',detail:this.t('processing'),indeterminate:true,cancellable:false});try{await this.progress.yieldToBrowser(taskId);const rows=[['FG ID','FG name','Target quantity'],...(this.lookupCartonRows||[]).map(f=>[f.fg_id,f.fg_name,f.target])];this.progress.updateTask({phase:'CREATING_CSV',current:rows.length,total:rows.length,detail:`${rows.length.toLocaleString()} rows`},taskId);await this.progress.yieldToBrowser(taskId);CsvExporter.download('WVN_Carton_Reverse_Lookup.csv',rows);this.progress.completeTask(`${rows.length.toLocaleString()} rows`,taskId)}catch(e){this.progress.failTask(e,taskId)}}
+      async lookupCarton(){if(!this.store.ready)return;const id=normalizeId(document.querySelector('#cartonLookupInput').value),taskId=this.progress.startTask({title:this.t('cartonLookup'),phase:'LOOKING_UP_CARTON',detail:id,indeterminate:true,cancellable:false});try{await this.progress.yieldToBrowser(taskId);const carton=this.store.cartonById.get(id),summary=document.querySelector('#cartonLookupSummary'),wrap=document.querySelector('#cartonLookupTable'),users=this.store.fgsByCartonId.get(id)||[];this.lookupCartonRows=users;this.lookupCartonCurrent=carton;if(!carton){summary.textContent=this.t('cartonNotIndexed');wrap.innerHTML='';this.progress.completeTask(this.t('cartonNotIndexed'),taskId);return}summary.innerHTML=`<strong>${escapeHtml(carton.carton_id)}</strong> · ${escapeHtml(carton.carton_name||'')} · ${escapeHtml(dims(carton))} · ${users.length} ${escapeHtml(this.t('cartonUsers'))}`;const rendered=[];for(let start=0;start<users.length;start+=50){const end=Math.min(users.length,start+50);for(let i=start;i<end;i++){const f=users[i],d=CartonFitEngine.validFG(f)?SharedDecisionEngine.evaluateAll(f,carton,DimensionSettings.current,{bomConfirmed:true}):null;rendered.push(`<tr><td><strong>${escapeHtml(f.fg_id)}</strong><br><small>${escapeHtml(f.fg_name||'')}</small></td><td>${escapeHtml(f.target)}</td><td>${escapeHtml(d?.classification||'MISSING_DATA')}</td><td>${escapeHtml(d?.capacity??'—')}</td><td>${Number.isFinite(d?.utilization)?(d.utilization*100).toFixed(1)+'%':'—'}</td></tr>`)}this.progress.updateTask({current:end,total:users.length,detail:`${end} / ${users.length} FG`},taskId);await this.progress.yieldToBrowser(taskId)}wrap.innerHTML=users.length?`<table><thead><tr><th>FG</th><th>${this.t('targetQty')}</th><th>${this.t('status')}</th><th>${this.t('capacity')}</th><th>${this.t('utilizationPct')}</th></tr></thead><tbody>${rendered.join('')}</tbody></table>`:`<div class="empty">${escapeHtml(this.t('noCartonUsers'))}</div>`;this.progress.completeTask(`${users.length.toLocaleString()} ${this.t('cartonUsers')}`,taskId)}catch(e){this.progress.failTask(e,taskId)}}
+      async exportCartonLookup(){const taskId=this.progress.startTask({title:this.t('exportCsv'),phase:'PREPARING_CSV',detail:this.t('processing'),indeterminate:true,cancellable:false});try{await this.progress.yieldToBrowser(taskId);const carton=this.lookupCartonCurrent,rows=[['FG ID','FG name','BOM quantity','Current utilization %','Physical-fit status','Data-quality warnings','Audit action'],...(this.lookupCartonRows||[]).map(f=>{const d=carton&&CartonFitEngine.validFG(f)?SharedDecisionEngine.evaluateAll(f,carton,DimensionSettings.current,{bomConfirmed:true}):null,w=this.store.dataWarningsByFg.get(normalizeId(f.fg_id))||[],action=!d||d.classification==='MISSING_DATA'?'COMPLETE MISSING DATA':d.classification==='BOM_CONFIRMED_MODEL_MISMATCH'?'INVESTIGATE MODEL / PRODUCTION PACKING':Number(d.utilization)<.85?'REVIEW UNDERUTILIZATION':'KEEP CURRENT CARTON';return[f.fg_id,f.fg_name,f.target,Number.isFinite(d?.utilization)?(d.utilization*100).toFixed(1):'',d?.classification||'MISSING_DATA',w.join('; '),action]})];this.progress.updateTask({phase:'CREATING_CSV',current:rows.length,total:rows.length,detail:`${rows.length.toLocaleString()} rows`},taskId);await this.progress.yieldToBrowser(taskId);CsvExporter.download('WVN_Carton_Reverse_Lookup.csv',rows);this.progress.completeTask(`${rows.length.toLocaleString()} rows`,taskId)}catch(e){this.progress.failTask(e,taskId)}}
       auditCartonUsers(){const users=this.lookupCartonRows||[];if(!users.length)return;this.activateWorkflow('batch-audit');this.runBatchAudit(Object.assign(Object.create(Object.getPrototypeOf(this.store)),this.store,{finishedGoods:users}))}
       setComparison(fg,currentCarton,currentFit,suggestedCarton,suggestedFit){const panel=document.querySelector('#comparisonPanel');if(!fg||!currentCarton||!suggestedCarton){panel.hidden=true;return}panel.hidden=false;this.comparisonCurrent.set({fg,carton:currentCarton,fit:currentFit,kind:'existing'});this.comparisonSuggested.set({fg,carton:suggestedCarton,fit:suggestedFit,kind:'proposal'})}
       rotateComparison(delta){this.comparisonCurrent.rotation=(this.comparisonCurrent.rotation+delta)%24;this.comparisonCurrent.render();if(this.comparisonSync){this.comparisonSuggested.rotation=this.comparisonCurrent.rotation;this.comparisonSuggested.pitch=this.comparisonCurrent.pitch;this.comparisonSuggested.render()}else{this.comparisonSuggested.rotation=(this.comparisonSuggested.rotation+delta)%24;this.comparisonSuggested.render()}}
@@ -2896,7 +2866,7 @@
       updateControlText() { document.querySelector('#ghostToggle').textContent = `${this.t('ghost')}: ${this.t(this.visual.ghosts ? 'on' : 'off')}` }
       setSourceLink(kind, href = '', name = '', manual = false) { this.sources[kind] = { href: String(href || ''), name: String(name || ''), manual: !!manual }; this.refreshSourceLinks() }
       refreshSourceLinks() { let shown = 0, manual = false; for (const [kind, id] of [['workbook', 'sourceWorkbookLink'], ['bom', 'weeklyBomSourceLink']]) { const source = this.sources[kind], link = document.querySelector(`#${id}`); manual = manual || source.manual; let url = null; try { url = source.href ? new URL(source.href, location.href) : null } catch (_) { url = null } if (url) { link.href = url.href; link.textContent = `${this.t(kind === 'workbook' ? 'openDimensionSource' : 'openBomSource')}: ${source.name || url.pathname.split('/').pop()}`; link.title = url.href; link.hidden = false; shown++ } else { link.removeAttribute('href'); link.textContent = ''; link.hidden = true } } const note = document.querySelector('#sourceLinkNote'); note.hidden = shown > 0 && !manual; note.textContent = this.t(manual ? 'sourceLinkManual' : 'sourceLinkWaiting') }
-      refreshBomAlert() { const alert = document.querySelector('#bomFallbackAlert'); if (!alert) return; alert.hidden = this.weeklyBomState !== 'failed'; alert.textContent = this.weeklyBomState === 'failed' ? this.t('bomFallbackAlert') : ''; alert.title = this.weeklyBomState === 'failed' ? String(this.weeklyBomError || '') : '' }
+      refreshBomAlert() { const alert=document.querySelector('#bomFallbackAlert');if(!alert)return;const failed=this.weeklyBomState==='failed',warning=String(this.compactBomWarning||'');alert.hidden=!failed&&!warning;alert.textContent=failed?this.t('bomFallbackAlert'):warning;alert.title=failed?String(this.weeklyBomError||''):warning }
       activateBomFallback(error = '') { this.weeklyBom = null; this.weeklyBomState = 'failed'; this.weeklyBomError = String(error || this.t('weeklyBomLoadError')); this.setSourceLink('bom', '', ''); this.refreshBomAlert(); this.hideLoader(); if (this.data) { const selectedId = String(this.current?.fg_id || '').trim().toLowerCase(); this.populateFgSelect(); if (selectedId) { const index = this.data.fgs.findIndex(f => String(f.fg_id).trim().toLowerCase() === selectedId); if (index >= 0) this.select.value = String(index) } if (this.current && !this.manualMode) this.run() } }
       toggleTheme() { this.theme = this.theme === 'light' ? 'dark' : 'light'; document.documentElement.dataset.theme = this.theme; document.querySelector('#themeToggle').textContent = this.t(this.theme === 'light' ? 'themeDark' : 'themeLight'); this.visual.render(); this.comparisonCurrent.render(); this.comparisonSuggested.render() }
       fgDataStatus(fg) { const missing = [], sourceReady = !!this.weeklyBom; if (!String(fg?.fg_id || '').trim()) missing.push(this.t('fgIdShort')); if (sourceReady && !fg?.bomAssignmentFound) missing.push(this.t('bomAssignmentMissing')); else if (sourceReady && fg?.bomCartonAmbiguous) missing.push(this.t('bomAssignmentAmbiguous')); const assignedId = sourceReady ? String(fg?.assignedCartonId || '').trim() : String(fg?.mvpAssignedCartonId || '').trim(); if (!assignedId) missing.push(this.t('assignedMcShort')); if (!Number.isInteger(fg?.target) || fg.target < 1) missing.push(this.t('targetQty')); const fgDims = !!fg?.hasDimensionRecord && [fg?.width, fg?.depth, fg?.height].every(Number.isFinite); if (fg?.dimensionConflict) missing.push(this.t('conflictingEaDims')); else if (!fgDims) missing.push(this.t('fgDimsShort')); const carton = assignedId ? this.data?.cartons.find(c => String(c.carton_id) === assignedId) : null; if (assignedId && (!carton || !CartonFitEngine.validCarton(carton))) missing.push(this.t('mcDimsShort')); return { complete: missing.length === 0, note: missing.length ? `${this.t('dataMissing')}: ${missing.join(', ')}` : this.t(sourceReady ? 'dataComplete' : 'dataCompleteFallback'), missing, carton } }
@@ -2917,9 +2887,12 @@
       }
       async loadSibling(filename) { try { if (!/^[^\\/]+\.(xlsx|xlsm)$/i.test(filename)) throw new Error('The launcher workbook name is invalid.'); this.showLoader(`Opening ${filename}…`); this.drop.textContent = 'Opening ' + filename + ' from this folder…'; const sourceHref = new URL('./' + encodeURIComponent(filename), location.href).href, response = await fetch(sourceHref); if (!response.ok && response.status !== 0) throw new Error('Could not open ' + filename + ' from the tool folder.'); const blob = await response.blob(); await this.load(new File([blob], filename, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), sourceHref); } catch (e) { this.drop.textContent = 'Drag and drop an Excel workbook here'; this.message((e.message || 'Could not open the sibling workbook.') + ' Use Select Excel if needed.', 'error'); this.hideLoader() } }
       async loadManifest() { this.showLoader('Loading workbook…'); try { const response = await fetch('./WVN%20Master%20Carton%20Workbook%20Manifest.json', { cache: 'no-store' }); if (!response.ok && response.status !== 0) { this.hideLoader(); return } const files = await response.json(); console.debug('[dimension manifest] loaded entries:', files?.length || 0); const first = Array.isArray(files) ? files[0] : null; if (!first) { this.hideLoader(); return } this._dimensionSourceName = first.name || ''; console.debug('[dimension manifest] first entry:', first.name, first.url || first.path); const { file, sourceHref } = await this.loadWorkbookFromManifestEntry(first, 'dimension'); await this.load(file, sourceHref) } catch (e) { this.hideLoader(); console.warn('[dimension manifest] auto-load failed:', e.message) } }
+      async applyWeeklyBomRows(rows, sourceName, sourceHref = '', compactMeta = null) { const status=document.querySelector('#weeklyBomStatus');this.weeklyBom={rows,source:sourceName,compact:!!compactMeta,reverseIndex:compactMeta?.reverseIndex||{},conflicts:compactMeta?.conflicts||[]};this.weeklyBomState='ready';this.weeklyBomError='';this.compactBomWarning=compactMeta?'':this.compactBomWarning;this.refreshBomAlert();this.setSourceLink('bom',sourceHref,sourceName,!sourceHref);await this.reconcileBomTruthAsync();const selectedId=!this.manualMode?String(this.current?.fg_id||'').trim().toLowerCase():'';this.populateFgSelect();if(selectedId){const index=this.data?.fgs.findIndex(f=>String(f.fg_id).trim().toLowerCase()===selectedId)??-1;if(index>=0)this.select.value=String(index)}status.textContent=`${this.t(compactMeta?'compactBomReady':'weeklyBomReady')}: ${sourceName}`;status.className='link-badge good';if(this.current&&!this.manualMode)this.run() }
+      async loadCompactBomIndex() { try { this.progress?.setPhase('LOADING_COMPACT_BOM','Weekly BOM Carton Index.json');const response=await fetch('./Weekly%20BOM%20Carton%20Index.json',{cache:'no-store'});if(!response.ok&&response.status!==0)throw new Error(`${response.status} ${response.statusText}`);const data=await response.json();if(Number(data?.bomCartonIndexVersion)!==1||!Array.isArray(data?.assignments)||data.error)throw new Error(data?.error||'Compact BOM index is invalid.');const rows=data.assignments.map(a=>({fg:String(a.fgId??''),fgName:String(a.fgName??''),itemNumber:String(a.cartonId??''),productName:String(a.cartonName??''),quantity:a.quantity??'',norm:a.norm??'',perSeries:a.perSeries??'',targetQuantity:a.targetQuantity,sourceName:data.sourceFile||'',sourceSheet:a.sourceSheet||'',sourceRow:a.sourceRow,sourceFormat:'compact'})).filter(r=>r.fg&&r.itemNumber);if(!rows.length)throw new Error('Compact BOM index contains no carton assignments.');await this.applyWeeklyBomRows(rows,data.sourceFile||'Weekly BOM Carton Index',data.sourceUrl||'',data);return true}catch(e){this.compactBomWarning=this.t('compactBomFallback');this.refreshBomAlert();console.warn('[compact BOM] fallback:',e?.message||e);return false} }
       async loadWeeklyBomManifest() {
         this.showLoader('Loading Weekly BOM…');
         try {
+          if(await this.loadCompactBomIndex())return;
           let entries = []; try { const response = await fetch('./Weekly%20BOM%20Manifest.json', { cache: 'no-store' }); if (response.ok || response.status === 0) { const manifest = await response.json(); entries = Array.isArray(manifest) ? manifest : manifest ? [manifest] : []; console.debug('[bom manifest] loaded entries:', entries.length) } } catch (_) {/* Use portable fallback paths below. */ }
           const toCandidate = (raw, index) => { const resolved = resolveWorkbookSource(raw); if (!resolved) return null; const bomDate = parseBomFilenameDate(resolved.name || ''); const modifiedMs = (typeof raw === 'object' ? Date.parse(raw.lastWriteTimeUtc || raw.modifiedUtc || raw.modified || '') || 0 : 0); return { ...resolved, modifiedMs, bomDate, index } };
           const manifestCandidates = entries.map((e, i) => toCandidate(e, i)).filter(Boolean).sort((a, b) => (Number(b.bomDate) || 0) - (Number(a.bomDate) || 0) || (Number(b.modifiedMs) || 0) - (Number(a.modifiedMs) || 0) || (a.index - b.index));
@@ -2962,12 +2935,13 @@
         rows.forEach((x, i) => { const tr = document.createElement('tr'), innerDims = x.innerDimensions ? dims(x.innerDimensions) : dims(x.carton), outerDims = x.outerDimensions ? dims(x.outerDimensions) : (c => `${fmt(c.width + OUTER_DIM_ALLOWANCE_MM)} × ${fmt(c.depth + OUTER_DIM_ALLOWANCE_MM)} × ${fmt(c.height + OUTER_DIM_ALLOWANCE_MM)} mm`)(x.carton), manualUtil = x.manualUtil ?? 0, utilColor = manualUtil >= 0.95 ? 'result-pass' : 'mark-warn', supportedCount = x.supportedCount ?? x.completeCount ?? 0, notSupportedCount = x.notSupportedCount ?? 0, avg = x.avgUtil ?? 0, fit = x.fit || x.selectedFit; tr.innerHTML = `<td>${i + 1}</td><td class="id-cell">${escapeHtml(x.carton.carton_id || '—')}</td><td class="dim-cell">${escapeHtml(innerDims)}</td><td class="dim-cell">${escapeHtml(outerDims)}</td><td class="right num-cell ${utilColor}">${pct(manualUtil)}</td><td>${escapeHtml(x.manualArrangement || fitArrangement(fit))}</td><td class="right num-cell">${fmt(supportedCount)}</td><td class="right num-cell ${notSupportedCount > 0 ? 'mark-warn' : ''}">${notSupportedCount > 0 ? fmt(notSupportedCount) : '—'}</td><td class="right num-cell">${pct(avg)}</td><td><button type="button" class="view-btn">${this.t('view3d')}</button></td>`; if (i === 0) tr.classList.add('selected'); const view = () => { body.querySelectorAll('tr').forEach(r => r.classList.remove('selected')); tr.classList.add('selected'); this.visual.set({ fg, carton: x.innerDimensions || x.carton, fit, kind: 'proposal' }) }; tr.addEventListener('click', view); tr.querySelector('button').addEventListener('click', e => { e.stopPropagation(); view() }); body.append(tr) });
         table.append(body); wrap.replaceChildren(table);
       }
-      changeTarget() { if (!this.current) return; const n = Math.floor(Number(this.target.value)); if (!Number.isFinite(n) || n < 1) { this.message(this.t('invalidQty'), 'error'); return } this.current.target = n; this.current.targetSource = 'user_override'; this.run(); }
+      async recalculateCurrent() { if (!this.current || this._recalcInFlight) return; if (this.progress.state.active) { this.run(); return } this._recalcInFlight=true;const taskId=this.progress.startTask({title:this.t('processing'),phase:'EVALUATING_CARTONS',detail:this.current.fg_id||'',indeterminate:true,cancellable:false});try{await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));this.run();this.progress.setPhase('RENDERING_RESULT',this.t('processing'),taskId);this.progress.completeTask(this.t('dataReady'),taskId)}catch(e){this.progress.failTask(e,taskId)}finally{this._recalcInFlight=false} }
+      changeTarget() { if (!this.current) return; const n = Math.floor(Number(this.target.value)); if (!Number.isFinite(n) || n < 1) { this.message(this.t('invalidQty'), 'error'); return } this.current.target = n; this.current.targetSource = 'user_override'; this.recalculateCurrent(); }
       makeTempId() { const d = new Date(), pad = n => String(n).padStart(2, '0'); return `NPI-MC-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}` }
       renderWeeklyBom(fg) {
         const panel = document.querySelector('#weeklyBomPanel'), status = document.querySelector('#weeklyBomStatus'), summary = document.querySelector('#weeklyBomSummary'), wrap = document.querySelector('#weeklyBomTable'); if (this.manualMode || !fg) { panel.hidden = true; return } panel.hidden = false;
         if (!this.weeklyBom) { const loading = this.weeklyBomState === 'loading'; status.textContent = this.t(loading ? 'weeklyBomLoading' : 'weeklyBomUnavailable'); status.className = `link-badge ${loading ? 'neutral' : 'bad'}`; summary.textContent = loading ? this.t('bomFallbackLoading') : (this.weeklyBomError || this.t('weeklyBomUnavailable')); wrap.innerHTML = ''; return }
-        const key = idKey(fg.fg_id), rows = this.weeklyBom.rows.filter(r => idKey(r.fg) === key), assigned = String(fg.assignedCartonId || '').trim(), mvpAssigned = String(fg.mvpAssignedCartonId || '').trim(), cartonById = new Map(this.data.cartons.map(c => [idKey(c.carton_id), c])), candidates = BomTruthReconciler.cartonCandidates(this.weeklyBom.rows, this.data.cartons, fg.fg_id), matchesMvp = !!mvpAssigned && candidates.some(r => idKey(r.itemNumber) === idKey(mvpAssigned));
+        const key = normalizeId(fg.fg_id), rows = this.store.bomRowsByFg.get(key) || [], assigned = String(fg.assignedCartonId || '').trim(), mvpAssigned = String(fg.mvpAssignedCartonId || '').trim(), cartonById = this.data.cartonById, candidates = BomTruthReconciler.cartonCandidates(rows, this.data.cartons, fg.fg_id), matchesMvp = !!mvpAssigned && candidates.some(r => idKey(r.itemNumber) === idKey(mvpAssigned));
         let tone = 'bad', message = this.t('weeklyBomFgMissing'); if (rows.length && !candidates.length) message = this.t('weeklyBomCartonMissing'); else if (candidates.length > 1) { message = this.t('bomAssignmentAmbiguous'); tone = 'neutral' } else if (candidates.length && !mvpAssigned) { message = this.t('bomOnlyAssignment'); tone = 'good' } else if (candidates.length && matchesMvp) { message = this.t('bomMatchesMvp'); tone = 'good' } else if (candidates.length) { message = this.t('bomOverridesMvp'); tone = 'neutral' } status.textContent = `${this.t('bomSourceTruth')} · ${message}`; status.className = `link-badge ${tone}`;
         summary.innerHTML = `<strong>${escapeHtml(this.t('weeklyBomSource'))}:</strong> ${escapeHtml(this.weeklyBom.source)} · <strong>${escapeHtml(this.t('weeklyBomRows'))}:</strong> ${rows.length} · <strong>${escapeHtml(this.t('bomAssignment'))}:</strong> ${escapeHtml(assigned || this.t('notAssigned'))} · <strong>${escapeHtml(this.t('mvpAssignment'))}:</strong> ${escapeHtml(mvpAssigned || this.t('notAssigned'))} · <strong>${escapeHtml(this.t('weeklyBomCartons'))}:</strong> ${candidates.length}`;
         if (!candidates.length) { wrap.innerHTML = `<div class="empty">${escapeHtml(mvpAssigned ? this.t('mvpOnlyNotAuthoritative') : message)}</div>`; return } const table = document.createElement('table'); table.innerHTML = `<thead><tr><th>${this.t('weeklyBomCartonId')}</th><th>${this.t('weeklyBomProduct')}</th><th>${this.t('weeklyBomNorm')}</th><th>${this.t('weeklyBomAssignmentCheck')}</th><th>${this.t('weeklyBomDimensionCheck')}</th></tr></thead>`; const body = document.createElement('tbody'); for (const row of candidates) { const id = String(row.itemNumber).trim(), chosen = !!assigned && idKey(id) === idKey(assigned), matches = !!mvpAssigned && idKey(id) === idKey(mvpAssigned), carton = cartonById.get(idKey(id)), hasDims = !!carton && CartonFitEngine.validCarton(carton), tr = document.createElement('tr'); if (chosen) tr.classList.add('selected'); tr.innerHTML = `<td><strong>${escapeHtml(id)}</strong></td><td>${escapeHtml(row.productName)}</td><td>${escapeHtml(row.norm || '—')}</td><td class="${chosen ? 'result-pass' : matches ? 'mark-warn' : ''}">${escapeHtml(this.t(chosen ? 'sourceTruthChosen' : matches ? 'matchesAssignment' : 'otherBomCandidate'))}</td><td class="${hasDims ? 'result-pass' : 'result-fail'}">${escapeHtml(this.t(hasDims ? 'dimensionAvailable' : 'dimensionUnavailable'))}${hasDims ? ` · ${escapeHtml(dims(carton))}` : ''}</td>`; body.append(tr) } table.append(body); wrap.replaceChildren(table)
@@ -2978,15 +2952,12 @@
         const sourceLoaded = !!this.weeklyBom, mvpAssigned = String(fg.mvpAssignedCartonId || '').trim(), assignedId = sourceLoaded ? String(fg.assignedCartonId || '').trim() : mvpAssigned, carton = assignedId ? this.data.cartons.find(c => String(c.carton_id) === assignedId) : null, fgDimsOk = !!fg.hasDimensionRecord && !fg.dimensionConflict && [fg.width, fg.depth, fg.height].every(Number.isFinite), cartonDimsOk = !!carton && CartonFitEngine.validCarton(carton), targetOk = Number.isInteger(fg.target) && fg.target > 0;
 
         const settings = FitSettings.current;
-        const fitScenarios = fgDimsOk && cartonDimsOk && targetOk ? SharedDecisionEngine.legacy(fg, carton, DimensionSettings.current) : null;
-        const fitStatus = fitScenarios ? ToleranceClassifier.classify(fitScenarios) : 'DATA_INVALID';
+        const fitScenarios = fgDimsOk && cartonDimsOk && targetOk ? SharedDecisionEngine.legacy(fg, carton, DimensionSettings.current, { bomConfirmed:!!assignedId }) : null;
+        const fitStatus = fitScenarios ? ToleranceClassifier.classify(fitScenarios, !!assignedId) : 'MISSING_DATA';
 
         const getActiveFit = (fitScenarios, status) => {
           if (!fitScenarios) return null;
-          if (status === 'ROBUST_PASS') return fitScenarios.ROBUST;
-          if (status === 'NOMINAL_ONLY' || status === 'INCONCLUSIVE_SEARCH') return fitScenarios.NOMINAL;
-          if (status === 'FAVORABLE_ONLY') return fitScenarios.FAVORABLE;
-          return fitScenarios.NOMINAL;
+          return fitScenarios.selected || fitScenarios.decision?.displayFit || fitScenarios.NOMINAL;
         };
 
         const fit = getActiveFit(fitScenarios, fitStatus);
@@ -3001,18 +2972,17 @@
         const targetSourceKey = fg.targetSource === 'weekly_bom_per_series' ? 'weeklyBomPerSeries' : fg.targetSource === 'weekly_bom_norm' ? 'weeklyBomNorm' : fg.targetSource === 'weekly_bom_quantity' ? 'weeklyBomQuantity' : fg.targetSource === 'weekly_bom_no_target' ? 'weeklyBomNoTarget' : fg.targetSource === 'user_override' ? 'targetUserOverride' : 'weeklyBomMissing', targetSource = this.t(targetSourceKey);
 
         const statusKeyFromStatus = (status) => {
-          if (status === 'ROBUST_PASS') return 'robustPass';
-          if (status === 'NOMINAL_ONLY') return 'nominalOnly';
-          if (status === 'FAVORABLE_ONLY') return 'favorableOnly';
-          if (status === 'FAIL') return 'fail';
-          if (status === 'INCONCLUSIVE_SEARCH') return 'inconclusive';
-          return 'invalid';
+          if (status === 'FIT') return 'fit';
+          if (status === 'FIT_WITH_DIMENSION_ALLOWANCE') return 'fitWithAllowance';
+          if (status === 'BOM_CONFIRMED_MODEL_MISMATCH') return 'bomConfirmedModelMismatch';
+          if (status === 'DOES_NOT_FIT') return 'doesNotFit';
+          return 'dataIncomplete';
         };
 
         const physicalValue = fitScenarios ? this.t(statusKeyFromStatus(fitStatus)) : this.t('notAvailable');
-        const physicalDetail = fit ? `${this.t('packingMethod')}: ${fitMethod(fit)} · ${this.t('arrangement')}: ${fitArrangement(fit)} · ${this.t('capacity')}: ${fitCapacity(fit)} · ${this.t('target')}: ${fg.target} (${targetSource})${fit.passes ? '' : ` · ${fitFailureNote(fit)}`}` : this.t('notAvailable');
+        const physicalDetail = fit ? `${this.t('selectedScenario')}: ${fit.selectedScenario || '—'} · ${this.t('fgCartonMultipliers')}: ${Number(fit.fgMultiplier||1).toFixed(4)} / ${Number(fit.cartonMultiplier||1).toFixed(4)} · ${this.t('arrangement')}: ${fitArrangement(fit)} · ${this.t('capacity')}: ${fitCapacity(fit)} · ${this.t('target')}: ${fg.target} (${targetSource})${fitStatus==='BOM_CONFIRMED_MODEL_MISMATCH'?` · ${this.t('simplifiedBomMismatch')}`:''}` : this.t('notAvailable');
 
-        const linkageClass = fitStatus === 'ROBUST_PASS' ? 'good' : (fitStatus === 'FAIL' || fitStatus === 'DATA_INVALID' ? 'bad' : 'warn');
+        const linkageClass = fitStatus === 'FIT' || fitStatus === 'FIT_WITH_DIMENSION_ALLOWANCE' ? 'good' : (fitStatus === 'MISSING_DATA' ? 'bad' : 'warn');
         this.linkageCards.innerHTML = card(this.t('fgId'), fg.fg_id, fg.fg_name || this.t('unnamedFg'), 'good') + card(this.t('assignedCarton'), assignedValue, assignedDetail, assignedId ? 'good' : 'bad') + card(this.t('fgDimensionData'), fgDimsOk ? `${this.t('found')} — ${dims(fg)}` : (fg.dimensionConflict ? this.t('conflictingEaDims') : this.t('missing')), `${this.t('source')}: ${this.data.dimensionSheet || this.data.fgSheet} · ${this.t('eaOnly')} · ${this.t('normalizedMm')}`, fgDimsOk ? 'good' : 'bad') + card(this.t('cartonDimensionData'), cartonDimsOk ? `${this.t('found')} — ${dims(carton)}` : this.t('missing'), `${this.t('source')}: ${this.data.cartonDimensionSheet || this.data.cartonSheet} · ${this.t('normalizedMm')}`, cartonDimsOk ? 'good' : 'bad') + card(this.t('physicalCheck'), physicalValue, physicalDetail, linkageClass);
 
         return { carton, fit, complete, fgDimsOk, cartonDimsOk, fitStatus };
@@ -3022,20 +2992,19 @@
         if (!CartonFitEngine.validFG(fg) || fg.dimensionConflict) { this.fgInfo.textContent = this.t('invalidFg'); if (assignedId) this.renderExisting([], assignedId); else this.existing.innerHTML = `<div class="empty">${escapeHtml(this.t('invalidFg'))}</div>`; this.existingStatus.textContent = this.t('cannotCalculate'); this.existingStatus.className = 'status bad'; this.proposals.hidden = true; this.visual.empty(this.t('visualInvalid')); return }
         this.fgInfo.innerHTML = `${escapeHtml(this.t('fgSize'))}: <strong>${escapeHtml(dims(fg))}</strong>`;
 
-        const winners = CartonScorer.existing(fg, this.data.cartons, 10, assignedId);
-        const assignedPass = !this.manualMode && linkage.carton && linkage.fitStatus === 'ROBUST_PASS';
-        const hasRobustWinner = winners.some(w => w.status === 'ROBUST_PASS');
+        if(this.progress.state.active)this.progress.setPhase('EVALUATING_EXISTING_CARTONS',`${this.data.cartons.length} ${this.t('cartons')}`);
+        const winners = CartonScorer.existing(fg, this.data.cartons, 5, assignedId);
+        const assignedPass = !this.manualMode && linkage.carton && ['FIT','FIT_WITH_DIMENSION_ALLOWANCE'].includes(linkage.fitStatus);
+        const hasRobustWinner = winners.length > 0;
 
         const getActiveFit = (fitScenarios, status) => {
           if (!fitScenarios) return null;
-          if (status === 'ROBUST_PASS') return fitScenarios.ROBUST;
-          if (status === 'NOMINAL_ONLY' || status === 'INCONCLUSIVE_SEARCH') return fitScenarios.NOMINAL;
-          if (status === 'FAVORABLE_ONLY') return fitScenarios.FAVORABLE;
-          return fitScenarios.NOMINAL;
+          return fitScenarios.selected || fitScenarios.decision?.displayFit || fitScenarios.NOMINAL;
         };
 
-        const comparisonCandidate = winners.find(w => w.status === 'ROBUST_PASS' && normalizeId(w.carton.carton_id) !== normalizeId(linkage.carton?.carton_id));
-        if (linkage.carton && linkage.fit && comparisonCandidate?.fit?.ROBUST) this.setComparison(fg, linkage.fit.evaluatedCartonDimensions || linkage.carton, linkage.fit, comparisonCandidate.fit.ROBUST.evaluatedCartonDimensions || comparisonCandidate.carton, comparisonCandidate.fit.ROBUST); else document.querySelector('#comparisonPanel').hidden = true;
+        const comparisonCandidate = winners.find(w => normalizeId(w.carton.carton_id) !== normalizeId(linkage.carton?.carton_id));
+        const comparisonFit=comparisonCandidate?getActiveFit(comparisonCandidate.fit,comparisonCandidate.status):null;
+        if (linkage.carton && linkage.fit && comparisonFit) this.setComparison(fg, linkage.fit.evaluatedCartonDimensions || linkage.carton, linkage.fit, comparisonFit.evaluatedCartonDimensions || comparisonCandidate.carton, comparisonFit); else document.querySelector('#comparisonPanel').hidden = true;
 
         if (hasRobustWinner || assignedPass) {
           this.tempCartonId = ''; this.temporaryId.textContent = '';
@@ -3046,19 +3015,20 @@
             this.visual.set({ fg, carton: linkage.carton, fit: linkage.fit, kind: 'existing' });
             this.visual.summary.insertAdjacentHTML('beforeend', `<div class="notice">${escapeHtml(this.t(this.weeklyBom ? 'assigned3d' : 'fallback3d'))}</div>`);
           } else {
-            const firstRobust = winners.find(w => w.status === 'ROBUST_PASS');
+            const firstRobust = winners[0];
             const visCarton = firstRobust ? firstRobust.carton : winners[0].carton;
-            const visFit = firstRobust ? getActiveFit(firstRobust.fit, 'ROBUST_PASS') : getActiveFit(winners[0].fit, winners[0].status);
+            const visFit = getActiveFit(firstRobust.fit, firstRobust.status);
             this.visual.set({ fg, carton: visCarton, fit: visFit, kind: 'existing' });
             if (!this.manualMode && assignedId && !linkage.cartonDimsOk) this.visual.summary.insertAdjacentHTML('beforeend', `<div class="notice">${escapeHtml(this.t('assignedMissing3d'))}</div>`);
           }
+          if(!this.manualMode&&assignedId){if(this.progress.state.active)this.progress.setPhase('GENERATING_NEW_CARTONS',this.t('engineeringProposal'));if(!this.tempCartonId)this.tempCartonId=this.makeTempId();const proposalName=fg.proposedCartonName||this.t('autoCartonName',{name:fg.fg_name||fg.fg_id}),props=NewCartonGenerator.generate(fg,this.data.fgs,{existingCartons:this.data.cartons});props.forEach(p=>{p.carton.carton_name=proposalName;p.carton.proposalId=this.tempCartonId});this.renderProposals(props);this.proposals.hidden=false}
           return;
         }
 
-        if (assignedId) this.renderExisting([], assignedId); else this.existing.innerHTML = `<div class="empty">${escapeHtml(this.t('noExistingDetail'))}</div>`; this.existingStatus.textContent = this.t('noExisting'); this.existingStatus.className = 'status bad'; if (!this.tempCartonId) this.tempCartonId = this.makeTempId(); const proposalName = fg.proposedCartonName || this.t('autoCartonName', { name: fg.fg_name || fg.fg_id }); this.temporaryId.textContent = `${this.t('tempId')}: ${this.tempCartonId} · ${this.t('proposalName')}: ${proposalName}`; const pool = this.manualMode ? [fg, ...this.data.fgs.filter(x => String(x.fg_id) !== String(fg.fg_id))] : this.data.fgs; let props = NewCartonGenerator.generate(fg, pool, { prioritizeDensity: this.manualMode }); if (this.manualMode) { props = props.map(p => { const score = scoreNewCartonForSharedUse({ proposal: p.carton, manualFg: fg, manualTargetQty: fg.target, allFgs: pool }); return { ...p, sharedScore: score } }); props.sort((a, b) => b.sharedScore.supportedCompleteCount - a.sharedScore.supportedCompleteCount || b.sharedScore.supportedFgCount - a.sharedScore.supportedFgCount || b.sharedScore.averageUtilization - a.sharedScore.averageUtilization || a.cartonVolume - b.cartonVolume); } props.forEach(p => { p.carton.carton_name = proposalName; p.carton.proposalId = this.tempCartonId }); this.renderProposals(props); this.proposals.hidden = false; if (props.length) this.visual.set({ fg, carton: props[0].carton, fit: props[0].selectedFit, kind: 'proposal' }); else this.visual.empty(this.t('noCandidate'));
+        if(this.progress.state.active)this.progress.setPhase('GENERATING_NEW_CARTONS',this.t('engineeringProposal')); if (assignedId) this.renderExisting([], assignedId); else this.existing.innerHTML = `<div class="empty">${escapeHtml(this.t('noExistingDetail'))}</div>`; this.existingStatus.textContent = this.t('noExisting'); this.existingStatus.className = 'status bad'; if (!this.tempCartonId) this.tempCartonId = this.makeTempId(); const proposalName = fg.proposedCartonName || this.t('autoCartonName', { name: fg.fg_name || fg.fg_id }); this.temporaryId.textContent = `${this.t('tempId')}: ${this.tempCartonId} · ${this.t('proposalName')}: ${proposalName}`; const pool = this.manualMode ? [fg, ...this.data.fgs.filter(x => String(x.fg_id) !== String(fg.fg_id))] : this.data.fgs; let props = NewCartonGenerator.generate(fg, pool, { existingCartons:this.data.cartons }); props.forEach(p => { p.carton.carton_name = proposalName; p.carton.proposalId = this.tempCartonId }); this.renderProposals(props); this.proposals.hidden = false; if (props.length) this.visual.set({ fg, carton: props[0].carton, fit: props[0].selectedFit, kind: 'proposal' }); else this.visual.empty(this.t('noCandidate'));
       }
       renderExisting(rows, defaultCartonId = '') {
-        const fg = this.current, assignedId = String(defaultCartonId || '').trim(), assignedCarton = assignedId ? this.data.cartons.find(c => String(c.carton_id) === assignedId) : null, alternatives = (assignedId ? rows.filter(x => String(x.carton.carton_id) !== assignedId) : rows).slice(0, 10);
+        const fg = this.current, assignedId = String(defaultCartonId || '').trim(), assignedCarton = assignedId ? this.data.cartons.find(c => String(c.carton_id) === assignedId) : null, alternatives = (assignedId ? rows.filter(x => String(x.carton.carton_id) !== assignedId) : rows).slice(0, 5);
         this.existingStatus.textContent = `${alternatives.length} ${this.t('suitable')}`; this.existingStatus.className = `status ${alternatives.length ? 'good' : ''}`; const table = document.createElement('table');
         const hideFailedVal = document.querySelector('#hideFailedCheck')?.checked ?? true;
         if (hideFailedVal) table.classList.add('hide-failed');
@@ -3068,10 +3038,7 @@
 
         const getActiveFit = (fitScenarios, status) => {
           if (!fitScenarios) return null;
-          if (status === 'ROBUST_PASS') return fitScenarios.ROBUST;
-          if (status === 'NOMINAL_ONLY' || status === 'INCONCLUSIVE_SEARCH') return fitScenarios.NOMINAL;
-          if (status === 'FAVORABLE_ONLY') return fitScenarios.FAVORABLE;
-          return fitScenarios.NOMINAL;
+          return fitScenarios.selected || fitScenarios.decision?.displayFit || fitScenarios.NOMINAL;
         };
 
         const addRow = (carton, fitScenarios, rank, relationship, isBom = false, status) => {
@@ -3080,16 +3047,12 @@
             tr.classList.add('bom-row');
             if (fitScenarios) tr.classList.add('selected');
           }
-          if (status === 'FAIL' || status === 'DATA_INVALID') {
+          if (status === 'DOES_NOT_FIT' || status === 'MISSING_DATA') {
             tr.classList.add('status-fail');
           }
 
           const activeFit = getActiveFit(fitScenarios, status);
-          const multInfo = activeFit?.fgAllowanceApplied != null
-            ? (FitSettings.current.toleranceMode === 'absolute'
-              ? `FG ${activeFit.fgAllowanceApplied >= 0 ? '+' : '−'}${fmt(Math.abs(activeFit.fgAllowanceApplied))} mm · CT ${activeFit.cartonAllowanceApplied >= 0 ? '−' : '+'}${fmt(Math.abs(activeFit.cartonAllowanceApplied))} mm`
-              : `FG×${Number(activeFit.fgAllowanceApplied).toFixed(2)} CT×${Number(activeFit.cartonAllowanceApplied).toFixed(2)}`)
-            : '—';
+          const multInfo = activeFit ? `S${activeFit.selectedScenario} · FG×${Number(activeFit.fgMultiplier).toFixed(4)} · CT×${Number(activeFit.cartonMultiplier).toFixed(4)}` : '—';
 
           let result = '';
           let resultClass = '';
@@ -3097,23 +3060,20 @@
             result = this.t('fallbackMissing');
             resultClass = 'result-fail';
           } else {
-            if (status === 'ROBUST_PASS') {
-              result = this.t('robustPass');
+            if (status === 'FIT') {
+              result = this.t('fit');
               resultClass = 'result-pass';
-            } else if (status === 'NOMINAL_ONLY') {
-              result = this.t('nominalOnly');
+            } else if (status === 'FIT_WITH_DIMENSION_ALLOWANCE') {
+              result = this.t('fitWithAllowance');
               resultClass = 'mark-warn';
-            } else if (status === 'FAVORABLE_ONLY') {
-              result = this.t('favorableOnly');
+            } else if (status === 'BOM_CONFIRMED_MODEL_MISMATCH') {
+              result = this.t('bomConfirmedModelMismatch');
               resultClass = 'mark-warn';
-            } else if (status === 'FAIL') {
-              result = this.t('fail');
+            } else if (status === 'DOES_NOT_FIT') {
+              result = this.t('doesNotFit');
               resultClass = 'result-fail';
-            } else if (status === 'INCONCLUSIVE_SEARCH') {
-              result = this.t('inconclusive');
-              resultClass = 'mark-warn';
             } else {
-              result = this.t('invalid');
+              result = this.t('dataIncomplete');
               resultClass = 'result-fail';
             }
           }
@@ -3139,8 +3099,8 @@
         if (assignedId) {
           const assignedName = fallback ? fg.mvpAssignedCartonName : fg.assignedCartonName;
           const bomCarton = assignedCarton || { carton_id: assignedId, carton_name: assignedName || '', width: NaN, depth: NaN, height: NaN, lifecycle: fg.assignedCartonLifecycle || '' };
-          const bomFit = CartonFitEngine.validFG(fg) && CartonFitEngine.validCarton(bomCarton) ? SharedDecisionEngine.legacy(fg, bomCarton, DimensionSettings.current) : null;
-          const bomStatus = bomFit ? ToleranceClassifier.classify(bomFit) : 'DATA_INVALID';
+          const bomFit = CartonFitEngine.validFG(fg) && CartonFitEngine.validCarton(bomCarton) ? SharedDecisionEngine.legacy(fg, bomCarton, DimensionSettings.current,{bomConfirmed:true}) : null;
+          const bomStatus = bomFit ? ToleranceClassifier.classify(bomFit,true) : 'MISSING_DATA';
           addRow(bomCarton, bomFit, this.t(fallback ? 'fallbackReference' : 'currentBom'), this.t(fallback ? 'fallbackAssigned' : 'assignedToFg'), true, bomStatus);
         }
         alternatives.forEach((x, i) => addRow(x.carton, x.fit, String(i + 1), this.t('alternativeFit'), false, x.status));
@@ -3149,120 +3109,7 @@
         else this.existing.innerHTML = `<div class="empty">${escapeHtml(this.t('noExistingDetail'))}</div>`;
         if (!body.querySelector('tr.selected')) body.querySelector('tr:not(.bom-row)')?.classList.add('selected');
       }
-      initToleranceControls() {
-        const manualModeEl = document.querySelector('#manualTolMode');
-        const manualFgEl = document.querySelector('#manualFgAllow');
-        const manualCartonEl = document.querySelector('#manualCartonAllow');
-        const existingModeEl = document.querySelector('#existingTolMode');
-        const existingFgEl = document.querySelector('#existingFgAllow');
-        const existingCartonEl = document.querySelector('#existingCartonAllow');
-
-        const updateInputsFromSettings = () => {
-          const s = FitSettings.current;
-          const isAbs = s.toleranceMode === 'absolute';
-          const fgVal = isAbs ? s.fgAllowanceMm : s.fgAllowancePct;
-          const cartonVal = isAbs ? s.cartonAllowanceMm : s.cartonAllowancePct;
-
-          const labels = document.querySelectorAll('.tol-fg-allow-label');
-          labels.forEach(el => {
-            el.textContent = isAbs ? this.t('fgGrowthAllowance') + ' (mm):' : this.t('fgGrowthAllowance') + ' (%):';
-          });
-          const ctnLabels = document.querySelectorAll('.tol-carton-allow-label');
-          ctnLabels.forEach(el => {
-            el.textContent = isAbs ? this.t('cartonInsideReduction') + ' (mm):' : this.t('cartonInsideReduction') + ' (%):';
-          });
-
-          if (manualModeEl) manualModeEl.value = s.toleranceMode;
-          if (existingModeEl) existingModeEl.value = s.toleranceMode;
-          const sharedModeEl = document.querySelector('#settingToleranceMode');
-          if (sharedModeEl) sharedModeEl.value = s.toleranceMode;
-
-          if (manualFgEl) manualFgEl.value = fgVal;
-          if (existingFgEl) existingFgEl.value = fgVal;
-          const sharedFgEl = document.querySelector('#settingFgError');
-          if (sharedFgEl) sharedFgEl.value = fgVal;
-
-          if (manualCartonEl) manualCartonEl.value = cartonVal;
-          if (existingCartonEl) existingCartonEl.value = cartonVal;
-          const sharedCartonEl = document.querySelector('#settingCartonError');
-          if (sharedCartonEl) sharedCartonEl.value = cartonVal;
-          this.updateToleranceLabels();
-        };
-
-        const applySettingsFromInputs = (mode, fgVal, cartonVal) => {
-          FitSettings.current.toleranceMode = mode;
-          const valFg = parseFloat(fgVal) || 0;
-          const valCt = parseFloat(cartonVal) || 0;
-
-          if (mode === 'absolute') {
-            FitSettings.current.fgAllowanceMm = valFg;
-            FitSettings.current.cartonAllowanceMm = valCt;
-            DimensionSettings.current = { ...DimensionSettings.current, toleranceMode:'absolute', fgMeasurementErrorMm:valFg, cartonMeasurementErrorMm:valCt };
-            if(document.querySelector('#settingFgError'))document.querySelector('#settingFgError').value=valFg;if(document.querySelector('#settingCartonError'))document.querySelector('#settingCartonError').value=valCt;
-          } else {
-            FitSettings.current.fgAllowancePct = Math.min(99.9, Math.max(0, valFg));
-            FitSettings.current.cartonAllowancePct = Math.min(99.9, Math.max(0, valCt));
-            DimensionSettings.current = { ...DimensionSettings.current, toleranceMode:'percentage', fgMeasurementErrorPct:FitSettings.current.fgAllowancePct, cartonMeasurementErrorPct:FitSettings.current.cartonAllowancePct };
-          }
-
-          SharedDecisionEngine.clearCache();
-          updateInputsFromSettings();
-          this.syncDimensionSettings();
-          if (this.current) {
-            this.run();
-          }
-        };
-
-        const syncFromManual = () => {
-          if (!manualModeEl) return;
-          applySettingsFromInputs(manualModeEl.value, manualFgEl ? manualFgEl.value : 0, manualCartonEl ? manualCartonEl.value : 0);
-        };
-
-        const syncFromExisting = () => {
-          if (!existingModeEl) return;
-          applySettingsFromInputs(existingModeEl.value, existingFgEl ? existingFgEl.value : 0, existingCartonEl ? existingCartonEl.value : 0);
-        };
-
-        if (manualModeEl) manualModeEl.addEventListener('change', syncFromManual);
-        if (manualFgEl) manualFgEl.addEventListener('input', syncFromManual);
-        if (manualCartonEl) manualCartonEl.addEventListener('input', syncFromManual);
-
-        if (existingModeEl) existingModeEl.addEventListener('change', syncFromExisting);
-        if (existingFgEl) existingFgEl.addEventListener('input', syncFromExisting);
-        if (existingCartonEl) existingCartonEl.addEventListener('input', syncFromExisting);
-
-        const resetTolerance = () => {
-          FitSettings.reset();
-          DimensionSettings.current = { ...DimensionSettings.current, toleranceMode:'absolute', fgMeasurementErrorMm:FitSettings.defaults.fgAllowanceMm, cartonMeasurementErrorMm:FitSettings.defaults.cartonAllowanceMm };
-          if(document.querySelector('#settingFgError'))document.querySelector('#settingFgError').value=FitSettings.defaults.fgAllowanceMm;if(document.querySelector('#settingCartonError'))document.querySelector('#settingCartonError').value=FitSettings.defaults.cartonAllowanceMm;
-          SharedDecisionEngine.clearCache();
-          updateInputsFromSettings();
-          this.syncDimensionSettings();
-          if (this.current) {
-            this.run();
-          }
-        };
-
-        const manualResetBtn = document.querySelector('#manualTolReset');
-        const existingResetBtn = document.querySelector('#existingTolReset');
-        const sharedResetBtn = document.querySelector('#sharedTolReset');
-
-        if (manualResetBtn) manualResetBtn.addEventListener('click', resetTolerance);
-        if (existingResetBtn) existingResetBtn.addEventListener('click', resetTolerance);
-        if (sharedResetBtn) sharedResetBtn.addEventListener('click', resetTolerance);
-
-        const hideFailedCheck = document.querySelector('#hideFailedCheck');
-        if (hideFailedCheck) {
-          hideFailedCheck.addEventListener('change', (e) => {
-            const table = document.querySelector('#existingTable table');
-            if (table) {
-              table.classList.toggle('hide-failed', e.target.checked);
-            }
-          });
-        }
-
-        updateInputsFromSettings();
-      }
+      initToleranceControls() { const hideFailedCheck=document.querySelector('#hideFailedCheck');if(hideFailedCheck)hideFailedCheck.addEventListener('change',e=>{const table=document.querySelector('#existingTable table');if(table)table.classList.toggle('hide-failed',e.target.checked)}) }
 
       renderConflicts(fg, linkage) {
         const linkageConflictEl = document.querySelector('#linkageConflict');
@@ -3299,20 +3146,15 @@
           }
 
           const target = fg.target;
-          if (linkage.fitStatus === 'FAIL') {
+          if (linkage.fitStatus === 'BOM_CONFIRMED_MODEL_MISMATCH') {
             alerts.push({
               title: this.t('bomConflictExceedsTitle'),
-              detail: this.t('bomConflictExceedsDetail', { target, capacity: linkage.fit ? linkage.fit.capacity : 0 })
+              detail: this.t('simplifiedBomMismatch')
             });
-          } else if (linkage.fitStatus === 'INCONCLUSIVE_SEARCH') {
+          } else if (linkage.fitStatus === 'FIT_WITH_DIMENSION_ALLOWANCE') {
             alerts.push({
-              title: this.t('bomConflictInconclusiveTitle'),
-              detail: this.t('bomConflictInconclusiveDetail', { target })
-            });
-          } else if (linkage.fitStatus === 'NOMINAL_ONLY' || linkage.fitStatus === 'FAVORABLE_ONLY') {
-            alerts.push({
-              title: "TOLERANCE WARNING",
-              detail: `BOM target quantity (${target}) fits under nominal/favorable dimensions but fails worst-case robust check.`
+              title: this.t('fitWithAllowance'),
+              detail: `${this.t('selectedScenario')}: ${linkage.fit?.selectedScenario || '—'} · ${this.t('fgCartonMultipliers')}: ${Number(linkage.fit?.fgMultiplier||1).toFixed(4)} / ${Number(linkage.fit?.cartonMultiplier||1).toFixed(4)}`
             });
           }
         }
@@ -3762,7 +3604,7 @@
         return dims.length * dims.width * dims.height;
       }
 
-      evaluateAuditFit(fg, carton, targetQty) {
+      evaluateAuditFit(fg, carton, targetQty, { bomConfirmed = false } = {}) {
         const fgDims = this.getBoxDimsMm(fg);
         const mcDims = this.getBoxDimsMm(carton);
 
@@ -3795,7 +3637,7 @@
         try {
           let rawResult = null;
           if (typeof CartonFitEngine !== 'undefined' && typeof CartonFitEngine.evaluate === 'function') {
-            rawResult = CartonFitEngine.evaluate(fgBox, cartonBox);
+            rawResult = CartonFitEngine.evaluate(fgBox, cartonBox, { bomConfirmed });
           } else if (typeof CartonFitEngine !== 'undefined' && typeof CartonFitEngine.check === 'function') {
             rawResult = CartonFitEngine.check(fgBox, cartonBox);
           } else if (typeof this.evaluateCartonFit === 'function') {
@@ -3826,6 +3668,7 @@
             arrangement: rawResult.arrangement || '',
             orientation: fitOrientation(rawResult) || '',
             shortage,
+            classification: rawResult.classification || (pass ? 'FIT' : (bomConfirmed ? 'BOM_CONFIRMED_MODEL_MISMATCH' : 'DOES_NOT_FIT')),
             raw: rawResult
           };
         } catch (e) {
@@ -3912,7 +3755,7 @@
         }
 
         return {
-          currentFit: this.evaluateAuditFit(fg, currentCarton, targetQty),
+          currentFit: this.evaluateAuditFit(fg, currentCarton, targetQty, { bomConfirmed: true }),
           best,
           bestStillFails,
           fittingCandidates,
@@ -3980,6 +3823,17 @@
           result.currentCarton = currentCarton;
           result.targetQty = targetQty;
           result.threshold = threshold;
+          this.progress.setPhase('GENERATING_NEW_CARTONS', this.t('engineeringProposal'), taskId);
+          await this.progress.yieldToBrowser(taskId);
+          const auditFg = { ...fg, target: targetQty };
+          const proposals = NewCartonGenerator.generate(auditFg, this.data.fgs, { existingCartons: this.data.cartons });
+          this.current = auditFg;
+          if (!this.tempCartonId) this.tempCartonId = this.makeTempId();
+          proposals.forEach(p => { p.carton.proposalId = this.tempCartonId });
+          this.renderProposals(proposals);
+          this.proposals.hidden = false;
+          if (proposals[0]) this.setComparison(auditFg, currentCarton, result.currentFit.raw, proposals[0].carton, proposals[0].selectedFit);
+          this.progress.setPhase('RENDERING_RESULT', this.t('processing'), taskId);
           this.renderAuditResult(result);
           this.progress.completeTask(this.t('auditComplete'), taskId);
         } catch (e) {
@@ -4014,8 +3868,8 @@
         if (summary) {
           const currentFit = result.currentFit;
           if (!currentFit.pass) {
-            summary.className = 'audit-summary bad';
-            summary.textContent = this.t('auditNoFitSummary');
+            summary.className = currentFit.classification === 'BOM_CONFIRMED_MODEL_MISMATCH' ? 'audit-summary warn' : 'audit-summary bad';
+            summary.textContent = currentFit.classification === 'BOM_CONFIRMED_MODEL_MISMATCH' ? this.t('simplifiedBomMismatch') : this.t('auditNoFitSummary');
           } else if (currentFit.utilization * 100 < result.threshold) {
             summary.className = 'audit-summary warn';
             summary.textContent = this.t('auditUnderSummary');
@@ -4045,8 +3899,9 @@
         const targetQty = result.targetQty;
         const threshold = result.threshold;
 
-        const statusText = fit.pass ? this.t('auditPass') : this.t('auditFail');
-        const statusClass = fit.pass ? 'good' : 'bad';
+        const isBomMismatch = fit.classification === 'BOM_CONFIRMED_MODEL_MISMATCH';
+        const statusText = fit.pass ? this.t('auditPass') : isBomMismatch ? this.t('bomConfirmedModelMismatch') : this.t('auditFail');
+        const statusClass = fit.pass ? 'good' : isBomMismatch ? 'warn' : 'bad';
 
         const fgDimsStr = dims(fg);
         const mcDimsStr = dims(currentCarton);
