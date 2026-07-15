@@ -1907,6 +1907,14 @@
         document.querySelector('#rotateLeft').addEventListener('click', () => { this.visual.rotation = (this.visual.rotation + 1) % 24; this.visual.render() }); document.querySelector('#rotateRight').addEventListener('click', () => { this.visual.rotation = (this.visual.rotation - 1) % 24; this.visual.render() }); document.querySelector('#resetView').addEventListener('click', () => { this.visual.rotation = 0; this.visual.pitch = 0; this.visual.render() });
         document.querySelector('#ghostToggle').addEventListener('click', () => { this.visual.ghosts = !this.visual.ghosts; this.updateControlText(); this.visual.render() });
         this.bindAuditModule();
+
+        const manualFgIdInput = document.querySelector('#manualFgId');
+        if (manualFgIdInput) {
+          manualFgIdInput.addEventListener('input', () => {
+            clearTimeout(this._manualFgAutofillTimer);
+            this._manualFgAutofillTimer = setTimeout(() => this.handleManualFgIdInput(), 200);
+          });
+        }
       }
       applyLanguage() { document.documentElement.lang = I18n.language; document.title = this.t('title'); document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = this.t(el.dataset.i18n)); document.querySelectorAll('[data-i18n-placeholder]').forEach(el => el.placeholder = this.t(el.dataset.i18nPlaceholder)); document.querySelector('#languageToggle').textContent = I18n.language === 'en' ? 'EN / VI' : 'VI / EN'; document.querySelector('#dataToggle').textContent = this.t(this.dataTools.hidden ? 'showData' : 'hideData'); document.querySelector('#themeToggle').textContent = this.t(this.theme === 'light' ? 'themeDark' : 'themeLight'); this.updateControlText(); this.refreshSourceLinks(); this.refreshBomAlert(); if (this.data) this.populateFgSelect(this.select.value); else this.select.innerHTML = `<option value="">${escapeHtml(this.t('searchFg'))}</option>`; if (!this.current) { this.fgInfo.textContent = this.t('fgSize') + ': —'; this.existingStatus.textContent = this.t('awaiting'); this.existing.innerHTML = `<div class="empty">${escapeHtml(this.t('emptyStart'))}</div>`; this.visual.empty(this.t('emptyVisual')); } }
       updateControlText() { document.querySelector('#ghostToggle').textContent = `${this.t('ghost')}: ${this.t(this.visual.ghosts ? 'on' : 'off')}` }
@@ -1941,6 +1949,24 @@
       choose() { const i = Number(this.select.value); if (!this.data || this.select.value === '') { this.resetResults(); return } this.tempCartonId = ''; this.current = { ...this.data.fgs[i] }; this.manualMode = !!this.current.isManualNpi; this.target.value = this.current.target || ''; this.targetLabel.hidden = false; this.run(); }
       readManualFg() { const enteredId = document.querySelector('#manualFgId').value.trim(), fg_id = enteredId || 'MANUAL-NPI', width = Number(document.querySelector('#manualLength').value), depth = Number(document.querySelector('#manualWidth').value), height = Number(document.querySelector('#manualHeight').value), rawQty = Number(document.querySelector('#manualQty').value), target = Math.floor(rawQty); if (![width, depth, height, target].every(Number.isFinite) || Math.min(width, depth, height, target) <= 0 || rawQty !== target) { this.message(this.t('invalidManual'), 'error'); return null } const fg_name = enteredId ? `NPI ${enteredId}` : this.t('manualFg'); return { fg_id, fg_name, width, depth, height, target, assignedCartonId: '', assignedCartonName: '', hasDimensionRecord: true, isManualNpi: true, proposedCartonName: this.t('autoCartonName', { name: fg_id }) } }
       checkManual() { if (!this.data) { this.message(this.t('loadNeeded'), 'error'); return } const fg = this.readManualFg(); if (!fg) return; this.message(''); this.manualMode = true; this.tempCartonId = ''; this.current = fg; this.select.value = ''; this.targetLabel.hidden = true; document.querySelector('#sharedCartonPanel').hidden = true; this.run(); }
+      handleManualFgIdInput() {
+        if (!this.data || !Array.isArray(this.data.fgs)) return;
+        const fgIdInput = document.querySelector('#manualFgId');
+        if (!fgIdInput) return;
+        const val = fgIdInput.value.trim().toLowerCase();
+        if (!val) return;
+        const matched = this.data.fgs.find(fg => String(fg.fg_id || '').trim().toLowerCase() === val);
+        if (matched) {
+          const lInput = document.querySelector('#manualLength');
+          const wInput = document.querySelector('#manualWidth');
+          const hInput = document.querySelector('#manualHeight');
+          const qInput = document.querySelector('#manualQty');
+          if (lInput) lInput.value = matched.width || '';
+          if (wInput) wInput.value = matched.depth || '';
+          if (hInput) hInput.value = matched.height || '';
+          if (qInput) qInput.value = matched.target || '';
+        }
+      }
       suggestSharedCartonLine() { if (!this.data) { this.message(this.t('loadNeeded'), 'error'); return } const fg = this.readManualFg(); if (!fg) return; this.message(''); this.manualMode = true; this.current = fg; this.select.value = ''; this.targetLabel.hidden = true; const suggestions = SharedCartonLineGenerator.suggest(fg, fg.target, this.data.fgs, this.data.cartons); this.renderSharedCartonSuggestions(suggestions, fg); this.activeContext = 'fit'; this.renderLinkage(fg); this.fgInfo.innerHTML = `${escapeHtml(this.t('fgSize'))}: <strong>${escapeHtml(dims(fg))}</strong>`; if (suggestions.length) { const s0 = suggestions[0], isProp = s0.kind === 'proposal', visCarton = isProp && s0.innerDimensions ? s0.innerDimensions : s0.carton; this.visual.set({ fg, carton: visCarton, fit: s0.fit, kind: isProp ? 'proposal' : 'existing' }); } }
       renderSharedCartonSuggestions(rows, fg) {
         const panel = document.querySelector('#sharedCartonPanel'), status = document.querySelector('#sharedCartonStatus'), wrap = document.querySelector('#sharedCartonTable'); panel.hidden = false; status.textContent = rows.length ? `${rows.length} ${this.t('practicalCandidates')}` : this.t('noSharedSuggestion'); status.className = 'status ' + (rows.length ? 'good' : 'bad');
