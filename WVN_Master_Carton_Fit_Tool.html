@@ -2059,6 +2059,17 @@
             }
           });
         }
+
+        const currentContainer = document.querySelector('#auditCurrent');
+        if (currentContainer) {
+          currentContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-audit-carton-id]');
+            if (btn) {
+              const cartonId = btn.getAttribute('data-audit-carton-id');
+              this.viewAuditCarton3d(cartonId);
+            }
+          });
+        }
       }
 
       clearAuditModule() {
@@ -2707,6 +2718,9 @@
         <div><span>${escapeHtml(this.t('productionConfirmedLabel'))}</span><strong>${escapeHtml(this.t(pcValue))}</strong></div>
       </div>
       ${noteValue ? `<div class="audit-explanation"><strong>${escapeHtml(this.t('packingEvidenceLabel'))}:</strong> ${escapeHtml(noteValue)}</div>` : ''}
+      <div style="margin-top: 10px;">
+        <button type="button" class="view-btn primary" data-audit-carton-id="${escapeHtml(currentCarton.carton_id)}">${escapeHtml(this.t('auditView3d'))}</button>
+      </div>
     `;
       }
 
