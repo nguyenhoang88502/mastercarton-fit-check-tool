@@ -421,29 +421,29 @@ if ($rebuildNeeded) {
   $assignments = [System.Collections.ArrayList]::new()
   $reverseIndex = [System.Collections.ArrayList]::new()
 
+  # Read sheets from workbooks
+  $sheets = @()
+  $dimensionSheet = $null
+  $backupSheet = $null
+  
   if ($dimensionFile) {
-    Write-Log "Processing Dimension Workbook..."
+    Write-Log "Reading Dimension Workbook..."
     $sheets = @(Read-XlsxSheets -File $dimensionFile)
-    
     $dimensionSheet = $sheets | Where-Object Name -eq 'Dimension' | Select-Object -First 1
-    $assignmentSheet = $sheets | Where-Object Name -eq 'FG_MasterCarton' | Select-Object -First 1
     $backupSheet = $sheets | Where-Object Name -eq 'Mastercarton_Dimensions' | Select-Object -First 1
-    if (-not $assignmentSheet) {
-      $assignmentSheet = $sheets | Where-Object { Get-HeaderInfo $_ @(@('finishgood id','finished good id','fg id'), @('mastercarton id','master carton id')) } | Select-Object -First 1
-    }
     
-    # Pre-index known Carton IDs from sheets that look like carton dimensions
-    foreach ($sheet in $sheets) {
-      if ($sheet.Name -match '(?i)master.*carton|carton.*dimension') {
+    # 1. Pre-index known Carton IDs from sheets that look like carton dimensions
+    foreach ($sh in $sheets) {
+      if ($sh.Name -match '(?i)master.*carton|carton.*dimension') {
         $idCol = -1
-        for ($r = 0; $r -lt [math]::Min(40, $sheet.Rows.Count); $r++) {
-          $headers = @($sheet.Rows[$r] | ForEach-Object { Normalize-Header $_ })
+        for ($r = 0; $r -lt [math]::Min(40, $sh.Rows.Count); $r++) {
+          $headers = @($sh.Rows[$r] | ForEach-Object { Normalize-Header $_ })
           for ($c = 0; $c -lt $headers.Count; $c++) {
             if ($headers[$c] -in @('mastercarton id','master carton id','carton id','item number')) { $idCol = $c; break }
           }
           if ($idCol -ge 0) {
-            for ($i = $r + 1; $i -lt $sheet.Rows.Count; $i++) {
-              $id = Normalize-ItemId (Get-RowCell $sheet.Rows[$i] $idCol)
+            for ($i = $r + 1; $i -lt $sh.Rows.Count; $i++) {
+              $id = Normalize-ItemId (Get-RowCell $sh.Rows[$i] $idCol)
               if ($id) { [void]$knownCartonIds.Add($id) }
             }
             break
@@ -451,278 +451,57 @@ if ($rebuildNeeded) {
         }
       }
     }
-    if ($backupSheet) {
-      $backupHeader = Get-HeaderInfo $backupSheet @(@('carton id','mastercarton id'))
-      if ($backupHeader) {
-        $idCol = Find-HeaderColumn $backupHeader @('carton id','mastercarton id')
-        for ($i = $backupHeader.Row + 1; $i -lt $backupSheet.Rows.Count; $i++) {
-          $id = Normalize-ItemId (Get-RowCell $backupSheet.Rows[$i] $idCol)
-          if ($id) { [void]$knownCartonIds.Add($id) }
-        }
-      }
-    }
     Write-Log "Indexed $($knownCartonIds.Count) known carton IDs from dimension workbook."
+  }
 
-    # Parse Dimension Sheet for FG (EA) and Carton (CA) dimensions
-    if ($dimensionSheet) {
-      $dimHeader = Get-HeaderInfo $dimensionSheet @(@('item number','item no','item'), @('unit','uom'), @('width'), @('depth','length'), @('height'))
-      if ($dimHeader) {
-        $itemCol = Find-HeaderColumn $dimHeader @('item number','item no','item')
-        $unitCol = Find-HeaderColumn $dimHeader @('unit','uom')
-        $widthCol = Find-HeaderColumn $dimHeader @('width')
-        $depthCol = Find-HeaderColumn $dimHeader @('depth','length')
-        $heightCol = Find-HeaderColumn $dimHeader @('height')
-        $nameCol = Find-HeaderColumn $dimHeader @('name','description','item description','product name','item name')
+  # 2. Collect backup master carton records
+  $backups = @{}
+  if ($backupSheet) {
+    $backupHeader = Get-HeaderInfo $backupSheet @(@('carton id','mastercarton id'), @('carton width cm','width cm'), @('carton depth cm','depth cm'), @('carton height cm','height cm'))
+    if ($backupHeader) {
+      $backupId = Find-HeaderColumn $backupHeader @('carton id','mastercarton id')
+      $backupName = Find-HeaderColumn $backupHeader @('carton name','mastercarton name')
+      $backupWidth = Find-HeaderColumn $backupHeader @('carton width cm','width cm')
+      $backupDepth = Find-HeaderColumn $backupHeader @('carton depth cm','depth cm')
+      $backupHeight = Find-HeaderColumn $backupHeader @('carton height cm','height cm')
+      $backupLifecycle = Find-HeaderColumn $backupHeader @('lifecycle','status')
+      
+      for ($r = $backupHeader.Row + 1; $r -lt $backupSheet.Rows.Count; $r++) {
+        $row = $backupSheet.Rows[$r]
+        $cartonId = Normalize-ItemId (Get-RowCell $row $backupId)
+        if (-not $cartonId) { continue }
+        $w = Convert-ToFiniteNumber (Get-RowCell $row $backupWidth)
+        $d = Convert-ToFiniteNumber (Get-RowCell $row $backupDepth)
+        $h = Convert-ToFiniteNumber (Get-RowCell $row $backupHeight)
+        $name = if ($backupName -ge 0) { Get-RowCell $row $backupName } else { "" }
+        $lifecycle = if ($backupLifecycle -ge 0) { Get-RowCell $row $backupLifecycle } else { "Active" }
         
-        # Temp groups to collect multi-measurements
-        $fgMeasurements = @{}
-        $cartonObservations = @{} # carton_id -> list of raw dimensions from CA rows
-
-        # Assign carton observations map using FG_MasterCarton assignments
-        $fgToCartonMap = @{}
-        if ($assignmentSheet) {
-          $assignHeader = Get-HeaderInfo $assignmentSheet @(@('finishgood id','finished good id','fg id'), @('mastercarton id','master carton id'))
-          if ($assignHeader) {
-            $fgCol = Find-HeaderColumn $assignHeader @('finishgood id','finished good id','fg id')
-            $mcCol = Find-HeaderColumn $assignHeader @('mastercarton id','master carton id')
-            for ($r = $assignHeader.Row + 1; $r -lt $assignmentSheet.Rows.Count; $r++) {
-              $fgId = Normalize-ItemId (Get-RowCell $assignmentSheet.Rows[$r] $fgCol)
-              $mcId = Normalize-ItemId (Get-RowCell $assignmentSheet.Rows[$r] $mcCol)
-              if ($fgId -and $mcId) {
-                if (-not $fgToCartonMap.ContainsKey($fgId)) { $fgToCartonMap[$fgId] = @() }
-                $fgToCartonMap[$fgId] += $mcId
-              }
-            }
-          }
+        if ([double]::IsNaN($w) -or [double]::IsNaN($d) -or [double]::IsNaN($h) -or $w -le 0 -or $d -le 0 -or $h -le 0) {
+          Add-DataQuality -issue "Invalid dimensions" -entityType "Carton" -entityId $cartonId -desc "Zero or invalid backup dimensions in row $($r+1)" -detail "L=$d, W=$w, H=$h"
+          continue
         }
-
-        for ($r = $dimHeader.Row + 1; $r -lt $dimensionSheet.Rows.Count; $r++) {
-          $row = $dimensionSheet.Rows[$r]
-          $itemId = Normalize-ItemId (Get-RowCell $row $itemCol)
-          $unit = (Get-RowCell $row $unitCol).ToUpperInvariant()
-          $name = if ($nameCol -ge 0) { Get-RowCell $row $nameCol } else { "" }
-          
-          if (-not $itemId -or $unit -notin @('EA','CA')) { continue }
-          
-          $width = Convert-ToFiniteNumber (Get-RowCell $row $widthCol)
-          $depth = Convert-ToFiniteNumber (Get-RowCell $row $depthCol)
-          $height = Convert-ToFiniteNumber (Get-RowCell $row $heightCol)
-          
-          if ([double]::IsNaN($width) -or [double]::IsNaN($depth) -or [double]::IsNaN($height) -or $width -le 0 -or $depth -le 0 -or $height -le 0) {
-            Add-DataQuality -issue "Invalid dimensions" -entityType $unit -entityId $itemId -desc "Zero, negative, or invalid dimension value in workbook row $($r+1)" -detail "L=$depth, W=$width, H=$height"
-            continue
-          }
-
-          # Normalize to mm (* 10)
-          $w_mm = $width * 10
-          $l_mm = $depth * 10
-          $h_mm = $height * 10
-
-          if ($unit -eq 'EA') {
-            if (-not $fgMeasurements.ContainsKey($itemId)) { $fgMeasurements[$itemId] = @() }
-            $fgMeasurements[$itemId] += [pscustomobject]@{
-              name = $name
-              length = $l_mm
-              width = $w_mm
-              height = $h_mm
-              row = $r + 1
-            }
-          } elseif ($unit -eq 'CA') {
-            # This is carton dimension observation from the FG UOM = CA.
-            # We map this to whatever carton ID(s) this FG is assigned to.
-            if ($fgToCartonMap.ContainsKey($itemId)) {
-              foreach ($mcId in $fgToCartonMap[$itemId]) {
-                if (-not $cartonObservations.ContainsKey($mcId)) { $cartonObservations[$mcId] = @() }
-                $cartonObservations[$mcId] += [pscustomobject]@{
-                  length = $l_mm
-                  width = $w_mm
-                  height = $h_mm
-                  source_fg = $itemId
-                  row = $r + 1
-                }
-              }
-            }
-          }
-        }
-
-        # 1. Build fg_dimensions.csv records
-        foreach ($fgId in $fgMeasurements.Keys) {
-          $mList = $fgMeasurements[$fgId]
-          $mCount = $mList.Count
-          $first = $mList[0]
-          
-          # Compute average
-          $avgL = ($mList | Measure-Object length -Average).Average
-          $avgW = ($mList | Measure-Object width -Average).Average
-          $avgH = ($mList | Measure-Object height -Average).Average
-
-          # Check for conflicts
-          $conflict = "false"
-          $detail = ""
-          $distinct = @($mList | Group-Object { "$($_.length)|$($_.width)|$($_.height)" })
-          if ($distinct.Count -gt 1) {
-            $conflict = "true"
-            $detail = "Conflicting Finished Good dimensions found across multiple UOM=EA rows."
-            Add-DataQuality -issue "Conflicting FG dimensions" -entityType "FG" -entityId $fgId -desc "Multiple EA rows have different dimensions" -detail "$mCount measurements"
-          }
-
-          $allFgs[$fgId] = [pscustomobject]@{
-            fg_id = $fgId
-            fg_name = $first.name
-            length_mm = $avgL
-            width_mm = $avgW
-            height_mm = $avgH
-            measurement_count = $mCount
-            source_workbook = $dimensionFile.Name
-            source_sheet = $dimensionSheet.Name
-            source_row = $first.row
-            conflict_flag = $conflict
-            conflict_detail = $detail
-          }
-        }
-
-        # 2. Collect backup master carton records
-        $backups = @{}
-        if ($backupSheet) {
-          $backupHeader = Get-HeaderInfo $backupSheet @(@('carton id','mastercarton id'), @('carton width cm','width cm'), @('carton depth cm','depth cm'), @('carton height cm','height cm'))
-          if ($backupHeader) {
-            $backupId = Find-HeaderColumn $backupHeader @('carton id','mastercarton id')
-            $backupName = Find-HeaderColumn $backupHeader @('carton name','mastercarton name')
-            $backupWidth = Find-HeaderColumn $backupHeader @('carton width cm','width cm')
-            $backupDepth = Find-HeaderColumn $backupHeader @('carton depth cm','depth cm')
-            $backupHeight = Find-HeaderColumn $backupHeader @('carton height cm','height cm')
-            $backupLifecycle = Find-HeaderColumn $backupHeader @('lifecycle','status')
-            
-            for ($r = $backupHeader.Row + 1; $r -lt $backupSheet.Rows.Count; $r++) {
-              $row = $backupSheet.Rows[$r]
-              $cartonId = Normalize-ItemId (Get-RowCell $row $backupId)
-              if (-not $cartonId) { continue }
-              $w = Convert-ToFiniteNumber (Get-RowCell $row $backupWidth)
-              $d = Convert-ToFiniteNumber (Get-RowCell $row $backupDepth)
-              $h = Convert-ToFiniteNumber (Get-RowCell $row $backupHeight)
-              $name = if ($backupName -ge 0) { Get-RowCell $row $backupName } else { "" }
-              $lifecycle = if ($backupLifecycle -ge 0) { Get-RowCell $row $backupLifecycle } else { "Active" }
-              
-              if ([double]::IsNaN($w) -or [double]::IsNaN($d) -or [double]::IsNaN($h) -or $w -le 0 -or $d -le 0 -or $h -le 0) {
-                Add-DataQuality -issue "Invalid dimensions" -entityType "Carton" -entityId $cartonId -desc "Zero or invalid backup dimensions in row $($r+1)" -detail "L=$d, W=$w, H=$h"
-                continue
-              }
-              $backups[$cartonId] = [pscustomobject]@{
-                name = $name
-                length = $d * 10
-                width = $w * 10
-                height = $h * 10
-                lifecycle = $lifecycle
-                row = $r + 1
-              }
-            }
-          }
-        }
-
-        # 3. Resolve Carton canonical dimensions
-        # Combine all unique carton IDs
-        $cartonIds = @($cartonObservations.Keys + $backups.Keys | Select-Object -Unique)
-        foreach ($cartonId in $cartonIds) {
-          $obsList = $cartonObservations[$cartonId]
-          $backup = $backups[$cartonId]
-          
-          $mCount = 0
-          $sourceType = ""
-          $sourceSheet = ""
-          $sourceRow = 0
-          $cName = ""
-          $lifecycle = "Active"
-          
-          # Canonical sorted measurements collector
-          $alignedMeasurements = @()
-          
-          if ($obsList -and $obsList.Count -gt 0) {
-            $mCount = $obsList.Count
-            $sourceType = "Dimension CA average"
-            $sourceSheet = $dimensionSheet.Name
-            $sourceRow = $obsList[0].row
-            $cName = if ($backup) { $backup.name } else { "Derived Carton $cartonId" }
-            $lifecycle = if ($backup) { $backup.lifecycle } else { "Active" }
-            
-            foreach ($obs in $obsList) {
-              # Align dimensions consistently by sorting them largest to smallest
-              $sorted = @($obs.length, $obs.width, $obs.height) | Sort-Object -Descending
-              $alignedMeasurements += [pscustomobject]@{ L = $sorted[0]; W = $sorted[1]; H = $sorted[2] }
-            }
-          } elseif ($backup) {
-            $mCount = 1
-            $sourceType = "Mastercarton_Dimensions backup"
-            $sourceSheet = $backupSheet.Name
-            $sourceRow = $backup.row
-            $cName = $backup.name
-            $lifecycle = $backup.lifecycle
-            
-            $sorted = @($backup.length, $backup.width, $backup.height) | Sort-Object -Descending
-            $alignedMeasurements += [pscustomobject]@{ L = $sorted[0]; W = $sorted[1]; H = $sorted[2] }
-          }
-          
-          if ($alignedMeasurements.Count -gt 0) {
-            # Compute stats
-            $avgL = ($alignedMeasurements | Measure-Object L -Average).Average
-            $avgW = ($alignedMeasurements | Measure-Object W -Average).Average
-            $avgH = ($alignedMeasurements | Measure-Object H -Average).Average
-            
-            $minL = ($alignedMeasurements | Measure-Object L -Minimum).Minimum
-            $maxL = ($alignedMeasurements | Measure-Object L -Maximum).Maximum
-            $minW = ($alignedMeasurements | Measure-Object W -Minimum).Minimum
-            $maxW = ($alignedMeasurements | Measure-Object W -Maximum).Maximum
-            $minH = ($alignedMeasurements | Measure-Object H -Minimum).Minimum
-            $maxH = ($alignedMeasurements | Measure-Object H -Maximum).Maximum
-            
-            $rangeL = $maxL - $minL
-            $rangeW = $maxW - $minW
-            $rangeH = $maxH - $minH
-            
-            # Check variation
-            $warning = "false"
-            if ($alignedMeasurements.Count -gt 1) {
-              $hasRangeWarning = $rangeL -gt 10 -or $rangeW -gt 10 -or $rangeH -gt 10
-              $hasPctWarning = ($rangeL / $avgL -gt 0.05) -or ($rangeW / $avgW -gt 0.05) -or ($rangeH / $avgH -gt 0.05)
-              if ($hasRangeWarning -or $hasPctWarning) {
-                $warning = "true"
-                Add-DataQuality -issue "Large carton measurement variation" -entityType "Carton" -entityId $cartonId -desc "Dimension measurements spread varies materially (L spread=$rangeL, W spread=$rangeW, H spread=$rangeH)" -detail "$mCount observations"
-              }
-            }
-            
-            $allCartons[$cartonId] = [pscustomobject]@{
-              carton_id = $cartonId
-              carton_name = $cName
-              outside_length_mm = $avgL
-              outside_width_mm = $avgW
-              outside_height_mm = $avgH
-              measurement_count = $mCount
-              length_min_mm = $minL
-              length_max_mm = $maxL
-              width_min_mm = $minW
-              width_max_mm = $maxW
-              height_min_mm = $minH
-              height_max_mm = $maxH
-              variation_warning = $warning
-              source_type = $sourceType
-              lifecycle = $lifecycle
-            }
-          }
+        $backups[$cartonId] = [pscustomobject]@{
+          name = $name
+          length = $d * 10
+          width = $w * 10
+          height = $h * 10
+          lifecycle = $lifecycle
+          row = $r + 1
         }
       }
     }
   }
 
-  # Process BOM Workbook
+  # 3. Parse BOM carton assignments
+  $bomRowsRaw = [System.Collections.ArrayList]::new()
   if ($bomFile) {
     Write-Log "Processing BOM Workbook..."
-    $sheets = @(Read-XlsxSheets -File $bomFile -SkipSheets 1)
+    $bomSheets = @(Read-XlsxSheets -File $bomFile -SkipSheets 1)
     
-    $bomRowsRaw = [System.Collections.ArrayList]::new()
-    
-    foreach ($sheet in $sheets) {
+    foreach ($sheet in $bomSheets) {
       Write-Log "BOM Scan: sheet '$($sheet.Name)' ($($sheet.Rows.Count) rows)"
       
-      # 1. Try flat sheet format
+      # Try flat sheet format
       $flat = $null
       for ($hr = 0; $hr -lt [math]::Min(60, $sheet.Rows.Count); $hr++) {
         $hh = @($sheet.Rows[$hr] | ForEach-Object { Normalize-Header $_ })
@@ -756,7 +535,6 @@ if ($rebuildNeeded) {
           $norm = if ($flat.Norm -ge 0) { Get-RowCell $row $flat.Norm } else { "" }
           $perSeries = if ($flat.PerSeries -ge 0) { Get-RowCell $row $flat.PerSeries } else { "" }
           
-          # Criteria checks
           $knownId = $knownCartonIds.Contains($item)
           $isLabel = $product -match '(?i)carton\s*label|lith\s*label|fire\s*label|lithium\s*label|warning\s*label|rating\s*label|label\s*for|\bUPC\b|\bSCC\b|barcode'
           $isCarton = $knownId -or ($product -match '(?i)master\s*carton|mastercarton|carton\s*box|shipping\s*carton|\bcarton\b')
@@ -778,7 +556,7 @@ if ($rebuildNeeded) {
         continue
       }
       
-      # 2. Try nested structure format
+      # Try nested structure format
       $fg = ''; $fgName = ''; $expectFg = $false; $component = $null
       for ($r = 0; $r -lt $sheet.Rows.Count; $r++) {
         $row = $sheet.Rows[$r]
@@ -845,15 +623,13 @@ if ($rebuildNeeded) {
       }
     }
 
-    # Process and deduplicate BOM assignments
-    # Group by fgId and cartonId to identify target quantities and conflict checks
+    # Group by fgId and cartonId to identify target quantities, conflicts and build assignments list
     $groupedBoms = $bomRowsRaw | Group-Object { "$($_.fgId)|$($_.cartonId)" }
     foreach ($grp in $groupedBoms) {
       $fgId = $grp.Group[0].fgId
       $cartonId = $grp.Group[0].cartonId
       $first = $grp.Group[0]
       
-      # Extract target quantities for all occurrences
       $targets = @()
       $sources = @()
       foreach ($row in $grp.Group) {
@@ -877,7 +653,6 @@ if ($rebuildNeeded) {
         Add-DataQuality -issue "Conflicting BOM quantities" -entityType "BOM" -entityId "$fgId|$cartonId" -desc "Multiple BOM rows specify different target quantities" -detail "$($uniqueTargets -join ', ')"
       }
       
-      # Duplicate assignment check
       if ($grp.Group.Count -gt 1) {
         Add-DataQuality -issue "Duplicate assignment" -entityType "BOM" -entityId "$fgId|$cartonId" -desc "Pairing occurs $($grp.Group.Count) times in BOM" -detail "Duplicate assignment detected"
       }
@@ -896,7 +671,6 @@ if ($rebuildNeeded) {
         conflict_detail = $detail
       })
       
-      # Reverse index entry
       if ($null -ne $targetQty) {
         [void]$reverseIndex.Add([pscustomobject]@{
           carton_id = $cartonId
@@ -904,6 +678,325 @@ if ($rebuildNeeded) {
           fg_name = $first.fgName
           target_quantity = $targetQty
         })
+      }
+    }
+  }
+
+  # 4. Build FG ID -> Carton ID Map and check for conflicts
+  $fgToCartonMap = @{}      # resolved: fgId -> cartonId (string)
+  $fgConflicts = @{}        # conflicting: fgId -> array of cartonIds
+  
+  if ($bomFile) {
+    $groupedByFg = $bomRowsRaw | Group-Object fgId
+    foreach ($grp in $groupedByFg) {
+      $fgId = $grp.Name
+      $uniqueCartons = @($grp.Group | Select-Object -ExpandProperty cartonId -Unique)
+      if ($uniqueCartons.Count -eq 1) {
+        $fgToCartonMap[$fgId] = $uniqueCartons[0]
+      } elseif ($uniqueCartons.Count -gt 1) {
+        $fgConflicts[$fgId] = $uniqueCartons
+        Add-DataQuality -issue "Conflicting BOM carton assignments" -entityType "FG" -entityId $fgId -desc "FG is assigned to multiple conflicting cartons in BOM" -detail "$($uniqueCartons -join ', ')"
+      }
+    }
+  }
+
+  # 5. Parse Dimension workbook sheet for FG (EA) and Carton (CA) measurements
+  $fgMeasurements = @{}
+  $cartonObservations = @{} # resolved: cartonId -> list of [pscustomobject]@{ fgId, L, W, H, row, fgName }
+  $cartonDimensionSources = [System.Collections.ArrayList]::new() # Traceability list
+  
+  if ($dimensionSheet) {
+    $dimHeader = Get-HeaderInfo $dimensionSheet @(@('item number','item no','item'), @('unit','uom'), @('width'), @('depth','length'), @('height'))
+    if ($dimHeader) {
+      $itemCol = Find-HeaderColumn $dimHeader @('item number','item no','item')
+      $unitCol = Find-HeaderColumn $dimHeader @('unit','uom')
+      $widthCol = Find-HeaderColumn $dimHeader @('width')
+      $depthCol = Find-HeaderColumn $dimHeader @('depth','length')
+      $heightCol = Find-HeaderColumn $dimHeader @('height')
+      $nameCol = Find-HeaderColumn $dimHeader @('name','description','item description','product name','item name')
+      
+      for ($r = $dimHeader.Row + 1; $r -lt $dimensionSheet.Rows.Count; $r++) {
+        $row = $dimensionSheet.Rows[$r]
+        $itemId = Get-RowCell $row $itemCol
+        $unitVal = Get-RowCell $row $unitCol
+        $name = if ($nameCol -ge 0) { Get-RowCell $row $nameCol } else { "" }
+        
+        # Check missing FG ID
+        if ([string]::IsNullOrWhiteSpace($itemId)) {
+          if ($unitVal -eq 'CA' -or $unitVal -eq 'EA') {
+            Add-DataQuality -issue "CA row missing FG ID" -entityType $unitVal -entityId "" -desc "Workbook row $($r+1) is missing item/FG ID" -detail ""
+          }
+          continue
+        }
+        
+        $fgId = Normalize-ItemId $itemId
+        $unit = (Normalize-Header $unitVal).ToUpperInvariant()
+        
+        if ($unit -notin @('EA','CA')) { continue }
+        
+        $width = Convert-ToFiniteNumber (Get-RowCell $row $widthCol)
+        $depth = Convert-ToFiniteNumber (Get-RowCell $row $depthCol)
+        $height = Convert-ToFiniteNumber (Get-RowCell $row $heightCol)
+        
+        # Validate dimensions
+        $invalidDims = [double]::IsNaN($width) -or [double]::IsNaN($depth) -or [double]::IsNaN($height) -or $width -le 0 -or $depth -le 0 -or $height -le 0
+        if ($invalidDims) {
+          Add-DataQuality -issue "CA row has invalid dimensions" -entityType $unit -entityId $fgId -desc "Zero, negative, or invalid dimension value in workbook row $($r+1)" -detail "L=$depth, W=$width, H=$height"
+          
+          if ($unit -eq 'CA') {
+            [void]$cartonDimensionSources.Add([pscustomobject]@{
+              carton_id = ""
+              source_fg_id = $fgId
+              source_fg_name = $name
+              measured_length_mm = if ([double]::IsNaN($depth)) { "" } else { $depth * 10 }
+              measured_width_mm = if ([double]::IsNaN($width)) { "" } else { $width * 10 }
+              measured_height_mm = if ([double]::IsNaN($height)) { "" } else { $height * 10 }
+              source_sheet = $dimensionSheet.Name
+              source_row = $r + 1
+              included_in_average = "false"
+              exclusion_reason = "Invalid dimensions"
+            })
+          }
+          continue
+        }
+        
+        $w_mm = $width * 10
+        $l_mm = $depth * 10
+        $h_mm = $height * 10
+        
+        if ($unit -eq 'EA') {
+          if (-not $fgMeasurements.ContainsKey($fgId)) { $fgMeasurements[$fgId] = @() }
+          $fgMeasurements[$fgId] += [pscustomobject]@{
+            name = $name
+            length = $l_mm
+            width = $w_mm
+            height = $h_mm
+            row = $r + 1
+          }
+        } elseif ($unit -eq 'CA') {
+          # Process CA row: sort descending for canonical axis order
+          $sorted = @($l_mm, $w_mm, $h_mm) | Sort-Object -Descending
+          $canonL = $sorted[0]
+          $canonW = $sorted[1]
+          $canonH = $sorted[2]
+          
+          # Join to BOM assignments
+          if ($fgConflicts.ContainsKey($fgId)) {
+            [void]$cartonDimensionSources.Add([pscustomobject]@{
+              carton_id = ""
+              source_fg_id = $fgId
+              source_fg_name = $name
+              measured_length_mm = $canonL
+              measured_width_mm = $canonW
+              measured_height_mm = $canonH
+              source_sheet = $dimensionSheet.Name
+              source_row = $r + 1
+              included_in_average = "false"
+              exclusion_reason = "Conflicting BOM carton assignments: $($fgConflicts[$fgId] -join ', ')"
+            })
+          } elseif (-not $fgToCartonMap.ContainsKey($fgId)) {
+            Add-DataQuality -issue "CA measurement has no BOM carton assignment" -entityType "FG" -entityId $fgId -desc "CA row for FG $fgId has no BOM carton assignment" -detail "Workbook row $($r+1)"
+            [void]$cartonDimensionSources.Add([pscustomobject]@{
+              carton_id = ""
+              source_fg_id = $fgId
+              source_fg_name = $name
+              measured_length_mm = $canonL
+              measured_width_mm = $canonW
+              measured_height_mm = $canonH
+              source_sheet = $dimensionSheet.Name
+              source_row = $r + 1
+              included_in_average = "false"
+              exclusion_reason = "CA measurement has no BOM carton assignment"
+            })
+          } else {
+            $cartonId = $fgToCartonMap[$fgId]
+            if (-not $cartonObservations.ContainsKey($cartonId)) { $cartonObservations[$cartonId] = @() }
+            $cartonObservations[$cartonId] += [pscustomobject]@{
+              fgId = $fgId
+              fgName = $name
+              L = $canonL
+              W = $canonW
+              H = $canonH
+              row = $r + 1
+            }
+            [void]$cartonDimensionSources.Add([pscustomobject]@{
+              carton_id = $cartonId
+              source_fg_id = $fgId
+              source_fg_name = $name
+              measured_length_mm = $canonL
+              measured_width_mm = $canonW
+              measured_height_mm = $canonH
+              source_sheet = $dimensionSheet.Name
+              source_row = $r + 1
+              included_in_average = "true"
+              exclusion_reason = ""
+            })
+          }
+        }
+      }
+    }
+  }
+
+  # 6. Build fg_dimensions.csv records
+  foreach ($fgId in $fgMeasurements.Keys) {
+    $mList = $fgMeasurements[$fgId]
+    $mCount = $mList.Count
+    $first = $mList[0]
+    
+    $avgL = ($mList | Measure-Object length -Average).Average
+    $avgW = ($mList | Measure-Object width -Average).Average
+    $avgH = ($mList | Measure-Object height -Average).Average
+
+    $conflict = "false"
+    $detail = ""
+    $distinct = @($mList | Group-Object { "$($_.length)|$($_.width)|$($_.height)" })
+    if ($distinct.Count -gt 1) {
+      $conflict = "true"
+      $detail = "Conflicting Finished Good dimensions found across UOM=EA rows."
+      Add-DataQuality -issue "Conflicting FG dimensions" -entityType "FG" -entityId $fgId -desc "Multiple EA rows have different dimensions" -detail "$mCount measurements"
+    }
+
+    $allFgs[$fgId] = [pscustomobject]@{
+      fg_id = $fgId
+      fg_name = $first.name
+      length_mm = $avgL
+      width_mm = $avgW
+      height_mm = $avgH
+      measurement_count = $mCount
+      source_workbook = $dimensionFile.Name
+      source_sheet = $dimensionSheet.Name
+      source_row = $first.row
+      conflict_flag = $conflict
+      conflict_detail = $detail
+    }
+  }
+
+  # 7. Group and average carton dimensions
+  $cartonIds = @($cartonObservations.Keys + $backups.Keys | Select-Object -Unique)
+  foreach ($cartonId in $cartonIds) {
+    $obsList = $cartonObservations[$cartonId]
+    $backup = $backups[$cartonId]
+    
+    $mCount = 0
+    $fgCount = 0
+    $dimSource = "Missing"
+    $sourceWorkbook = if ($dimensionFile) { $dimensionFile.Name } else { "" }
+    $cName = if ($backup) { $backup.name } else { "Derived Carton $cartonId" }
+    $lifecycle = if ($backup) { $backup.lifecycle } else { "Active" }
+    
+    $avgL = $null; $avgW = $null; $avgH = $null
+    $minL = $null; $maxL = $null; $spreadL = 0
+    $minW = $null; $maxW = $null; $spreadW = 0
+    $minH = $null; $maxH = $null; $spreadH = 0
+    $warning = "false"
+    
+    if ($obsList -and $obsList.Count -gt 0) {
+      $mCount = $obsList.Count
+      $fgCount = @($obsList | Select-Object -ExpandProperty fgId -Unique).Count
+      $dimSource = "BOM_LINKED_CA_AVERAGE"
+      
+      $avgL = ($obsList | Measure-Object L -Average).Average
+      $avgW = ($obsList | Measure-Object W -Average).Average
+      $avgH = ($obsList | Measure-Object H -Average).Average
+      
+      $minL = ($obsList | Measure-Object L -Minimum).Minimum
+      $maxL = ($obsList | Measure-Object L -Maximum).Maximum
+      $minW = ($obsList | Measure-Object W -Minimum).Minimum
+      $maxW = ($obsList | Measure-Object W -Maximum).Maximum
+      $minH = ($obsList | Measure-Object H -Minimum).Minimum
+      $maxH = ($obsList | Measure-Object H -Maximum).Maximum
+      
+      $spreadL = $maxL - $minL
+      $spreadW = $maxW - $minW
+      $spreadH = $maxH - $minH
+      
+      if ($mCount -gt 1) {
+        $hasRangeWarning = $spreadL -gt 10 -or $spreadW -gt 10 -or $spreadH -gt 10
+        $hasPctWarning = ($spreadL / $avgL -gt 0.05) -or ($spreadW / $avgW -gt 0.05) -or ($spreadH / $avgH -gt 0.05)
+        if ($hasRangeWarning -or $hasPctWarning) {
+          $warning = "true"
+          Add-DataQuality -issue "Large carton measurement variation" -entityType "Carton" -entityId $cartonId -desc "Dimension measurements spread varies materially (L spread=$spreadL, W spread=$spreadW, H spread=$spreadH)" -detail "$mCount observations"
+        }
+      }
+      
+      if ($mCount -eq 1) {
+        Add-DataQuality -issue "Single CA measurement" -entityType "Carton" -entityId $cartonId -desc "Master Carton has only one contributing CA measurement" -detail "No averaging possible"
+      }
+      
+      $byFg = $obsList | Group-Object fgId
+      if ($byFg.Count -gt 1) {
+        $fgAverages = @()
+        foreach ($fgrp in $byFg) {
+          $fgAverages += [pscustomobject]@{
+            fgId = $fgrp.Name
+            L = ($fgrp.Group | Measure-Object L -Average).Average
+            W = ($fgrp.Group | Measure-Object W -Average).Average
+            H = ($fgrp.Group | Measure-Object H -Average).Average
+          }
+        }
+        $maxDiffL = 0; $maxDiffW = 0; $maxDiffH = 0
+        for ($i = 0; $i -lt $fgAverages.Count; $i++) {
+          for ($j = $i + 1; $j -lt $fgAverages.Count; $j++) {
+            $diffL = [math]::Abs($fgAverages[$i].L - $fgAverages[$j].L)
+            $diffW = [math]::Abs($fgAverages[$i].W - $fgAverages[$j].W)
+            $diffH = [math]::Abs($fgAverages[$i].H - $fgAverages[$j].H)
+            if ($diffL -gt $maxDiffL) { $maxDiffL = $diffL }
+            if ($diffW -gt $maxDiffW) { $maxDiffW = $diffW }
+            if ($diffH -gt $maxDiffH) { $maxDiffH = $diffH }
+          }
+        }
+        if ($maxDiffL -gt 5 -or $maxDiffW -gt 5 -or $maxDiffH -gt 5) {
+          Add-DataQuality -issue "Material difference between FGs" -entityType "Carton" -entityId $cartonId -desc "Averaged dimensions differ materially between FGs assigned to this carton (L diff=$maxDiffL, W diff=$maxDiffW, H diff=$maxDiffH)" -detail "FGs: $($byFg.Name -join ', ')"
+        }
+      }
+      
+      if ($backup) {
+        $bSorted = @($backup.length, $backup.width, $backup.height) | Sort-Object -Descending
+        $diffL = [math]::Abs($avgL - $bSorted[0])
+        $diffW = [math]::Abs($avgW - $bSorted[1])
+        $diffH = [math]::Abs($avgH - $bSorted[2])
+        if ($diffL -gt 5 -or $diffW -gt 5 -or $diffH -gt 5) {
+          Add-DataQuality -issue "Backup dimension mismatch" -entityType "Carton" -entityId $cartonId -desc "Backup dimensions from Mastercarton_Dimensions disagree with CA average (L diff=$diffL, W diff=$diffW, H diff=$diffH)" -detail "CA average: $avgL x $avgW x $avgH, Backup: $($bSorted[0]) x $($bSorted[1]) x $($bSorted[2])"
+        }
+      }
+      
+    } elseif ($backup) {
+      $mCount = 1
+      $fgCount = 0
+      $dimSource = "Mastercarton_Dimensions backup"
+      $cName = $backup.name
+      $lifecycle = $backup.lifecycle
+      
+      $sorted = @($backup.length, $backup.width, $backup.height) | Sort-Object -Descending
+      $avgL = $sorted[0]; $avgW = $sorted[1]; $avgH = $sorted[2]
+      $minL = $avgL; $maxL = $avgL
+      $minW = $avgW; $maxW = $avgW
+      $minH = $avgH; $maxH = $avgH
+    }
+    
+    if ($null -ne $avgL) {
+      $allCartons[$cartonId] = [pscustomobject]@{
+        carton_id = $cartonId
+        carton_name = $cName
+        outside_length_mm = $avgL
+        outside_width_mm = $avgW
+        outside_height_mm = $avgH
+        measurement_count = $mCount
+        contributing_fg_count = $fgCount
+        length_min_mm = $minL
+        length_max_mm = $maxL
+        width_min_mm = $minW
+        width_max_mm = $maxW
+        height_min_mm = $minH
+        height_max_mm = $maxH
+        length_spread_mm = $spreadL
+        width_spread_mm = $spreadW
+        height_spread_mm = $spreadH
+        variation_warning = $warning
+        dimension_source = $dimSource
+        source_type = $dimSource
+        source_workbook = $sourceWorkbook
+        lifecycle = $lifecycle
       }
     }
   }
@@ -933,8 +1026,26 @@ if ($rebuildNeeded) {
 
   Write-Log "Writing carton_dimensions.csv..."
   $ctExport = @($allCartons.Values)
-  if ($ctExport.Count -eq 0) { $ctExport = @([pscustomobject]@{ carton_id=""; carton_name=""; outside_length_mm=""; outside_width_mm=""; outside_height_mm=""; measurement_count=""; length_min_mm=""; length_max_mm=""; width_min_mm=""; width_max_mm=""; height_min_mm=""; height_max_mm=""; variation_warning=""; source_type=""; lifecycle="" }) }
+  if ($ctExport.Count -eq 0) { $ctExport = @([pscustomobject]@{ carton_id=""; carton_name=""; outside_length_mm=""; outside_width_mm=""; outside_height_mm=""; measurement_count=""; contributing_fg_count=""; length_min_mm=""; length_max_mm=""; width_min_mm=""; width_max_mm=""; height_min_mm=""; height_max_mm=""; length_spread_mm=""; width_spread_mm=""; height_spread_mm=""; variation_warning=""; dimension_source=""; source_type=""; source_workbook=""; lifecycle="" }) }
   $ctExport | Export-Csv -Path (Join-Path $generatedDir 'carton_dimensions.csv') -NoTypeInformation -Encoding UTF8
+
+  Write-Log "Writing carton_dimension_sources.csv..."
+  $sourcesExport = @($cartonDimensionSources)
+  if ($sourcesExport.Count -eq 0) {
+    $sourcesExport = @([pscustomobject]@{
+      carton_id = ""
+      source_fg_id = ""
+      source_fg_name = ""
+      measured_length_mm = ""
+      measured_width_mm = ""
+      measured_height_mm = ""
+      source_sheet = ""
+      source_row = ""
+      included_in_average = ""
+      exclusion_reason = ""
+    })
+  }
+  $sourcesExport | Export-Csv -Path (Join-Path $generatedDir 'carton_dimension_sources.csv') -NoTypeInformation -Encoding UTF8
 
   Write-Log "Writing bom_carton_assignments.csv..."
   $assignExport = @($assignments)

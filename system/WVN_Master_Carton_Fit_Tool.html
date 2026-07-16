@@ -3131,11 +3131,40 @@
         out += `<g fill="none" stroke="${edge}" stroke-width="1.6">`; for (const [a, b] of [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]]) { const A = q(corners[a]), B = q(corners[b]); out += `<line x1="${A[0].toFixed(1)}" y1="${A[1].toFixed(1)}" x2="${B[0].toFixed(1)}" y2="${B[1].toFixed(1)}"/>` } out += '</g>';
         this.svg.innerHTML = out;
         const fail = !fit.passes, remaining = [fit.remainingLength, fit.remainingWidth, fit.remainingHeight].every(Number.isFinite) ? `${fmt(fit.remainingLength)} / ${fmt(fit.remainingWidth)} / ${fmt(fit.remainingHeight)} mm` : '—', oriented = fit.packingMode === 'mixed' ? I18n.t('mixedDimensions') : `${fmt(fit.length)} × ${fmt(fit.width)} × ${fmt(fit.height)} mm`, failure = fail ? `<div class="notice">${escapeHtml(I18n.t('fullFitFail'))} ${escapeHtml(I18n.t('bestPossible'))}: ${escapeHtml(fitArrangement(fit))}, ${escapeHtml(I18n.t('capacity'))}: ${fitCapacity(fit)}, ${escapeHtml(I18n.t('target'))}: ${formatQuantity(fg.target)}.<br>${escapeHtml(fitFailureNote(fit))}${productionConfirmed === 'yes' ? `<br>${escapeHtml(I18n.t('productionVisualizerLimit'))}` : ''}</div>` : '';
+        const store = (window.toolUi || (typeof toolUi !== 'undefined' ? toolUi : null))?.store;
+        const rawSources = store?.cartonSources?.get(idKey(carton.carton_id)) || [];
+        let sourceLabel = carton.selectedSource || (fit.status === 'FIT_REMEASURED_EXACT' ? I18n.t('remeasuredExact') : I18n.t('sourceExact'));
+        if (carton.selectedSource === 'BOM_LINKED_CA_AVERAGE' || carton.selectedSource === 'Dimension CA average') {
+          sourceLabel = `BOM_LINKED_CA_AVERAGE (${carton.measurementCount || rawSources.length || 0} CA measurements across ${carton.contributingFgCount || 0} FGs)`;
+        }
+        
+        let inspectionHtml = '';
+        if (rawSources.length > 0) {
+          const listItems = rawSources.map(s => {
+            const incl = String(s.included_in_average) === 'true';
+            return `<li style="font-size:11px; margin-bottom:2px; ${incl ? '' : 'text-decoration:line-through;opacity:0.6;'}">
+              FG <strong>${escapeHtml(s.source_fg_id)}</strong> (${escapeHtml(s.source_fg_name)}): 
+              ${fmt(parseFloat(s.measured_length_mm))}×${fmt(parseFloat(s.measured_width_mm))}×${fmt(parseFloat(s.measured_height_mm))} mm
+              ${incl ? '' : ` <em class="mark-warn">(${escapeHtml(s.exclusion_reason)})</em>`}
+            </li>`;
+          }).join('');
+          
+          inspectionHtml = `
+            <details style="margin-top: 10px; border-top: 1px solid #ccc; padding-top: 5px;">
+              <summary style="cursor: pointer; font-size: 12px; font-weight: bold; color: var(--text-color, #333);">
+                ${carton.variationWarning ? '⚠️ ' : ''}Inspect Contributing Measurements (${rawSources.length})
+              </summary>
+              <ul style="margin: 5px 0 0 0; padding-left: 15px; list-style-type: disc;">
+                ${listItems}
+              </ul>
+            </details>
+          `;
+        }
+
         if (isQuickMode()) {
-          const sourceLabel = fit.status === 'FIT_REMEASURED_EXACT' ? I18n.t('remeasuredExact') : I18n.t('sourceExact');
-          this.summary.innerHTML = `<div><strong>${I18n.t(kind === 'proposal' ? 'proposedCarton' : 'selectedCarton')}</strong><dl><dt>${I18n.t('cartonId')}</dt><dd>${escapeHtml(carton.carton_id||carton.proposalId||'—')}</dd><dt>${I18n.t('cartonName')}</dt><dd>${escapeHtml(carton.carton_name||'—')}</dd><dt>${I18n.t('calculationMode')}</dt><dd>${I18n.t('quickMode')}</dd><dt>${I18n.t('dimensionSource')}</dt><dd>${escapeHtml(carton.selectedSource||sourceLabel)}</dd><dt>${I18n.t('sourceCartonDimensions')}</dt><dd>${escapeHtml(dims(fit.sourceCartonDimensions))}</dd><dt>${I18n.t('wallThicknessPerSide')}</dt><dd>${fmt(fit.wallThicknessPerSide)} mm</dd><dt>${I18n.t('usableInternalCartonDimensions')}</dt><dd>${escapeHtml(dims(fit.usableInternalCartonDimensions))}</dd><dt>${I18n.t('cartonWidth')}</dt><dd>${fmt(fit.usableInternalCartonDimensions?.depth)} mm</dd><dt>${I18n.t('fgDimensionData')}</dt><dd>${escapeHtml(dims(fg))}</dd><dt>${I18n.t('orientedFg')}</dt><dd>${escapeHtml(oriented)}</dd><dt>${I18n.t('arrangement')}</dt><dd>${escapeHtml(fitArrangement(fit))}</dd><dt>${I18n.t('capacityTarget')}</dt><dd>${escapeHtml(fitCapacity(fit))} / ${formatQuantity(fg.target)}</dd><dt>${I18n.t('nominalUtilization')}</dt><dd>${pct(fit.nominalUtilization)}</dd><dt>${I18n.t('remaining')}</dt><dd>${escapeHtml(remaining)}</dd></dl><div class="notice">${escapeHtml(I18n.t(fit.wallDeductionApplied?'quickOutsideAssumption':'quickInternalSource'))}</div>${failure}</div>`;
+          this.summary.innerHTML = `<div><strong>${I18n.t(kind === 'proposal' ? 'proposedCarton' : 'selectedCarton')}</strong><dl><dt>${I18n.t('cartonId')}</dt><dd>${escapeHtml(carton.carton_id||carton.proposalId||'—')}</dd><dt>${I18n.t('cartonName')}</dt><dd>${escapeHtml(carton.carton_name||'—')}</dd><dt>${I18n.t('calculationMode')}</dt><dd>${I18n.t('quickMode')}</dd><dt>${I18n.t('dimensionSource')}</dt><dd>${escapeHtml(sourceLabel)}</dd><dt>${I18n.t('sourceCartonDimensions')}</dt><dd>${escapeHtml(dims(fit.sourceCartonDimensions))}</dd><dt>${I18n.t('wallThicknessPerSide')}</dt><dd>${fmt(fit.wallThicknessPerSide)} mm</dd><dt>${I18n.t('usableInternalCartonDimensions')}</dt><dd>${escapeHtml(dims(fit.usableInternalCartonDimensions))}</dd><dt>${I18n.t('cartonWidth')}</dt><dd>${fmt(fit.usableInternalCartonDimensions?.depth)} mm</dd><dt>${I18n.t('fgDimensionData')}</dt><dd>${escapeHtml(dims(fg))}</dd><dt>${I18n.t('orientedFg')}</dt><dd>${escapeHtml(oriented)}</dd><dt>${I18n.t('arrangement')}</dt><dd>${escapeHtml(fitArrangement(fit))}</dd><dt>${I18n.t('capacityTarget')}</dt><dd>${escapeHtml(fitCapacity(fit))} / ${formatQuantity(fg.target)}</dd><dt>${I18n.t('nominalUtilization')}</dt><dd>${pct(fit.nominalUtilization)}</dd><dt>${I18n.t('remaining')}</dt><dd>${escapeHtml(remaining)}</dd></dl><div class="notice">${escapeHtml(I18n.t(fit.wallDeductionApplied?'quickOutsideAssumption':'quickInternalSource'))}</div>${failure}${inspectionHtml}</div>`;
         } else {
-          this.summary.innerHTML = `<div><strong>${I18n.t(kind === 'proposal' ? 'proposedCarton' : 'selectedCarton')}</strong><dl><dt>${I18n.t('sourceCartonDimensions')}</dt><dd>${escapeHtml(dims(fit.sourceCartonDimensions))}</dd><dt>${I18n.t('usableInternalCartonDimensions')}</dt><dd>${escapeHtml(dims(fit.usableInternalCartonDimensions))}</dd><dt>${I18n.t('selectedScenario')}</dt><dd>${escapeHtml(CartonFitEngine.scenarioLabel(fit))}</dd>${fit.adjustedAxis?`<dt>${I18n.t('adjustedAxis')}</dt><dd>${escapeHtml(fit.adjustedAxis)}</dd><dt>${I18n.t('adjustmentPercentage')}</dt><dd>FG ${((fit.fgRatio-1)*100).toFixed(1)}% / CT ${((fit.cartonRatio-1)*100).toFixed(1)}%</dd>`:''}<dt>${I18n.t('nominalDimensions')}</dt><dd>FG ${escapeHtml(dims(fit.nominalFgDimensions))} / CT ${escapeHtml(dims(fit.nominalCartonDimensions))}</dd><dt>${I18n.t('evaluatedDimensions')}</dt><dd>FG ${escapeHtml(dims(fit.evaluatedFgDimensions))} / CT ${escapeHtml(dims(fit.evaluatedCartonDimensions))}</dd><dt>${I18n.t('orientedFg')}</dt><dd>${escapeHtml(oriented)}</dd><dt>${I18n.t('arrangement')}</dt><dd>${escapeHtml(fitArrangement(fit))}</dd><dt>${I18n.t('capacityTarget')}</dt><dd>${escapeHtml(fitCapacity(fit))} / ${formatQuantity(fg.target)}</dd><dt>${I18n.t('nominalUtilization')}</dt><dd>${pct(fit.nominalUtilization)}</dd><dt>${I18n.t('scenarioUtilization')}</dt><dd>${pct(fit.adjustedUtilization)}</dd><dt>${I18n.t('remaining')}</dt><dd>${escapeHtml(remaining)}</dd></dl>${fit.adjustedAxis?`<div class="notice">${escapeHtml(I18n.t('adjustedScenarioConfirmation'))}</div>`:''}${failure}</div>`;
+          this.summary.innerHTML = `<div><strong>${I18n.t(kind === 'proposal' ? 'proposedCarton' : 'selectedCarton')}</strong><dl><dt>${I18n.t('cartonId')}</dt><dd>${escapeHtml(carton.carton_id||carton.proposalId||'—')}</dd><dt>${I18n.t('cartonName')}</dt><dd>${escapeHtml(carton.carton_name||'—')}</dd><dt>${I18n.t('dimensionSource')}</dt><dd>${escapeHtml(sourceLabel)}</dd><dt>${I18n.t('sourceCartonDimensions')}</dt><dd>${escapeHtml(dims(fit.sourceCartonDimensions))}</dd><dt>${I18n.t('usableInternalCartonDimensions')}</dt><dd>${escapeHtml(dims(fit.usableInternalCartonDimensions))}</dd><dt>${I18n.t('selectedScenario')}</dt><dd>${escapeHtml(CartonFitEngine.scenarioLabel(fit))}</dd>${fit.adjustedAxis?`<dt>${I18n.t('adjustedAxis')}</dt><dd>${escapeHtml(fit.adjustedAxis)}</dd><dt>${I18n.t('adjustmentPercentage')}</dt><dd>FG ${((fit.fgRatio-1)*100).toFixed(1)}% / CT ${((fit.cartonRatio-1)*100).toFixed(1)}%</dd>`:''}<dt>${I18n.t('nominalDimensions')}</dt><dd>FG ${escapeHtml(dims(fit.nominalFgDimensions))} / CT ${escapeHtml(dims(fit.nominalCartonDimensions))}</dd><dt>${I18n.t('evaluatedDimensions')}</dt><dd>FG ${escapeHtml(dims(fit.evaluatedFgDimensions))} / CT ${escapeHtml(dims(fit.evaluatedCartonDimensions))}</dd><dt>${I18n.t('orientedFg')}</dt><dd>${escapeHtml(oriented)}</dd><dt>${I18n.t('arrangement')}</dt><dd>${escapeHtml(fitArrangement(fit))}</dd><dt>${I18n.t('capacityTarget')}</dt><dd>${escapeHtml(fitCapacity(fit))} / ${formatQuantity(fg.target)}</dd><dt>${I18n.t('nominalUtilization')}</dt><dd>${pct(fit.nominalUtilization)}</dd><dt>${I18n.t('scenarioUtilization')}</dt><dd>${pct(fit.adjustedUtilization)}</dd><dt>${I18n.t('remaining')}</dt><dd>${escapeHtml(remaining)}</dd></dl>${fit.adjustedAxis?`<div class="notice">${escapeHtml(I18n.t('adjustedScenarioConfirmation'))}</div>`:''}${failure}${inspectionHtml}</div>`;
         }
       }
     }
@@ -3245,6 +3274,16 @@
         const cartonsRaw = await fetchCSV('./generated/carton_dimensions.csv');
         const assignmentsRaw = await fetchCSV('./generated/bom_carton_assignments.csv');
         const dataQualityRaw = await fetchCSV('./generated/data_quality.csv').catch(() => []);
+        const sourcesRaw = await fetchCSV('./generated/carton_dimension_sources.csv').catch(() => []);
+
+        this.store.cartonSources = new Map();
+        sourcesRaw.forEach(row => {
+          const key = idKey(row.carton_id);
+          if (!this.store.cartonSources.has(key)) {
+            this.store.cartonSources.set(key, []);
+          }
+          this.store.cartonSources.get(key).push(row);
+        });
 
         const fgs = fgsRaw.map((row, i) => {
           const fg_id = String(row.fg_id || '').trim();
@@ -3272,20 +3311,24 @@
           const meanLength = parseFloat(row.outside_length_mm) || NaN;
           const meanWidth = parseFloat(row.outside_width_mm) || NaN;
           const meanHeight = parseFloat(row.outside_height_mm) || NaN;
+          const measurementCount = parseInt(row.measurement_count) || 0;
+          const contributingFgCount = parseInt(row.contributing_fg_count) || 0;
+          const dimSource = String(row.dimension_source || row.source_type || 'Dimension CA average').trim();
           return {
             carton_id,
             carton_name: String(row.carton_name || '').trim(),
             width: meanLength,
             depth: meanWidth,
             height: meanHeight,
-            defaultQty: parseInt(row.measurement_count) || 12,
+            defaultQty: measurementCount || 12,
             lifecycle: String(row.lifecycle || 'Active').trim(),
             dimensionType: 'outside',
             dimensionBasis: 'outside',
             isInternalDimension: false,
-            selectedSource: String(row.source_type || 'Dimension CA average').trim(),
-            sourceCode: row.source_type === 'Dimension CA average' ? 'AVERAGED_DIMENSION_CA' : 'MASTERCARTON_DIMENSIONS_BACKUP',
-            contributingFgCount: parseInt(row.measurement_count) || 0,
+            selectedSource: dimSource,
+            sourceCode: (dimSource === 'BOM_LINKED_CA_AVERAGE' || dimSource === 'Dimension CA average') ? 'AVERAGED_DIMENSION_CA' : 'MASTERCARTON_DIMENSIONS_BACKUP',
+            measurementCount,
+            contributingFgCount,
             variationWarning: row.variation_warning === 'true',
             statistics: {
               meanLengthMm: meanLength,
