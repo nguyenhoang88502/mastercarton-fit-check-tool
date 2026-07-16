@@ -1,0 +1,18 @@
+WAHL Vietnam — Master Carton Fit Tool
+======================================
+
+How to launch the tool:
+1. Double-click the file "Open_WVN_Master_Carton_Fit_Tool.cmd" in this folder.
+2. The launcher will automatically discover the latest weekly BOM and product physical dimension Excel workbooks (e.g. from your OneDrive/SharePoint synced folders).
+3. The launcher prepares the carton data, updates the cache, and automatically opens the tool in Google Chrome or Microsoft Edge.
+
+Requirements:
+- Windows OS
+- Built-in PowerShell 5.1
+- Google Chrome or Microsoft Edge
+- The Excel source files (OneDrive/SharePoint synced)
+
+Troubleshooting:
+- If the browser does not open, check the log file located at:
+  system/logs/WVN_Master_Carton_Fit_Tool_launcher.log
+- If automatic discovery fails, the web tool will allow you to manually select the workbook files.

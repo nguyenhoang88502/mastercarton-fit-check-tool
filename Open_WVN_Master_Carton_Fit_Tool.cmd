@@ -2,10 +2,10 @@
 setlocal
 pushd "%~dp0"
 echo Preparing carton data and opening WVN Master Carton Fit Tool...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0launcher.ps1" %*
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0system\launcher.ps1" %*
 if errorlevel 1 (
   echo.
-  echo Launcher preparation failed. Review WVN_Master_Carton_Fit_Tool_launcher.log.
+  echo Launcher preparation failed. Review system\logs\WVN_Master_Carton_Fit_Tool_launcher.log.
   pause
 )
 popd

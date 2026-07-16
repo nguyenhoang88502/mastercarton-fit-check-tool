@@ -2038,6 +2038,74 @@
     function getSearchObjective(){return isOptimizedMode()?'highestUtilization':'exactValues'}
     function saveCalculationMode(){try{localStorage.setItem('wvnCalculationMode',AppState.calculationMode)}catch(_){}}
     function loadCalculationMode(){let saved='';try{saved=localStorage.getItem('wvnCalculationMode')||''}catch(_){}AppState.calculationMode=saved===CALCULATION_MODES.OPTIMIZED?CALCULATION_MODES.OPTIMIZED:CALCULATION_MODES.QUICK}
+
+    function parseCSV(text) {
+      const lines = [];
+      let row = [""];
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        const next = text[i+1];
+        if (c === '"') {
+          if (inQuotes && next === '"') {
+            row[row.length - 1] += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (c === ',' && !inQuotes) {
+          row.push("");
+        } else if ((c === '\r' || c === '\n') && !inQuotes) {
+          if (c === '\r' && next === '\n') {
+            i++;
+          }
+          lines.push(row);
+          row = [""];
+        } else {
+          row[row.length - 1] += c;
+        }
+      }
+      if (row.length > 1 || row[0] !== "") {
+        lines.push(row);
+      }
+      return lines;
+    }
+
+    function parseCSVToObjects(text) {
+      const rows = parseCSV(text);
+      if (rows.length < 2) return [];
+      const headers = rows[0].map(h => h.trim());
+      const objects = [];
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length !== headers.length) {
+          if (row.length === 1 && row[0] === "") continue;
+        }
+        const obj = {};
+        for (let j = 0; j < headers.length; j++) {
+          obj[headers[j]] = (row[j] || "").trim();
+        }
+        objects.push(obj);
+      }
+      return objects;
+    }
+
+    function screenCartonCandidate(fg, carton, targetQty) {
+      if (!CartonFitEngine.validFG(fg) || !CartonFitEngine.validCarton(carton)) return false;
+      const internalCarton = getQuickModeInternalCartonDimensions(carton);
+      if (!hasValidQuickModeInternalDimensions(internalCarton)) return false;
+      const fgVol = fg.width * fg.depth * fg.height;
+      const cartonVol = internalCarton.width * internalCarton.depth * internalCarton.height;
+      if (cartonVol * 1.331 < fgVol * targetQty) return false;
+      const sortedFg = [fg.width, fg.depth, fg.height].sort((a,b)=>a-b);
+      const sortedCarton = [internalCarton.width, internalCarton.depth, internalCarton.height].sort((a,b)=>a-b);
+      if (sortedFg[0] * 0.90 > sortedCarton[0] * 1.10 ||
+          sortedFg[1] * 0.90 > sortedCarton[1] * 1.10 ||
+          sortedFg[2] * 0.90 > sortedCarton[2] * 1.10) {
+        return false;
+      }
+      return true;
+    }
     function getActiveExactFgDimensions(fg){const measured=fg?.appliedRemeasurement||fg?.remeasuredDimensions;return hasValidDimensions(measured)?{width:Number(measured.width??measured.length),depth:Number(measured.depth??measured.width),height:Number(measured.height),sourceType:'remeasured'}:{width:Number(fg?.width??fg?.length),depth:Number(fg?.depth??fg?.width),height:Number(fg?.height),sourceType:'workbook'}}
     function cartonDimensionsAreInternal(carton){const structured=[carton?.dimensionType,carton?.dimension_type,carton?.dimensionBasis,carton?.dimension_basis,carton?.dimensionSourceType,carton?.dimension_source_type].filter(value=>value!==undefined&&value!==null&&String(value).trim()!=='').map(value=>String(value).trim().toLowerCase());return carton?.isInternalDimension===true||carton?.is_internal_dimension===true||structured.some(value=>value==='id'||value==='inside dimension'||value==='inside dimensions'||value==='internal dimension'||value==='internal dimensions'||value==='inner dimension'||value==='inner dimensions'||value==='inside'||value==='internal'||value==='inner')}
     function getQuickModeInternalCartonDimensions(carton){if(carton?.__quickInternalNormalized)return{...carton};const conventional=carton?.length!==undefined,source={width:Number(conventional?carton?.length:carton?.width),depth:Number(conventional?carton?.width:(carton?.depth??carton?.breadth)),height:Number(carton?.height)},internal=cartonDimensionsAreInternal(carton),deduction=internal?0:QUICK_MODE_TOTAL_WALL_DEDUCTION_MM,result={...carton,width:source.width-deduction,depth:source.depth-deduction,height:source.height-deduction,length:source.width-deduction,breadth:source.depth-deduction,sourceCartonDimensions:{width:source.width,depth:source.depth,height:source.height},usableInternalCartonDimensions:{width:source.width-deduction,depth:source.depth-deduction,height:source.height-deduction},wallDeductionApplied:!internal,wallThicknessPerSide:internal?0:QUICK_MODE_CARTON_WALL_MM,sourceDimensionType:internal?'internal':'outside-assumed',dimensionType:'internal',dimensionBasis:'ID',isInternalDimension:true,dimensionShape:conventional?'conventional':'application',__quickInternalNormalized:true};if(conventional)result.width=source.depth-deduction;return result}
@@ -2499,7 +2567,7 @@
       static put(key,value,cache=this._cache){cache.set(key,value);if(cache.size>this._CACHE_MAX)cache.delete(cache.keys().next().value);return value}
       static ratios(candidate={}){return Object.fromEntries(RATIO_PROPERTIES.map(key=>[key,Number(candidate[key]??1)]))}
       static candidateKey(candidate){return RATIO_PROPERTIES.map(key=>Number(candidate[key]??1).toFixed(2)).join('|')}
-      static candidateFromOffsets(offsets){return Object.fromEntries(RATIO_PROPERTIES.map((key,index)=>[key,Number((1+offsets[index]*RATIO_STEP).toFixed(2))]))}
+      static candidateFromOffsets(offsets, step = RATIO_STEP){return Object.fromEntries(RATIO_PROPERTIES.map((key,index)=>[key,Number((1+offsets[index]*step).toFixed(2))]))}
       static scenarioLabel(fit){if(!fit)return'Nominal';const r=fit.ratios||this.ratios(fit);return fit.totalAdjustment>1e-9?`Multi-axis · FG ${r.fgLengthRatio.toFixed(2)}/${r.fgWidthRatio.toFixed(2)}/${r.fgHeightRatio.toFixed(2)} · CT ${r.cartonLengthRatio.toFixed(2)}/${r.cartonWidthRatio.toFixed(2)}/${r.cartonHeightRatio.toFixed(2)}`:'Nominal'}
       static evaluateGrid(fg,carton,candidate=NOMINAL_FIT_SCENARIO,options={}){const internalCarton=getQuickModeInternalCartonDimensions(carton);if(!this.validFG(fg)||!hasValidQuickModeInternalDimensions(internalCarton))return null;const ratios=this.ratios(candidate),base=options.nominalFg||fg,evaluatedFg={...base,width:base.width*ratios.fgLengthRatio,depth:base.depth*ratios.fgWidthRatio,height:base.height*ratios.fgHeightRatio},evaluatedCarton={...internalCarton,width:internalCarton.width*ratios.cartonLengthRatio,depth:internalCarton.depth*ratios.cartonWidthRatio,height:internalCarton.height*ratios.cartonHeightRatio},result=this.fullResult(fg,internalCarton,base,evaluatedFg,evaluatedCarton,ratios,options);return{...result,sourceCartonDimensions:{...(internalCarton.sourceCartonDimensions||internalCarton)},usableInternalCartonDimensions:{width:internalCarton.width,depth:internalCarton.depth,height:internalCarton.height},wallDeductionApplied:!!internalCarton.wallDeductionApplied,wallThicknessPerSide:Number(internalCarton.wallThicknessPerSide)||0,sourceDimensionType:internalCarton.sourceDimensionType||'internal'}}
       static fullResult(recordedFg,carton,nominalFg,evaluatedFg,evaluatedCarton,ratios,options={}){
@@ -2514,17 +2582,45 @@
       static frontierCompare(a,b){return a.deviation-b.deviation||a.key.localeCompare(b.key)}
       static push(frontier,node){frontier.push(node);let i=frontier.length-1;while(i){const p=(i-1)>>1;if(this.frontierCompare(frontier[p],node)<=0)break;frontier[i]=frontier[p];i=p}frontier[i]=node}
       static pop(frontier){const root=frontier[0],last=frontier.pop();if(frontier.length){let i=0;frontier[0]=last;while(true){let l=i*2+1,r=l+1,b=i;if(l<frontier.length&&this.frontierCompare(frontier[l],frontier[b])<0)b=l;if(r<frontier.length&&this.frontierCompare(frontier[r],frontier[b])<0)b=r;if(b===i)break;[frontier[i],frontier[b]]=[frontier[b],frontier[i]];i=b}}return root}
-      static searchState(objective='closestFit'){const offsets=[0,0,0,0,0,0],candidate=this.candidateFromOffsets(offsets),key=this.candidateKey(candidate),frontier=[];this.push(frontier,{offsets,candidate,key,deviation:0});return{objective,frontier,seen:new Set([key]),passing:[],processed:0,generated:1,rejectedByVolume:0,rejectedByAxis:0,passingCount:0,started:performance.now(),complete:false,limited:false}}
-      static visit(fg,carton,state,options={}){const node=this.pop(state.frontier);if(!node){state.complete=true;return false}if(state.objective==='closestFit'&&state.passing.length&&node.deviation>state.passing[0].deviation+1e-9){state.complete=true;return false}state.processed++;const found=this.compactCandidate(fg,carton,node.candidate,options);if(found){state.passingCount++;state.passing.push(found);state.passing.sort((a,b)=>this.compareAdjusted(a,b,state.objective));if(state.passing.length>5)state.passing.length=5}else{const r=this.ratios(node.candidate),base=options.nominalFg||fg,internalCarton=getQuickModeInternalCartonDimensions(carton),required=fg.target*base.width*r.fgLengthRatio*base.depth*r.fgWidthRatio*base.height*r.fgHeightRatio,available=internalCarton.width*r.cartonLengthRatio*internalCarton.depth*r.cartonWidthRatio*internalCarton.height*r.cartonHeightRatio;if(required>available+1e-7)state.rejectedByVolume++;else state.rejectedByAxis++}for(let axis=0;axis<6;axis++)for(const delta of[-1,1]){const offsets=node.offsets.slice();offsets[axis]+=delta;if(offsets[axis]<-10||offsets[axis]>10)continue;const candidate=this.candidateFromOffsets(offsets),key=this.candidateKey(candidate);if(state.seen.has(key))continue;state.seen.add(key);state.generated++;this.push(state.frontier,{offsets,candidate,key,deviation:offsets.reduce((sum,value)=>sum+Math.abs(value)*RATIO_STEP,0)})}return true}
-      static search(fg,carton,options={}){const objective=options.objective||FitSettings.current.searchObjective||'closestFit',state=this.searchState(objective),limits=this.limits(objective);while(state.processed<limits.maxScenarios&&performance.now()-state.started<limits.maxTimeMs&&this.visit(fg,carton,state,options));if(!state.complete&&(state.processed>=limits.maxScenarios||performance.now()-state.started>=limits.maxTimeMs))state.limited=true;state.maxScenarios=limits.maxScenarios;state.maxTimeMs=limits.maxTimeMs;return state}
-      static async searchAsync(fg,carton,options={}){const objective=options.objective||FitSettings.current.searchObjective||'closestFit',state=this.searchState(objective),limits=this.limits(objective);while(!state.complete&&!state.limited){if(options.signal?.aborted)throw new DOMException('Search cancelled','AbortError');for(let i=0;i<this.CHUNK_SIZE&&state.processed<limits.maxScenarios&&performance.now()-state.started<limits.maxTimeMs;i++)if(!this.visit(fg,carton,state,options))break;options.onProgress?.({axis:'multiAxis',phase:'SEARCHING_MULTI_AXIS',current:state.processed,total:limits.maxScenarios,generated:state.generated,passingCount:state.passingCount});if(!state.complete&&(state.processed>=limits.maxScenarios||performance.now()-state.started>=limits.maxTimeMs))state.limited=true;if(!state.complete&&!state.limited)await yieldToBrowser()}state.maxScenarios=limits.maxScenarios;state.maxTimeMs=limits.maxTimeMs;return state}
+      static searchState(objective='closestFit', step = RATIO_STEP){const offsets=[0,0,0,0,0,0],candidate=this.candidateFromOffsets(offsets, step),key=this.candidateKey(candidate),frontier=[];this.push(frontier,{offsets,candidate,key,deviation:0});return{objective,step,frontier,seen:new Set([key]),passing:[],processed:0,generated:1,rejectedByVolume:0,rejectedByAxis:0,passingCount:0,started:performance.now(),complete:false,limited:false}}
+      static visit(fg,carton,state,options={}){
+        const node=this.pop(state.frontier);
+        if(!node){state.complete=true;return false}
+        if(state.objective==='closestFit'&&state.passing.length&&node.deviation>state.passing[0].deviation+1e-9){state.complete=true;return false}
+        state.processed++;
+        const found=this.compactCandidate(fg,carton,node.candidate,options);
+        if(found){
+          state.passingCount++;
+          state.passing.push(found);
+          state.passing.sort((a,b)=>this.compareAdjusted(a,b,state.objective));
+          if(state.passing.length>5)state.passing.length=5
+        } else {
+          const r=this.ratios(node.candidate),base=options.nominalFg||fg,internalCarton=getQuickModeInternalCartonDimensions(carton),required=fg.target*base.width*r.fgLengthRatio*base.depth*r.fgWidthRatio*base.height*r.fgHeightRatio,available=internalCarton.width*r.cartonLengthRatio*internalCarton.depth*r.cartonWidthRatio*internalCarton.height*r.cartonHeightRatio;
+          if(required>available+1e-7)state.rejectedByVolume++;else state.rejectedByAxis++
+        }
+        const step = state.step || RATIO_STEP;
+        const maxOffset = Math.round(0.10 / step);
+        for(let axis=0;axis<6;axis++)for(const delta of[-1,1]){
+          const offsets=node.offsets.slice();
+          offsets[axis]+=delta;
+          if(offsets[axis]<-maxOffset||offsets[axis]>maxOffset)continue;
+          const candidate=this.candidateFromOffsets(offsets, step),key=this.candidateKey(candidate);
+          if(state.seen.has(key))continue;
+          state.seen.add(key);
+          state.generated++;
+          this.push(state.frontier,{offsets,candidate,key,deviation:offsets.reduce((sum,value)=>sum+Math.abs(value)*step,0)})
+        }
+        return true;
+      }
+      static search(fg,carton,options={}){const objective=options.objective||FitSettings.current.searchObjective||'closestFit',step=options.ratioStep||RATIO_STEP,state=this.searchState(objective,step),limits=this.limits(objective);while(state.processed<limits.maxScenarios&&performance.now()-state.started<limits.maxTimeMs&&this.visit(fg,carton,state,options));if(!state.complete&&(state.processed>=limits.maxScenarios||performance.now()-state.started>=limits.maxTimeMs))state.limited=true;state.maxScenarios=limits.maxScenarios;state.maxTimeMs=limits.maxTimeMs;return state}
+      static async searchAsync(fg,carton,options={}){const objective=options.objective||FitSettings.current.searchObjective||'closestFit',step=options.ratioStep||RATIO_STEP,state=this.searchState(objective,step),limits=this.limits(objective);while(!state.complete&&!state.limited){if(options.signal?.aborted)throw new DOMException('Search cancelled','AbortError');for(let i=0;i<this.CHUNK_SIZE&&state.processed<limits.maxScenarios&&performance.now()-state.started<limits.maxTimeMs;i++)if(!this.visit(fg,carton,state,options))break;options.onProgress?.({axis:'multiAxis',phase:'SEARCHING_MULTI_AXIS',current:state.processed,total:limits.maxScenarios,generated:state.generated,passingCount:state.passingCount});if(!state.complete&&(state.processed>=limits.maxScenarios||performance.now()-state.started>=limits.maxTimeMs))state.limited=true;if(!state.complete&&!state.limited)await yieldToBrowser()}state.maxScenarios=limits.maxScenarios;state.maxTimeMs=limits.maxTimeMs;return state}
       static buildDecision(fg,carton,recordedNominal,remeasuredNominal,state,options={}){const objective=options.objective||FitSettings.current.searchObjective||'closestFit',compact=state?.passing?.[0]||null,optimized=compact?this.evaluateGrid(fg,carton,compact.ratios,{nominalFg:options.remeasuredFg||fg,remeasuredFg:options.remeasuredFg}):null,measurementRatios=options.remeasuredFg?{fgLengthRatio:options.remeasuredFg.width/fg.width,fgWidthRatio:options.remeasuredFg.depth/fg.depth,fgHeightRatio:options.remeasuredFg.height/fg.height,cartonLengthRatio:1,cartonWidthRatio:1,cartonHeightRatio:1}:null,measuredFit=remeasuredNominal?.passes?{...remeasuredNominal,ratios:measurementRatios,...measurementRatios,ratioSource:'remeasurement',selectedScenarioName:'Exact remeasured nominal dimensions'}:null,selectedFit=measuredFit||(objective==='highestUtilization'?optimized:null)||recordedNominal.passes&&recordedNominal||optimized,limited=!!state?.limited,classification=measuredFit?'FIT_REMEASURED_NOMINAL':limited?'SEARCH_LIMIT_REACHED':selectedFit===recordedNominal||selectedFit?.totalAdjustment===0?'FIT_RECORDED_NOMINAL':selectedFit?'FIT_WITH_MULTI_AXIS_ADJUSTMENT':options.bomConfirmed?'BOM_CONFIRMED_MODEL_MISMATCH':'DOES_NOT_FIT',displayFit=selectedFit||remeasuredNominal||recordedNominal,warnings=[];if(selectedFit&&selectedFit.nominalUtilization<.85)warnings.push(I18n.t('below85Warning'));if(classification==='FIT_WITH_MULTI_AXIS_ADJUSTMENT')warnings.push(I18n.t('adjustedScenarioConfirmation'));if(classification==='BOM_CONFIRMED_MODEL_MISMATCH')warnings.push(I18n.t('simplifiedBomMismatch'));if(classification==='SEARCH_LIMIT_REACHED')warnings.push(I18n.t('bestWithinLimit'));const metrics={processed:state?.processed||0,generated:state?.generated||0,rejectedByVolume:state?.rejectedByVolume||0,rejectedByAxis:state?.rejectedByAxis||0,passingCount:state?.passingCount||0,searchComplete:!state||state.complete,searchLimitReached:limited};return{passes:!!selectedFit,missingData:false,status:classification,classification,objective,selectedScenario:selectedFit?.selectedScenarioId??null,selectedScenarioId:selectedFit?.selectedScenarioId??null,selectedScenarioName:selectedFit?.selectedScenarioName??'',adjustedAxis:selectedFit?.adjustedAxis??null,ratios:selectedFit?.ratios||null,ratioSource:selectedFit?.ratioSource||'estimated-search',selectedFit,displayFit,scenarioResults:[measuredFit,recordedNominal,optimized].filter(Boolean),topAlternatives:(state?.passing||[]).slice(1,6),requiredQuantity:fg.target,capacity:displayFit.capacity,capacitySurplus:displayFit.capacity-fg.target,nominalUtilization:displayFit.nominalUtilization,adjustedUtilization:displayFit.adjustedUtilization,scenarioUtilization:displayFit.adjustedUtilization,utilization:displayFit.nominalUtilization,volumeUtilization:displayFit.nominalUtilization,volumeUtilizationPct:displayFit.nominalUtilization*100,packingStatus:'uniform',sourceCartonDimensions:displayFit.sourceCartonDimensions,usableInternalCartonDimensions:displayFit.usableInternalCartonDimensions,wallDeductionApplied:displayFit.wallDeductionApplied,wallThicknessPerSide:displayFit.wallThicknessPerSide,sourceDimensionType:displayFit.sourceDimensionType,searchCount:metrics.processed,searchLimit:state?.maxScenarios||this.limits(objective).maxScenarios,...metrics,warnings,productionConfirmed:!!options.bomConfirmed,operationallyFits:!!selectedFit||!!options.bomConfirmed}}
       static evaluateExact(fg,carton,options={}){if(!this.validFG(fg)||!this.validCarton(carton))return this.missing();const internalCarton=getQuickModeInternalCartonDimensions(carton);if(!hasValidQuickModeInternalDimensions(internalCarton))return this.invalidInternal(internalCarton);const remeasured=this.remeasured(fg,options),activeFg=remeasured||fg,key=`${this.cacheKey(fg,internalCarton,remeasured,{...options,objective:'exactValues'})}|${options.bomConfirmed?'B':'N'}`;if(this._cache.has(key))return this._cache.get(key);const exactFit=this.evaluateGrid(fg,internalCarton,NOMINAL_FIT_SCENARIO,{nominalFg:activeFg,remeasuredFg:remeasured}),classification=exactFit.passes?(remeasured?'FIT_REMEASURED_EXACT':'FIT_SOURCE_EXACT'):(options.bomConfirmed?'BOM_CONFIRMED_MODEL_MISMATCH':'DOES_NOT_FIT_EXACT_VALUES'),selectedFit=exactFit.passes?exactFit:null,warnings=[];exactFit.status=classification;exactFit.classification=classification;exactFit.ratioSource=remeasured?'exact-remeasurement':'exact-source';if(selectedFit&&selectedFit.nominalUtilization<.85)warnings.push(I18n.t('below85Warning'));if(classification==='BOM_CONFIRMED_MODEL_MISMATCH')warnings.push(I18n.t('simplifiedBomMismatch'));return this.put(key,{passes:!!selectedFit,missingData:false,status:classification,classification,objective:'exactValues',calculationMode:CALCULATION_MODES.QUICK,selectedScenario:null,selectedScenarioId:null,selectedScenarioName:'',adjustedAxis:null,ratios:null,ratioSource:exactFit.ratioSource,selectedFit,displayFit:exactFit,scenarioResults:[exactFit],topAlternatives:[],requiredQuantity:fg.target,capacity:exactFit.capacity,capacitySurplus:exactFit.capacity-fg.target,nominalUtilization:exactFit.nominalUtilization,adjustedUtilization:null,scenarioUtilization:null,utilization:exactFit.nominalUtilization,volumeUtilization:exactFit.nominalUtilization,volumeUtilizationPct:exactFit.nominalUtilization*100,packingStatus:'uniform',searchCount:0,searchLimit:0,processed:0,generated:0,rejectedByVolume:0,rejectedByAxis:0,passingCount:selectedFit?1:0,searchComplete:true,searchLimitReached:false,sourceCartonDimensions:exactFit.sourceCartonDimensions,usableInternalCartonDimensions:exactFit.usableInternalCartonDimensions,wallDeductionApplied:exactFit.wallDeductionApplied,wallThicknessPerSide:exactFit.wallThicknessPerSide,sourceDimensionType:exactFit.sourceDimensionType,warnings,productionConfirmed:!!options.bomConfirmed,operationallyFits:!!selectedFit||!!options.bomConfirmed})}
       static missing(){return{passes:false,missingData:true,status:'MISSING_DATA',classification:'MISSING_DATA',scenarioResults:[],selectedFit:null,warnings:[I18n.t('dataIncomplete')],searchComplete:true}}
       static invalidInternal(carton){return{passes:false,missingData:false,status:'INVALID_CARTON_INTERNAL_DIMENSIONS',classification:'INVALID_CARTON_INTERNAL_DIMENSIONS',scenarioResults:[],selectedFit:null,displayFit:null,capacity:0,nominalUtilization:0,sourceCartonDimensions:carton?.sourceCartonDimensions||null,usableInternalCartonDimensions:carton?.usableInternalCartonDimensions||null,wallDeductionApplied:!!carton?.wallDeductionApplied,wallThicknessPerSide:Number(carton?.wallThicknessPerSide)||0,sourceDimensionType:carton?.sourceDimensionType||'outside-assumed',warnings:[I18n.t('invalidQuickInternalDimensions')],searchComplete:true}}
       static remeasured(fg,options){return this.validFG({...options.remeasuredFg,target:fg.target})?{...options.remeasuredFg,target:fg.target}:null}
-      static evaluateScenarios(fg,carton,options={}){const objective=options.objective||FitSettings.current.searchObjective||getSearchObjective();if(objective==='exactValues')return this.evaluateExact(fg,carton,options);if(!this.validFG(fg)||!this.validCarton(carton))return this.missing();const internalCarton=getQuickModeInternalCartonDimensions(carton);if(!hasValidQuickModeInternalDimensions(internalCarton))return this.invalidInternal(internalCarton);const remeasured=this.remeasured(fg,options),key=`${this.cacheKey(fg,internalCarton,remeasured,{...options,objective})}|${options.bomConfirmed?'B':'N'}`;if(this._cache.has(key))return this._cache.get(key);const remeasuredNominal=remeasured?this.evaluateGrid(fg,internalCarton,NOMINAL_FIT_SCENARIO,{nominalFg:remeasured,remeasuredFg:remeasured}):null,recordedNominal=this.evaluateGrid(fg,internalCarton,NOMINAL_FIT_SCENARIO),shouldSearch=!remeasured&&(objective==='highestUtilization'||!recordedNominal.passes),state=shouldSearch?this.search(fg,internalCarton,{...options,objective,nominalFg:fg}):null;return this.put(key,this.buildDecision(fg,internalCarton,recordedNominal,remeasuredNominal,state,{...options,objective,remeasuredFg:remeasured}))}
-      static async evaluateScenariosAsync(fg,carton,options={}){const objective=options.objective||FitSettings.current.searchObjective||getSearchObjective();if(objective==='exactValues')return this.evaluateExact(fg,carton,options);if(!this.validFG(fg)||!this.validCarton(carton))return this.missing();const internalCarton=getQuickModeInternalCartonDimensions(carton);if(!hasValidQuickModeInternalDimensions(internalCarton))return this.invalidInternal(internalCarton);const remeasured=this.remeasured(fg,options),key=`${this.cacheKey(fg,internalCarton,remeasured,{...options,objective})}|${options.bomConfirmed?'B':'N'}`;if(this._cache.has(key))return this._cache.get(key);const remeasuredNominal=remeasured?this.evaluateGrid(fg,internalCarton,NOMINAL_FIT_SCENARIO,{nominalFg:remeasured,remeasuredFg:remeasured}):null,recordedNominal=this.evaluateGrid(fg,internalCarton,NOMINAL_FIT_SCENARIO),shouldSearch=!remeasured&&(objective==='highestUtilization'||!recordedNominal.passes),state=shouldSearch?await this.searchAsync(fg,internalCarton,{...options,objective,nominalFg:fg}):null;options.onProgress?.({axis:'ranking',current:1,total:1});return this.put(key,this.buildDecision(fg,internalCarton,recordedNominal,remeasuredNominal,state,{...options,objective,remeasuredFg:remeasured}))}
+      static evaluateScenarios(fg,carton,options={}){const objective=options.objective||FitSettings.current.searchObjective||getSearchObjective();if(objective==='exactValues')return this.evaluateExact(fg,carton,options);if(!this.validFG(fg)||!this.validCarton(carton))return this.missing();const internalCarton=getQuickModeInternalCartonDimensions(carton);if(!hasValidQuickModeInternalDimensions(internalCarton))return this.invalidInternal(internalCarton);const remeasured=this.remeasured(fg,options),key=`${this.cacheKey(fg,internalCarton,remeasured,{...options,objective})}|${options.bomConfirmed?'B':'N'}`;if(this._cache.has(key))return this._cache.get(key);const remeasuredNominal=remeasured?this.evaluateGrid(fg,internalCarton,NOMINAL_FIT_SCENARIO,{nominalFg:remeasured,remeasuredFg:remeasured}):null,recordedNominal=this.evaluateGrid(fg,internalCarton,NOMINAL_FIT_SCENARIO),shouldSearch=!remeasured&&(objective==='highestUtilization'||!recordedNominal.passes),ratioStep=options.ratioStep||(objective==='highestUtilization'?0.05:RATIO_STEP),state=shouldSearch?this.search(fg,internalCarton,{...options,objective,nominalFg:fg,ratioStep}):null;return this.put(key,this.buildDecision(fg,internalCarton,recordedNominal,remeasuredNominal,state,{...options,objective,remeasuredFg:remeasured}))}
+      static async evaluateScenariosAsync(fg,carton,options={}){const objective=options.objective||FitSettings.current.searchObjective||getSearchObjective();if(objective==='exactValues')return this.evaluateExact(fg,carton,options);if(!this.validFG(fg)||!this.validCarton(carton))return this.missing();const internalCarton=getQuickModeInternalCartonDimensions(carton);if(!hasValidQuickModeInternalDimensions(internalCarton))return this.invalidInternal(internalCarton);const remeasured=this.remeasured(fg,options),key=`${this.cacheKey(fg,internalCarton,remeasured,{...options,objective})}|${options.bomConfirmed?'B':'N'}`;if(this._cache.has(key))return this._cache.get(key);const remeasuredNominal=remeasured?this.evaluateGrid(fg,internalCarton,NOMINAL_FIT_SCENARIO,{nominalFg:remeasured,remeasuredFg:remeasured}):null,recordedNominal=this.evaluateGrid(fg,internalCarton,NOMINAL_FIT_SCENARIO),shouldSearch=!remeasured&&(objective==='highestUtilization'||!recordedNominal.passes),ratioStep=options.ratioStep||(objective==='highestUtilization'?0.05:RATIO_STEP),state=shouldSearch?await this.searchAsync(fg,internalCarton,{...options,objective,nominalFg:fg,ratioStep}):null;options.onProgress?.({axis:'ranking',current:1,total:1});return this.put(key,this.buildDecision(fg,internalCarton,recordedNominal,remeasuredNominal,state,{...options,objective,remeasuredFg:remeasured}))}
       static evaluate(fg,carton,options={}){const d=this.evaluateScenarios(fg,carton,options),fit=d.selectedFit||d.displayFit;return fit?{...fit,decision:d,classification:d.classification,status:d.classification}:{...d,pass:false}}
       static evaluateScenario(fg,carton,scenario){return this.evaluateGrid(fg,carton,scenario)}
       static evaluateToleranced(fg,carton){return this.evaluateGrid(fg,carton,NOMINAL_FIT_SCENARIO)}
@@ -2756,15 +2852,27 @@
       }
       static existing(fg, cartons, limit = 5, excludedCartonId = '', options = {}) {
         const excluded = normalizeId(excludedCartonId), rows = [];
+        const bomCartonId = normalizeId(fg.assignedCartonId || fg.mvpAssignedCartonId);
         for (const carton of cartons || []) {
-          if (!CartonFitEngine.validCarton(carton) || normalizeId(carton.carton_id) === excluded) continue;
+          const cid = normalizeId(carton.carton_id);
+          if (!CartonFitEngine.validCarton(carton) || cid === excluded) continue;
+          const isBom = cid === bomCartonId;
+          const passesScreening = isBom || !isOptimizedMode() || screenCartonCandidate(fg, carton, fg.target);
+          if (!passesScreening) continue;
           const decision = SharedDecisionEngine.evaluateAll(fg, carton, DimensionSettings.current, { ...options, objective: options.objective || 'closestFit' });
           if (decision.passes) rows.push(this.row(fg, carton, decision, options));
         }
         return this.finish(rows, limit, options.baseline);
       }
       static async existingAsync(fg, cartons, limit = 5, excludedCartonId = '', options = {}) {
-        const excluded = normalizeId(excludedCartonId), rows = [], valid = (cartons || []).filter(carton => CartonFitEngine.validCarton(carton) && normalizeId(carton.carton_id) !== excluded);
+        const excluded = normalizeId(excludedCartonId), rows = [];
+        const bomCartonId = normalizeId(fg.assignedCartonId || fg.mvpAssignedCartonId);
+        const valid = (cartons || []).filter(carton => {
+          const cid = normalizeId(carton.carton_id);
+          if (!CartonFitEngine.validCarton(carton) || cid === excluded) return false;
+          const isBom = cid === bomCartonId;
+          return isBom || !isOptimizedMode() || screenCartonCandidate(fg, carton, fg.target);
+        });
         for (let index = 0; index < valid.length; index++) {
           if (options.signal?.aborted) throw new DOMException('Search cancelled', 'AbortError');
           const carton = valid[index], decision = await SharedDecisionEngine.evaluateAllAsync(fg, carton, DimensionSettings.current, { ...options, onProgress: p => options.onProgress?.({ ...p, cartonIndex: index + 1, cartonTotal: valid.length, cartonId: carton.carton_id }) });
@@ -3042,7 +3150,7 @@
       t(key, vars) { return I18n.t(key, vars) }
       bind() {
         const renderProposals=this.renderProposals.bind(this);this.renderProposals=rows=>{this.proposals.open=false;if(!rows?.length){this.proposalStatus.textContent=this.t('noProposal');this.proposalTable.replaceChildren();queueMicrotask(()=>{this.proposals.open=false;this.proposals.hidden=true});return}this.proposals.hidden=false;rows.forEach((proposal,index)=>{if(!proposal.carton.proposalId)proposal.carton.proposalId=`${this.tempCartonId||this.makeTempId()}-${index+1}`});renderProposals(rows);const baseline=this.currentRecommendationBaseline,table=this.proposalTable.querySelector('table');if(baseline&&table){const header=table.querySelector('thead tr');[this.t('currentUtilization'),this.t('candidateUtilization'),this.t('utilizationGain'),this.t('currentCartonVolume'),this.t('candidateCartonVolume'),this.t('volumeReduction'),this.t('recommendationDecision')].forEach(label=>{const th=document.createElement('th');th.textContent=label;header?.append(th)});[...table.querySelectorAll('tbody tr')].forEach((tr,index)=>{const recommendation=rows[index]?.recommendation;if(!recommendation)return;[pct(baseline.utilization),pct(recommendation.utilization),signedPercentagePoints(recommendation.utilizationGain),`${fmt(baseline.cartonVolume)} mm³`,`${fmt(recommendation.cartonVolume)} mm³`,signedPercent(recommendation.volumeReduction),recommendation.decision].forEach((value,column)=>{const td=document.createElement('td');td.textContent=value;if(column===6)td.className='result-pass';tr.append(td)})})}if(this.activeContext==='audit'){[...(table?.querySelectorAll('tbody tr')||[])].forEach((tr,index)=>{const proposal=rows[index],id=String(proposal?.carton?.proposalId||''),item=this.auditComparisonItems.get(`proposal:${id}`);if(!item)return;this.makeAuditRowDraggable(tr,item);const cell=tr.lastElementChild;if(cell){cell.classList.add('audit-view-cell');const button=cell.querySelector('button');if(button){button.classList.add('audit-compare-btn');button.dataset.comparisonType='proposal';button.dataset.proposalId=id;button.addEventListener('click',event=>{event.stopImmediatePropagation();this.selectAuditComparison('proposal',id)},{capture:true})}cell.insertAdjacentHTML('afterbegin',`<span class="drag-handle" aria-hidden="true" title="${escapeHtml(this.t('dragToSuggested'))}">⋮⋮</span>`)}})}};
-        const renderAuditProposals=this.renderProposals.bind(this);this.renderProposals=rows=>{renderAuditProposals(rows);if(this.activeContext!=='audit')return;const table=this.proposalTable.querySelector('table'),header=table?.querySelector('thead tr'),viewHeader=header?.children[16];if(!table||!header||!viewHeader)return;const widthHeader=document.createElement('th');widthHeader.textContent=this.t('cartonWidth');header.insertBefore(widthHeader,viewHeader);[...table.querySelectorAll('tbody tr')].forEach((tr,index)=>{tr.classList.remove('selected');tr.querySelectorAll('.drag-handle').forEach(handle=>handle.remove());const proposal=rows[index],id=String(proposal?.carton?.proposalId||''),item=this.auditComparisonItems.get(`proposal:${id}`),viewCell=tr.querySelector('button')?.closest('td');if(!item||!viewCell)return;const innerWidth=Number(proposal?.carton?.depth),outerWidth=innerWidth+QUICK_MODE_TOTAL_WALL_DEDUCTION_MM,widthCell=document.createElement('td');widthCell.textContent=`${fmt(innerWidth)} mm inner`;widthCell.title=`Inner width: ${fmt(innerWidth)} mm; outer width: ${fmt(outerWidth)} mm; ${fmt(QUICK_MODE_CARTON_WALL_MM)} mm wall per side`;tr.insertBefore(widthCell,viewCell);this.makeAuditRowDraggable(tr,item);viewCell.classList.add('audit-view-cell');const button=viewCell.querySelector('button');button.classList.add('audit-compare-btn');button.dataset.comparisonType='proposal';button.dataset.proposalId=id;button.addEventListener('click',event=>{event.stopImmediatePropagation();this.selectAuditComparison('proposal',id)},{capture:true});viewCell.insertAdjacentHTML('afterbegin',`<span class="drag-handle" aria-hidden="true" title="${escapeHtml(this.t('dragToSuggested'))}">⋮⋮</span>`)})};
+        const renderAuditProposals=this.renderProposals.bind(this);this.renderProposals=rows=>{renderAuditProposals(rows);if(this.activeContext!=='audit')return;const table=this.proposalTable.querySelector('table'),header=table?.querySelector('thead tr'),viewHeader=header?.children[16];if(!table||!header||!viewHeader)return;const widthHeader=document.createElement('th');widthHeader.textContent=this.t('cartonWidth');header.insertBefore(widthHeader,viewHeader);[...table.querySelectorAll('tbody tr')].forEach((tr,index)=>{tr.classList.remove('selected');tr.querySelectorAll('.drag-handle').forEach(handle=>handle.remove());const proposal=rows[index],id=String(proposal?.carton?.proposalId||''),item=this.auditComparisonItems.get(`proposal:${id}`),viewCell=tr.querySelector('button')?.closest('td');if(!item||!viewCell)return;const innerWidth=Number(proposal?.carton?.depth),outerWidth=innerWidth+QUICK_MODE_TOTAL_WALL_DEDUCTION_MM,widthCell=document.createElement('td');widthCell.textContent=`${fmt(innerWidth)} mm inner`;widthCell.title=`Inner width: ${fmt(innerWidth)} mm; outer width: ${fmt(outerWidth)} mm; ${fmt(QUICK_MODE_CARTON_WALL_MM)} mm wall per side`;tr.insertBefore(widthCell,viewCell);this.makeAuditRowDraggable(tr,item);viewCell.classList.add('audit-view-cell');const button=viewCell.querySelector('button');button.classList.add('audit-compare-btn');button.dataset.comparisonType='proposal';button.dataset.proposalId=id;button.addEventListener('click',event=>{event.stopImmediatePropagation();this.selectAuditComparison('proposal',id)},{capture:true});tr.addEventListener('click',event=>{if(event.target.closest('button,a,input,select'))return;event.stopImmediatePropagation();table.querySelectorAll('tbody tr').forEach(r=>r.classList.remove('selected'));tr.classList.add('selected');this.selectAuditComparison('proposal',id)},{capture:true});viewCell.insertAdjacentHTML('afterbegin',`<span class="drag-handle" aria-hidden="true" title="${escapeHtml(this.t('dragToSuggested'))}">⋮⋮</span>`)})};
         document.querySelector('#applyRemeasurement')?.addEventListener('click',()=>{const invalid=['remeasuredLength','remeasuredWidth','remeasuredHeight'].some(id=>{const value=Number(document.querySelector(`#${id}`).value);return!Number.isFinite(value)||value<=0});if(invalid){if(isQuickMode())document.querySelector('#quickRemeasurementPanel').hidden=false;else document.querySelector('#fgCalculationSettings').open=true}},{capture:true});
         this.file.addEventListener('change', e => { const file=e.target.files[0]; if(file)this.reloadDimensionFile(file); e.target.value='' });
         document.querySelector('#bomFileInput').addEventListener('change', e => { const file = e.target.files[0]; if (file) this.reloadBomFile(file); e.target.value = '' });
@@ -3111,7 +3219,170 @@
       async toggleCalculationMode(){AppState.calculationMode=isQuickMode()?CALCULATION_MODES.OPTIMIZED:CALCULATION_MODES.QUICK;saveCalculationMode();this._ratioSearchSequence=(this._ratioSearchSequence||0)+1;this._ratioSearchController?.abort();if(this.progress.state.active&&['BATCH_AUDIT','SEARCHING_MULTIAXIS_RATIOS','EVALUATING_EXISTING_CARTONS'].includes(this.progress.state.phase))this.progress.cancelTask();this.auditComparisonItems.clear();this.auditComparisonContext=null;this.clearAuditSuggestedComparison(false);SharedDecisionEngine.clearCache();this.syncDimensionSettings();this.batchResult=null;document.querySelector('#batchTable').replaceChildren();document.querySelector('#batchKpis').replaceChildren();document.querySelector('#batchExportButton').disabled=true;document.querySelector('#batchStatus').textContent=isOptimizedMode()?this.t('optimizedModeSlow'):this.t('quickModeDescription');updateCalculationModeUi();this.updateCalculationSettingsSummary();this.renderDashboard();if(this.current)await this.recalculateCurrent();if(this.activeWorkflow==='carton-audit'&&!document.querySelector('#auditResults').hidden)await this.handleAuditSubmit()}
       async initialize(launcherWorkbook = '') {
         const taskId = this.progress.startTask({ title:this.t('loadingData'), phase:'STARTING', detail:this.t('loadingData'), indeterminate:true, cancellable:false });
+        try {
+          const loadedFromCSVs = await this.loadFromCSVs(taskId);
+          if (loadedFromCSVs) {
+            this.progress.completeTask(`${this.data.fgs.length.toLocaleString()} FG · ${this.data.cartons.length.toLocaleString()} cartons · ${(this.weeklyBom?.rows.length || 0).toLocaleString()} BOM rows`, taskId);
+            this.hideLoader();
+            return;
+          }
+        } catch (e) {
+          console.warn('CSV loading failed, falling back to manifest/Excel:', e);
+        }
         try { if (launcherWorkbook) await this.loadSibling(launcherWorkbook); else await this.loadManifest(); if (!this.data) throw new Error('Dimension workbook could not be loaded. Use Workbook to select it manually.'); this.progress.setPhase('LOADING_WEEKLY_BOM', this.t('weeklyBomLoading'), taskId); await this.loadWeeklyBomManifest(); await this.rebuildStore(taskId); this.renderDashboard(); this.progress.completeTask(`${this.data.fgs.length.toLocaleString()} FG · ${this.data.cartons.length.toLocaleString()} cartons · ${(this.weeklyBom?.rows.length || 0).toLocaleString()} BOM rows`, taskId); this.hideLoader() } catch (e) { this.hideLoader(); this.progress.failTask(e, taskId); this.message(e?.message || String(e), 'error') }
+      }
+      async loadFromCSVs(taskId) {
+        this.progress.setPhase('LOADING_CSVS', 'Loading prepared data files...', taskId);
+        
+        const fetchCSV = async (url) => {
+          const res = await fetch(url, { cache: 'no-store' });
+          if (!res.ok) throw new Error(`Failed to load ${url}: ${res.statusText}`);
+          const text = await res.text();
+          return parseCSVToObjects(text);
+        };
+
+        const fgsRaw = await fetchCSV('./generated/fg_dimensions.csv');
+        const cartonsRaw = await fetchCSV('./generated/carton_dimensions.csv');
+        const assignmentsRaw = await fetchCSV('./generated/bom_carton_assignments.csv');
+        const dataQualityRaw = await fetchCSV('./generated/data_quality.csv').catch(() => []);
+
+        const fgs = fgsRaw.map((row, i) => {
+          const fg_id = String(row.fg_id || '').trim();
+          return {
+            fg_id,
+            fg_name: String(row.fg_name || '').trim(),
+            width: parseFloat(row.length_mm) || NaN,
+            depth: parseFloat(row.width_mm) || NaN,
+            height: parseFloat(row.height_mm) || NaN,
+            hasDimensionRecord: true,
+            dimensionConflict: row.conflict_flag === 'true',
+            assignedCartonId: '',
+            assignedCartonName: '',
+            mvpAssignedCartonId: '',
+            mvpAssignedCartonName: '',
+            target: NaN,
+            row: i + 2
+          };
+        }).filter(x => x.fg_id || x.fg_name);
+
+        const fgById = new Map(fgs.filter(f => f.fg_id).map(f => [idKey(f.fg_id), f]));
+
+        const cartons = cartonsRaw.map((row, i) => {
+          const carton_id = String(row.carton_id || '').trim();
+          const meanLength = parseFloat(row.outside_length_mm) || NaN;
+          const meanWidth = parseFloat(row.outside_width_mm) || NaN;
+          const meanHeight = parseFloat(row.outside_height_mm) || NaN;
+          return {
+            carton_id,
+            carton_name: String(row.carton_name || '').trim(),
+            width: meanLength,
+            depth: meanWidth,
+            height: meanHeight,
+            defaultQty: parseInt(row.measurement_count) || 12,
+            lifecycle: String(row.lifecycle || 'Active').trim(),
+            dimensionType: 'outside',
+            dimensionBasis: 'outside',
+            isInternalDimension: false,
+            selectedSource: String(row.source_type || 'Dimension CA average').trim(),
+            sourceCode: row.source_type === 'Dimension CA average' ? 'AVERAGED_DIMENSION_CA' : 'MASTERCARTON_DIMENSIONS_BACKUP',
+            contributingFgCount: parseInt(row.measurement_count) || 0,
+            variationWarning: row.variation_warning === 'true',
+            statistics: {
+              meanLengthMm: meanLength,
+              minLengthMm: parseFloat(row.length_min_mm) || meanLength,
+              maxLengthMm: parseFloat(row.length_max_mm) || meanLength,
+              lengthRangeMm: (parseFloat(row.length_max_mm) || meanLength) - (parseFloat(row.length_min_mm) || meanLength),
+              meanWidthMm: meanWidth,
+              minWidthMm: parseFloat(row.width_min_mm) || meanWidth,
+              maxWidthMm: parseFloat(row.width_max_mm) || meanWidth,
+              widthRangeMm: (parseFloat(row.width_max_mm) || meanWidth) - (parseFloat(row.width_min_mm) || meanWidth),
+              meanHeightMm: meanHeight,
+              minHeightMm: parseFloat(row.height_min_mm) || meanHeight,
+              maxHeightMm: parseFloat(row.height_max_mm) || meanHeight,
+              heightRangeMm: (parseFloat(row.height_max_mm) || meanHeight) - (parseFloat(row.height_min_mm) || meanHeight)
+            },
+            row: i + 2
+          };
+        }).filter(x => x.carton_id || x.carton_name);
+
+        const cartonById = new Map(cartons.filter(c => c.carton_id).map(c => [idKey(c.carton_id), c]));
+
+        const weeklyBomRows = [];
+        assignmentsRaw.forEach(row => {
+          const fgId = String(row.fg_id || '').trim();
+          const cartonId = String(row.carton_id || '').trim();
+          const targetQty = parseInt(row.target_quantity) || NaN;
+          
+          const fg = fgById.get(idKey(fgId));
+          if (fg) {
+            fg.assignedCartonId = cartonId;
+            fg.assignedCartonName = String(row.carton_name || '').trim();
+            fg.mvpAssignedCartonId = cartonId;
+            fg.mvpAssignedCartonName = String(row.carton_name || '').trim();
+            fg.target = targetQty;
+            fg.targetSource = String(row.quantity_source || 'weekly_bom_norm').trim();
+            fg.bomAssignmentFound = true;
+            fg.bomCartonAmbiguous = false;
+          }
+
+          weeklyBomRows.push({
+            fg: fgId,
+            fgName: String(row.fg_name || '').trim(),
+            itemNumber: cartonId,
+            productName: String(row.carton_name || '').trim(),
+            quantity: String(row.target_quantity || ''),
+            norm: String(row.target_quantity || ''),
+            perSeries: '',
+            targetQuantity: targetQty,
+            rawBomQuantity: String(row.target_quantity || ''),
+            sourceName: String(row.source_workbook || '').trim(),
+            sourceSheet: String(row.source_sheet || '').trim(),
+            sourceRow: parseInt(row.source_row) || 0,
+            sourceFormat: 'reconciled'
+          });
+        });
+
+        this.data = {
+          fgs,
+          cartons,
+          fgSheet: 'Reconciled CSV Data',
+          cartonSheet: 'Reconciled CSV Data',
+          relationSheet: 'Reconciled CSV Data',
+          dimensionSheet: 'Reconciled CSV Data',
+          cartonDimensionSheet: 'Reconciled CSV Data',
+          fgById,
+          cartonById
+        };
+
+        this.weeklyBom = {
+          rows: weeklyBomRows,
+          source: 'Reconciled BOM CSV Data'
+        };
+        this.weeklyBomState = 'ready';
+
+        this.setSourceLink('workbook', './generated/fg_dimensions.csv', 'fg_dimensions.csv');
+        this.setSourceLink('bom', './generated/bom_carton_assignments.csv', 'bom_carton_assignments.csv');
+
+        await this.rebuildStore(taskId);
+
+        dataQualityRaw.forEach(row => {
+          if (row.entity_type === 'FG') {
+            const key = idKey(row.entity_id);
+            const currentWarnings = this.store.dataWarningsByFg.get(key) || [];
+            const desc = `${row.issue_type}: ${row.issue_description}`;
+            if (!currentWarnings.includes(desc)) {
+              currentWarnings.push(desc);
+            }
+            this.store.dataWarningsByFg.set(key, currentWarnings);
+          }
+        });
+
+        this.reconcileBomTruth();
+        this.populateFgSelect();
+        this.select.disabled = false;
+        document.querySelector('#fgSearchInput').disabled = false;
+        this.renderDashboard();
+        return true;
       }
       async reloadDimensionFile(file){if(!file)return;const taskId=this.progress.startTask({title:this.t('loadingData'),phase:'READING_DIMENSIONS',detail:file.name,cancellable:false,indeterminate:true});try{SharedDecisionEngine.clearCache();this.remeasuredByFg.clear();await this.load(file);if(this.weeklyBom)await this.reconcileBomTruthAsync(taskId);await this.rebuildStore(taskId);this.renderDashboard();this.progress.completeTask(this.t('dataReady'),taskId)}catch(e){this.progress.failTask(e,taskId)}}
       async reloadBomFile(file){if(!file)return;const taskId=this.progress.startTask({title:this.t('weeklyBomLoading'),phase:'READING_WEEKLY_BOM',detail:file.name,cancellable:false,indeterminate:true});try{await this.loadWeeklyBomFile(file);await this.rebuildStore(taskId);this.renderDashboard();this.progress.completeTask(this.t('dataReady'),taskId)}catch(e){this.progress.failTask(e,taskId)}}
@@ -3518,12 +3789,12 @@
           tableContainer.addEventListener('click', (e) => {
             const tr = e.target.closest('tr');
             if (tr) {
-              const btn = tr.querySelector('[data-audit-carton-id]');
+              const btn = tr.querySelector('.audit-compare-btn');
               if (btn) {
                 tableContainer.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
                 tr.classList.add('selected');
-                const cartonId = btn.getAttribute('data-audit-carton-id');
-                this.viewAuditCarton3d(cartonId);
+                const cartonId = btn.getAttribute('data-carton-id');
+                this.selectAuditComparison('existing', cartonId);
               }
             }
           });
