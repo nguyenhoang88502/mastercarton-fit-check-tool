@@ -1072,7 +1072,7 @@ if ($rebuildNeeded) {
     "LastModifiedUtc=$($dimensionFile.LastWriteTimeUtc.ToString('o'))",
     "Hash=$dimHash",
     "CacheSchemaVersion=$cacheVersion",
-    "PreprocessingVersion=1.0",
+    "PreprocessingVersion=2.0",
     "GeneratedUtc=$((Get-Date).ToUniversalTime().ToString('o'))",
     "",
     "[BomWorkbook]",
@@ -1082,7 +1082,7 @@ if ($rebuildNeeded) {
     "LastModifiedUtc=$($bomFile.LastWriteTimeUtc.ToString('o'))",
     "Hash=$bomHash",
     "CacheSchemaVersion=$cacheVersion",
-    "PreprocessingVersion=1.0",
+    "PreprocessingVersion=2.0",
     "GeneratedUtc=$((Get-Date).ToUniversalTime().ToString('o'))"
   )
   Set-Content -LiteralPath $cacheStatePath -Value $stateContent -Encoding UTF8
