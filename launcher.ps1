@@ -84,6 +84,187 @@ function Get-TargetQuantity {
   return $null
 }
 
+function Normalize-ItemId {
+  param($Value)
+  if ($null -eq $Value) { return '' }
+  $text = ([string]$Value).Trim()
+  if ($text -match '^\d+\.0+$') { return $text -replace '\.0+$', '' }
+  return $text
+}
+
+function Convert-ToFiniteNumber {
+  param($Value)
+  $number = 0.0
+  if ([double]::TryParse(([string]$Value), [Globalization.NumberStyles]::Any, [Globalization.CultureInfo]::InvariantCulture, [ref]$number)) { return $number }
+  return [double]::NaN
+}
+
+function Get-HeaderInfo {
+  param($Sheet, [object[]]$RequiredAliasGroups)
+  for ($rowIndex = 0; $rowIndex -lt [math]::Min(40, $Sheet.Rows.Count); $rowIndex++) {
+    $map = @{}
+    for ($columnIndex = 0; $columnIndex -lt $Sheet.Rows[$rowIndex].Count; $columnIndex++) {
+      $key = Normalize-Header $Sheet.Rows[$rowIndex][$columnIndex]
+      if ($key -and -not $map.ContainsKey($key)) { $map[$key] = $columnIndex }
+    }
+    $complete = $true
+    foreach ($aliases in $RequiredAliasGroups) {
+      $found = $false
+      foreach ($alias in @($aliases)) { if ($map.ContainsKey((Normalize-Header $alias))) { $found = $true; break } }
+      if (-not $found) { $complete = $false; break }
+    }
+    if ($complete) { return [pscustomobject]@{ Row = $rowIndex; Map = $map } }
+  }
+  return $null
+}
+
+function Find-HeaderColumn {
+  param($HeaderInfo, [string[]]$Aliases)
+  if (-not $HeaderInfo) { return -1 }
+  foreach ($alias in $Aliases) { $key = Normalize-Header $alias; if ($HeaderInfo.Map.ContainsKey($key)) { return [int]$HeaderInfo.Map[$key] } }
+  return -1
+}
+
+function Get-AxisStatistics {
+  param([double[]]$Values, [string]$Axis)
+  $mean = ($Values | Measure-Object -Average).Average
+  $minimum = ($Values | Measure-Object -Minimum).Minimum
+  $maximum = ($Values | Measure-Object -Maximum).Maximum
+  $variance = 0.0
+  foreach ($value in $Values) { $variance += [math]::Pow($value - $mean, 2) }
+  $variance /= [math]::Max(1, $Values.Count)
+  $prefix = $Axis.Substring(0,1).ToLowerInvariant() + $Axis.Substring(1)
+  return [ordered]@{
+    ("mean{0}Mm" -f $Axis) = $mean
+    ("min{0}Mm" -f $Axis) = $minimum
+    ("max{0}Mm" -f $Axis) = $maximum
+    ("{0}RangeMm" -f $prefix) = $maximum - $minimum
+    ("{0}StdDevMm" -f $prefix) = [math]::Sqrt($variance)
+  }
+}
+
+function Write-DerivedCartonCache {
+  param([System.IO.FileInfo]$DimensionFile, [string]$OutputPath)
+  $version = 'derived-cartons-v1'
+  $workbookHash = (Get-FileHash -LiteralPath $DimensionFile.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+  $fingerprintInput = "$($DimensionFile.FullName)|$($DimensionFile.Length)|$($DimensionFile.LastWriteTimeUtc.ToString('o'))|$workbookHash|$version|cm-to-mm-x10|depth-length-width-width-height-height|wall-5mm-v1"
+  $sha = [Security.Cryptography.SHA256]::Create()
+  try { $fingerprint = ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($fingerprintInput)))).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
+  if (Test-Path -LiteralPath $OutputPath) {
+    try {
+      $cached = Get-Content -Raw -LiteralPath $OutputPath | ConvertFrom-Json
+      if (($cached.cacheVersion -eq 1 -or $cached.version -eq $version) -and $cached.workbookFingerprint -eq $fingerprint -and $cached.cartons) { Write-Log 'Derived carton dimension cache is fresh'; return }
+    } catch { Write-Log 'Derived carton-dimension cache is invalid; rebuilding' }
+  }
+  Write-Log 'Derived carton dimension cache is stale or missing; rebuilding'
+
+  Write-Log 'Reading Dimension sheet'
+  $sheets = @(Read-XlsxSheets -File $DimensionFile)
+  $dimensionSheet = $sheets | Where-Object Name -eq 'Dimension' | Select-Object -First 1
+  $assignmentSheet = $sheets | Where-Object Name -eq 'FG_MasterCarton' | Select-Object -First 1
+  $backupSheet = $sheets | Where-Object Name -eq 'Mastercarton_Dimensions' | Select-Object -First 1
+  if (-not $assignmentSheet) {
+    $assignmentSheet = $sheets | Where-Object { Get-HeaderInfo $_ @(@('finishgood id','finished good id','fg id'), @('mastercarton id','master carton id')) } | Select-Object -First 1
+  }
+  if (-not $dimensionSheet -or -not $assignmentSheet) { throw 'Dimension or FG_MasterCarton role sheet is missing.' }
+
+  $dimensionHeader = Get-HeaderInfo $dimensionSheet @(@('item number','item no','item'), @('unit','uom'), @('width'), @('depth','length'), @('height'))
+  if (-not $dimensionHeader) { throw 'Dimension headers were not found.' }
+  $itemColumn = Find-HeaderColumn $dimensionHeader @('item number','item no','item')
+  $unitColumn = Find-HeaderColumn $dimensionHeader @('unit','uom')
+  $widthColumn = Find-HeaderColumn $dimensionHeader @('width')
+  $depthColumn = Find-HeaderColumn $dimensionHeader @('depth','length')
+  $heightColumn = Find-HeaderColumn $dimensionHeader @('height')
+  $dimensionIndex = @{}; $dimensionCounts = [ordered]@{ EA = 0; CA = 0; PL = 0 }
+  Write-Log 'Indexing EA, CA and PL dimensions'
+  for ($rowIndex = $dimensionHeader.Row + 1; $rowIndex -lt $dimensionSheet.Rows.Count; $rowIndex++) {
+    $row = $dimensionSheet.Rows[$rowIndex]
+    $itemId = Normalize-ItemId (Get-RowCell $row $itemColumn)
+    $unit = (Get-RowCell $row $unitColumn).ToUpperInvariant()
+    if (-not $itemId -or $unit -notin @('EA','CA','PL')) { continue }
+    $rawWidth = Convert-ToFiniteNumber (Get-RowCell $row $widthColumn)
+    $rawDepth = Convert-ToFiniteNumber (Get-RowCell $row $depthColumn)
+    $rawHeight = Convert-ToFiniteNumber (Get-RowCell $row $heightColumn)
+    if ([double]::IsNaN($rawWidth) -or [double]::IsNaN($rawDepth) -or [double]::IsNaN($rawHeight) -or $rawWidth -le 0 -or $rawDepth -le 0 -or $rawHeight -le 0) { continue }
+    if (-not $dimensionIndex.ContainsKey($itemId)) { $dimensionIndex[$itemId] = @{ EA = @(); CA = @(); PL = @() } }
+    $dimensionIndex[$itemId][$unit] += [pscustomobject]@{ widthMm = $rawWidth * 10; depthMm = $rawDepth * 10; heightMm = $rawHeight * 10; sourceRow = $rowIndex + 1 }
+    $dimensionCounts[$unit]++
+  }
+  Write-Log "Indexed dimensions: EA=$($dimensionCounts.EA), CA=$($dimensionCounts.CA), PL=$($dimensionCounts.PL)"
+
+  Write-Log 'Reading FG_MasterCarton'
+  $assignmentHeader = Get-HeaderInfo $assignmentSheet @(@('finishgood id','finished good id','fg id'), @('mastercarton id','master carton id'))
+  if (-not $assignmentHeader) { throw 'FG_MasterCarton headers were not found.' }
+  $fgColumn = Find-HeaderColumn $assignmentHeader @('finishgood id','finished good id','fg id')
+  $fgNameColumn = Find-HeaderColumn $assignmentHeader @('finishgood name','finished good name','fg name')
+  $cartonColumn = Find-HeaderColumn $assignmentHeader @('mastercarton id','master carton id')
+  $cartonNameColumn = Find-HeaderColumn $assignmentHeader @('mastercarton name','master carton name')
+  $observations = @{}; $assignedCartons = @{}; $pairSeen = @{}; $missingCaFgIds = [System.Collections.ArrayList]::new()
+  Write-Log 'Building FG-to-carton assignments'
+  Write-Log 'Creating one CA observation per FG'
+  for ($rowIndex = $assignmentHeader.Row + 1; $rowIndex -lt $assignmentSheet.Rows.Count; $rowIndex++) {
+    $row = $assignmentSheet.Rows[$rowIndex]
+    $fgId = Normalize-ItemId (Get-RowCell $row $fgColumn); $cartonId = Normalize-ItemId (Get-RowCell $row $cartonColumn)
+    if (-not $fgId -or -not $cartonId) { continue }
+    $assignedCartons[$cartonId] = [ordered]@{ cartonName = Get-RowCell $row $cartonNameColumn }
+    $pairKey = "$cartonId|$fgId"; if ($pairSeen.ContainsKey($pairKey)) { continue }; $pairSeen[$pairKey] = $true
+    $caRows = @($dimensionIndex[$fgId].CA)
+    $distinct = @($caRows | Group-Object { "$($_.depthMm)|$($_.widthMm)|$($_.heightMm)" } | ForEach-Object { $_.Group[0] })
+    if (-not $distinct.Count) { [void]$missingCaFgIds.Add($fgId); continue }
+    $fgObservation = [pscustomobject]@{
+      fgId = $fgId
+      lengthMm = ($distinct | Measure-Object depthMm -Average).Average
+      widthMm = ($distinct | Measure-Object widthMm -Average).Average
+      heightMm = ($distinct | Measure-Object heightMm -Average).Average
+    }
+    if (-not $observations.ContainsKey($cartonId)) { $observations[$cartonId] = [ordered]@{ cartonName = Get-RowCell $row $cartonNameColumn; rows = @() } }
+    $observations[$cartonId].rows += $fgObservation
+  }
+
+  $backups = @{}
+  Write-Log 'Reading Mastercarton_Dimensions backup'
+  if ($backupSheet) {
+    $backupHeader = Get-HeaderInfo $backupSheet @(@('carton id','mastercarton id'), @('carton width cm','width cm'), @('carton depth cm','depth cm'), @('carton height cm','height cm'))
+    if ($backupHeader) {
+      $backupId = Find-HeaderColumn $backupHeader @('carton id','mastercarton id'); $backupName = Find-HeaderColumn $backupHeader @('carton name','mastercarton name')
+      $backupWidth = Find-HeaderColumn $backupHeader @('carton width cm','width cm'); $backupDepth = Find-HeaderColumn $backupHeader @('carton depth cm','depth cm'); $backupHeight = Find-HeaderColumn $backupHeader @('carton height cm','height cm')
+      for ($rowIndex = $backupHeader.Row + 1; $rowIndex -lt $backupSheet.Rows.Count; $rowIndex++) {
+        $row = $backupSheet.Rows[$rowIndex]; $cartonId = Normalize-ItemId (Get-RowCell $row $backupId)
+        $width = Convert-ToFiniteNumber (Get-RowCell $row $backupWidth); $depth = Convert-ToFiniteNumber (Get-RowCell $row $backupDepth); $height = Convert-ToFiniteNumber (Get-RowCell $row $backupHeight)
+        if ($cartonId -and -not [double]::IsNaN($width) -and -not [double]::IsNaN($depth) -and -not [double]::IsNaN($height) -and $width -gt 0 -and $depth -gt 0 -and $height -gt 0) {
+          $backups[$cartonId] = [ordered]@{ available = $true; cartonName = Get-RowCell $row $backupName; lengthMm = $depth * 10; widthMm = $width * 10; heightMm = $height * 10; dimensionBasis = 'outside'; wallDeductionApplied = $false }
+        }
+      }
+    }
+  }
+
+  $generatedAt = (Get-Date).ToUniversalTime().ToString('o'); $cartons = [ordered]@{}
+  $allCartonIds = @($assignedCartons.Keys + $observations.Keys + $backups.Keys | Select-Object -Unique)
+  Write-Log 'Averaging dimensions by MasterCarton_ID'
+  Write-Log 'Resolving carton dimension sources'
+  for ($index = 0; $index -lt $allCartonIds.Count; $index++) {
+    $cartonId = $allCartonIds[$index]; if (($index + 1) % 100 -eq 0) { Write-Log "Averaging shared Master Carton dimensions... $($index + 1) / $($allCartonIds.Count) cartons" }
+    $group = $observations[$cartonId]; $backup = $backups[$cartonId]
+    if ($group -and $group.rows.Count) {
+      $rows = @($group.rows)
+      $lengthStats = Get-AxisStatistics ([double[]]@($rows.lengthMm)) 'Length'; $widthStats = Get-AxisStatistics ([double[]]@($rows.widthMm)) 'Width'; $heightStats = Get-AxisStatistics ([double[]]@($rows.heightMm)) 'Height'
+      $warning = $lengthStats.lengthRangeMm -gt 10 -or $widthStats.widthRangeMm -gt 10 -or $heightStats.heightRangeMm -gt 10 -or $lengthStats.lengthRangeMm / $lengthStats.meanLengthMm -gt .05 -or $widthStats.widthRangeMm / $widthStats.meanWidthMm -gt .05 -or $heightStats.heightRangeMm / $heightStats.meanHeightMm -gt .05
+      $cartons[$cartonId] = [ordered]@{ cartonId = $cartonId; cartonName = $group.cartonName; lengthMm = $lengthStats.meanLengthMm; widthMm = $widthStats.meanWidthMm; heightMm = $heightStats.meanHeightMm; selectedSource = 'Dimension CA average'; sourceCode = 'AVERAGED_DIMENSION_CA'; isBackup = $false; contributingFgCount = $rows.Count; contributingFgIds = @($rows.fgId); variationWarning = $warning; statistics = [ordered]@{ length = $lengthStats; width = $widthStats; height = $heightStats }; dimensionBasis = 'outside'; wallDeductionApplied = $false; missingDimensions = $false; backup = $backup; generatedUtc = $generatedAt; workbookFingerprint = $fingerprint }
+    } elseif ($backup) {
+      $cartons[$cartonId] = [ordered]@{ cartonId = $cartonId; cartonName = $backup.cartonName; lengthMm = $backup.lengthMm; widthMm = $backup.widthMm; heightMm = $backup.heightMm; selectedSource = 'Mastercarton_Dimensions backup'; sourceCode = 'MASTERCARTON_DIMENSIONS_BACKUP'; isBackup = $true; contributingFgCount = 0; contributingFgIds = @(); variationWarning = $false; statistics = @{}; dimensionBasis = 'outside'; wallDeductionApplied = $false; missingDimensions = $false; backup = $backup; generatedUtc = $generatedAt; workbookFingerprint = $fingerprint }
+    } else {
+      $cartons[$cartonId] = [ordered]@{ cartonId = $cartonId; cartonName = $assignedCartons[$cartonId].cartonName; selectedSource = 'Missing'; sourceCode = 'MISSING'; isBackup = $false; contributingFgCount = 0; contributingFgIds = @(); variationWarning = $false; statistics = @{}; dimensionBasis = 'outside'; wallDeductionApplied = $false; missingDimensions = $true; generatedUtc = $generatedAt; workbookFingerprint = $fingerprint }
+    }
+  }
+  $resolvedRecords = @($cartons.Values)
+  $counts = [ordered]@{ eaRows = $dimensionCounts.EA; caRows = $dimensionCounts.CA; plRows = $dimensionCounts.PL; uniqueAssignments = $pairSeen.Count; derivedCartons = @($resolvedRecords | Where-Object sourceCode -eq 'AVERAGED_DIMENSION_CA').Count; backupCartons = $backups.Count; backupUsed = @($resolvedRecords | Where-Object sourceCode -eq 'MASTERCARTON_DIMENSIONS_BACKUP').Count; missingCartons = @($resolvedRecords | Where-Object missingDimensions).Count; variationWarnings = @($resolvedRecords | Where-Object variationWarning).Count }
+  $diagnostics = [ordered]@{ missingCaFgIds = @($missingCaFgIds | Select-Object -Unique); assignmentSheet = $assignmentSheet.Name; dimensionSheet = $dimensionSheet.Name; backupSheet = $backupSheet.Name }
+  $payload = [ordered]@{ cacheVersion = 1; version = $version; generatedUtc = $generatedAt; workbookFingerprint = $fingerprint; workbookContentHash = $workbookHash; sourceFile = $DimensionFile.Name; sourceModifiedUtc = $DimensionFile.LastWriteTimeUtc.ToString('o'); sourceLengthBytes = $DimensionFile.Length; sourceSize = $DimensionFile.Length; axisMapping = 'Length=Depth; Width=Width; Height=Height'; dimensionBasis = 'outside'; wallDeductionApplied = $false; counts = $counts; cartons = $cartons; diagnostics = $diagnostics }
+  Write-Log 'Writing derived carton cache'
+  $payload | ConvertTo-Json -Depth 12 | Set-Content -Encoding UTF8 -LiteralPath $OutputPath
+  Write-Log "Derived carton cache complete: $($counts.derivedCartons) derived from Dimension CA; $($counts.backupUsed) using Mastercarton_Dimensions backup; $($counts.missingCartons) missing; $($counts.variationWarnings) variation warnings"
+}
+
 function Get-KnownCartonIds {
   param([System.IO.FileInfo]$DimensionFile)
   $known = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -354,7 +535,18 @@ try {
   $dimJson = ConvertTo-Json -Compress -Depth 3 -InputObject @($dims)
   Set-Content -Encoding UTF8 -LiteralPath (Join-Path $tool 'WVN Master Carton Workbook Manifest.json') -Value $dimJson
 
+  if ($dimFile) {
+    try {
+      Write-DerivedCartonCache -DimensionFile $dimFile -OutputPath (Join-Path $tool 'WVN_MasterCarton_Derived_Dimensions.cache.json')
+    } catch {
+      $cacheError = $_.Exception.Message
+      Write-Log "WARNING: Derived carton cache generation failed: $cacheError"
+      [ordered]@{ cacheVersion = 1; version = 'derived-cartons-v1'; generatedUtc = (Get-Date).ToUniversalTime().ToString('o'); sourceFile = $dimFile.Name; sourceLengthBytes = $dimFile.Length; sourceSize = $dimFile.Length; cartons = @{}; error = $cacheError } | ConvertTo-Json -Depth 4 | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $tool 'WVN_MasterCarton_Derived_Dimensions.cache.json')
+    }
+  }
+
   if ($bomEntries.Count -gt 0) {
+    Write-Log 'Preparing Weekly BOM carton index'
     $selectedBomFile = Get-Item -LiteralPath $bomEntries[0]._fullPath
     $compactPath = Join-Path $tool 'Weekly BOM Carton Index.json'
     try {
