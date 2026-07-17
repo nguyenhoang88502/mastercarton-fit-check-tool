@@ -228,6 +228,81 @@ function Test-IsValidBomWorkbook {
   }
 }
 
+function Get-BomBusinessDateFromFilename {
+  param(
+    [Parameter(Mandatory = $true)]
+    [System.IO.FileInfo]$File
+  )
+  
+  $res = [pscustomobject]@{
+    Success = $false
+    BusinessDate = [DateTime]::MinValue
+    MonthToken = ""
+    Day = 0
+    InferredYear = 0
+    Error = ""
+  }
+  
+  $MonthNumbers = @{
+    JAN = 1; FEB = 2; MAR = 3; APR = 4; MAY = 5; JUN = 6;
+    JUL = 7; AUG = 8; SEP = 9; OCT = 10; NOV = 11; DEC = 12
+  }
+  
+  $name = $File.Name
+  # Case-insensitive match
+  if ($name -match '^BOM\s*&\s*FORMULA\s+([A-Za-z]{3})\s+(\d{1,2})\s+D365\.(xlsx|xlsm)$') {
+    $monthToken = $Matches[1].ToUpperInvariant()
+    $dayVal = [int]$Matches[2]
+    
+    if (-not $MonthNumbers.ContainsKey($monthToken)) {
+      $res.Error = "Unrecognized month token '$monthToken'"
+      return $res
+    }
+    
+    $monthVal = $MonthNumbers[$monthToken]
+    $mYear = $File.LastWriteTimeUtc.Year
+    
+    $candidateDate = $null
+    try {
+      $candidateDate = [DateTime]::new([int]$mYear, [int]$monthVal, [int]$dayVal, 0, 0, 0, [System.DateTimeKind]::Utc)
+    } catch {
+      # Try previous year (leap year Feb 29 fallback)
+      try {
+        $candidateDate = [DateTime]::new(([int]$mYear - 1), [int]$monthVal, [int]$dayVal, 0, 0, 0, [System.DateTimeKind]::Utc)
+        $mYear = $mYear - 1
+      } catch {
+        $res.Error = "Invalid date '$mYear-$monthVal-$dayVal' ($monthToken $dayVal). Error: $_"
+        return $res
+      }
+    }
+    
+    $modDate = $File.LastWriteTimeUtc.Date
+    # Compare parsed date with modification date
+    # If the candidate date is implausibly far in the future relative to modification date (e.g. > 45 days)
+    # subtract one year.
+    $diffDays = ($candidateDate - $modDate).TotalDays
+    if ($diffDays -gt 45) {
+      $mYear = $mYear - 1
+      try {
+        $candidateDate = [DateTime]::new([int]$mYear, [int]$monthVal, [int]$dayVal, 0, 0, 0, [System.DateTimeKind]::Utc)
+      } catch {
+        $res.Error = "Invalid date after year adjustment: $mYear-$monthVal-$dayVal. Error: $_"
+        return $res
+      }
+    }
+    
+    $res.Success = $true
+    $res.BusinessDate = $candidateDate
+    $res.MonthToken = $monthToken
+    $res.Day = $dayVal
+    $res.InferredYear = $mYear
+    Write-Log "Inferred business date for '$name': $($candidateDate.ToString('yyyy-MM-dd')) (Year inferred as $mYear from LastWriteTimeUtc)"
+  } else {
+    $res.Error = "Filename does not match expected pattern BOM & FORMULA [MONTH] [DAY] D365"
+  }
+  return $res
+}
+
 # Read configuration
 $configPath = Join-Path $systemDir 'config.ini'
 $config = Read-IniFile -FilePath $configPath
@@ -446,6 +521,7 @@ Please ensure a valid Excel file exists and is available locally (fully download
 Write-Log "Phase: Locating latest BOM Workbook"
 $bomFile = $null
 $bomCandidatesList = [System.Collections.ArrayList]::new()
+$decoratedCandidates = [System.Collections.ArrayList]::new()
 
 if ($resolvedWeeklyBomDir -and (Test-Path -LiteralPath $resolvedWeeklyBomDir)) {
   # Enumerate local candidates matching the BOM patterns
@@ -459,42 +535,96 @@ if ($resolvedWeeklyBomDir -and (Test-Path -LiteralPath $resolvedWeeklyBomDir)) {
         $_.Name -like $bomPattern -or
         $_.Name -like ($bomPattern -replace '\.xlsx$', '.xlsm')
       )
-    } |
-    Sort-Object @{ Expression = 'LastWriteTimeUtc'; Descending = $true }, @{ Expression = 'Name'; Descending = $true }
+    }
 
+  # Parse dates and decorate candidates first
   foreach ($candidate in $bomCandidates) {
     [void]$bomCandidatesList.Add($candidate)
-  }
-
-  Write-Log "Found $($bomCandidates.Count) local BOM candidates. Evaluating in order of newest LastWriteTimeUtc..."
-  foreach ($candidate in $bomCandidates) {
-    try {
-      $stream = [System.IO.File]::OpenRead($candidate.FullName)
-      $stream.Close()
-      
-      if (Test-IsValidBomWorkbook -File $candidate) {
-        $bomFile = $candidate
-        Write-Log "Selected BOM Workbook: $($bomFile.FullName) (Last Modified: $($bomFile.LastWriteTimeUtc))"
-        break
-      } else {
-        Write-Log "Rejected BOM candidate '$($candidate.Name)': Failed structural validation."
-      }
-    } catch {
-      Write-Log "Rejected BOM candidate '$($candidate.Name)': File read/availability failure (could be cloud-only). Error: $_"
+    
+    $parsed = Get-BomBusinessDateFromFilename -File $candidate
+    if (-not $parsed.Success) {
+      Write-Log "Filename date could not be parsed for '$($candidate.Name)'; candidate eligible only for modification-time fallback. Reason: $($parsed.Error)"
     }
+    
+    [void]$decoratedCandidates.Add([pscustomobject]@{
+      File                = $candidate
+      Name                = $candidate.Name
+      ParsedBusinessDate  = $parsed.BusinessDate
+      FilenameDateValid   = $parsed.Success
+      LastWriteTimeUtc    = $candidate.LastWriteTimeUtc
+      WorkbookValid       = $null
+      ValidationError     = ""
+    })
+  }
+}
+
+# Sort decorated candidates by Priority:
+# 1. FilenameDateValid descending
+# 2. ParsedBusinessDate descending
+# 3. LastWriteTimeUtc descending
+# 4. Name descending (stable final tie-breaker)
+$sortedCandidates = @($decoratedCandidates | Sort-Object `
+  @{ Expression = 'FilenameDateValid'; Descending = $true },
+  @{ Expression = 'ParsedBusinessDate'; Descending = $true },
+  @{ Expression = 'LastWriteTimeUtc'; Descending = $true },
+  @{ Expression = 'Name'; Descending = $true })
+
+# Validate all candidates and log their details
+foreach ($candidate in $sortedCandidates) {
+  try {
+    # Check readability (OneDrive cloud-only check)
+    $stream = [System.IO.File]::OpenRead($candidate.File.FullName)
+    $stream.Close()
+
+    if (Test-IsValidBomWorkbook -File $candidate.File) {
+      $candidate.WorkbookValid = $true
+    } else {
+      $candidate.WorkbookValid = $false
+      $candidate.ValidationError = "Failed structural validation."
+    }
+  } catch {
+    $candidate.WorkbookValid = $false
+    $candidate.ValidationError = "File read/availability failure. Error: $_"
   }
 }
 
 # Log findings
-if ($bomCandidatesList.Count -gt 0) {
-  $names = @($bomCandidatesList | ForEach-Object { $_.Name })
-  Write-Log "BOM candidates found locally: $($names -join ', ')"
-} else {
-  Write-Log "BOM candidates found locally: [None]"
+foreach ($candidate in $sortedCandidates) {
+  Write-Log "BOM candidate:"
+  Write-Log "  Name: $($candidate.Name)"
+  if ($candidate.FilenameDateValid) {
+    Write-Log "  Parsed business date: $($candidate.ParsedBusinessDate.ToString('yyyy-MM-dd'))"
+  } else {
+    Write-Log "  Parsed business date: [Unparseable]"
+  }
+  # Convert UTC to standard log format
+  Write-Log "  Last modified UTC: $($candidate.LastWriteTimeUtc.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))"
+  if ($candidate.WorkbookValid) {
+    Write-Log "  Workbook validation: valid"
+  } else {
+    Write-Log "  Workbook validation: invalid ($($candidate.ValidationError))"
+  }
+}
+
+# Select the first candidate that is structurally valid
+$selectedReason = ""
+foreach ($candidate in $sortedCandidates) {
+  if ($candidate.WorkbookValid) {
+    $bomFile = $candidate.File
+    if ($candidate.FilenameDateValid) {
+      $selectedReason = "Latest valid business date parsed from filename."
+    } else {
+      $selectedReason = "Modification-time fallback (filename date could not be parsed)."
+    }
+    break
+  }
 }
 
 if ($bomFile) {
-  Write-Log "Selected BOM workbook: $($bomFile.FullName)"
+  Write-Log "Selected BOM:"
+  Write-Log "  $($bomFile.Name)"
+  Write-Log "Selection reason:"
+  Write-Log "  $selectedReason"
 } else {
   Write-Log "WARNING: BOM Workbook not found or could not be read."
   $errMsg = @"
