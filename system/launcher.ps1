@@ -1,6 +1,24 @@
 $ErrorActionPreference = 'Stop'
-$systemDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$projectDir = Split-Path -Parent $systemDir
+
+# Detect script directory and application/tools directory structure
+$ScriptDirectory = $PSScriptRoot
+if (-not $ScriptDirectory) {
+  $ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
+}
+
+if ((Split-Path $ScriptDirectory -Leaf) -ieq 'system') {
+  $AppRoot = Split-Path $ScriptDirectory -Parent
+} else {
+  $AppRoot = $ScriptDirectory
+}
+
+$ToolsParent = Split-Path $AppRoot -Parent
+$WeeklyBomDirectory = Join-Path $ToolsParent '1. Weekly BOM'
+
+# Map back to original variable names for compatibility
+$systemDir = $ScriptDirectory
+$projectDir = $AppRoot
+
 $manifestsOnly = $args[0] -eq '--manifests-only'
 $forceRebuildArg = $args[0] -eq '--force-rebuild'
 
@@ -214,141 +232,288 @@ function Test-IsValidBomWorkbook {
 $configPath = Join-Path $systemDir 'config.ini'
 $config = Read-IniFile -FilePath $configPath
 
-$searchRoots = @()
+# Resolve search directory paths
+$configuredWeeklyBomFolder = $null
 if ($config.ContainsKey('Search')) {
-  for ($i = 1; $i -le 10; $i++) {
-    $key = "Root$i"
-    if ($config['Search'].ContainsKey($key) -and $config['Search'][$key]) {
-      $searchRoots += $config['Search'][$key]
+  # Priority configured entry: WeeklyBomFolder
+  if ($config['Search'].ContainsKey('WeeklyBomFolder') -and $config['Search']['WeeklyBomFolder']) {
+    $val = $config['Search']['WeeklyBomFolder']
+    $resolvedPath = $val
+    if (-not [System.IO.Path]::IsPathRooted($val)) {
+      $resolvedPath = [System.IO.Path]::GetFullPath((Join-Path $AppRoot $val))
+    }
+    if (Test-Path -LiteralPath $resolvedPath) {
+      $configuredWeeklyBomFolder = $resolvedPath
+      Write-Log "Configured WeeklyBomFolder: $configuredWeeklyBomFolder"
+    } else {
+      Write-Log "WARNING: Configured WeeklyBomFolder path '$val' (resolved: '$resolvedPath') does not exist."
     }
   }
-  $maxDepth = if ($config['Search'].ContainsKey('MaxDepth')) { [int]$config['Search']['MaxDepth'] } else { 6 }
+
+  # Backward compatibility: Root1..Root10 if WeeklyBomFolder wasn't set/valid
+  if (-not $configuredWeeklyBomFolder) {
+    for ($i = 1; $i -le 10; $i++) {
+      $key = "Root$i"
+      if ($config['Search'].ContainsKey($key) -and $config['Search'][$key]) {
+        $val = $config['Search'][$key]
+        $resolvedPath = $val
+        if (-not [System.IO.Path]::IsPathRooted($val)) {
+          $resolvedPath = [System.IO.Path]::GetFullPath((Join-Path $AppRoot $val))
+        }
+        if (Test-Path -LiteralPath $resolvedPath) {
+          $configuredWeeklyBomFolder = $resolvedPath
+          Write-Log "Configured Root$i override: $configuredWeeklyBomFolder"
+          break
+        } else {
+          Write-Log "WARNING: Configured Root$i path '$val' (resolved: '$resolvedPath') does not exist or is invalid."
+        }
+      }
+    }
+  }
+}
+
+# Determine target Weekly BOM directory using priorities
+$resolvedWeeklyBomDir = $null
+$siblingWeeklyBomDir = Join-Path $ToolsParent '1. Weekly BOM'
+$siblingDiscoverySucceeded = $false
+
+if ($configuredWeeklyBomFolder) {
+  $resolvedWeeklyBomDir = $configuredWeeklyBomFolder
+  Write-Log "Using configured path override: $resolvedWeeklyBomDir"
 } else {
-  $maxDepth = 6
-}
-
-$dimPattern = if ($config.ContainsKey('Files') -and $config['Files'].ContainsKey('DimensionPattern')) { $config['Files']['DimensionPattern'] } else { '*Physical Dimension*.xlsx' }
-$bomPattern = if ($config.ContainsKey('Files') -and $config['Files'].ContainsKey('BomPattern')) { $config['Files']['BomPattern'] } else { 'BOM & FORMULA*D365.xlsx' }
-
-$forceRebuild = $forceRebuildArg
-if (-not $forceRebuild -and $config.ContainsKey('Launcher') -and $config['Launcher'].ContainsKey('ForceRebuild')) {
-  $forceRebuild = $config['Launcher']['ForceRebuild'] -eq 'true'
-}
-
-Write-Log "Search parameters: MaxDepth=$maxDepth, DimensionPattern=$dimPattern, BomPattern=$bomPattern, ForceRebuild=$forceRebuild"
-
-# User profile detection
-$username = [Environment]::UserName
-$userRoot = Join-Path 'C:\Users' $username
-Write-Log "User Profile Root: $userRoot"
-
-# Construct discovery search directories
-$discoveryDirs = [System.Collections.ArrayList]::new()
-foreach ($root in $searchRoots) {
-  if (Test-Path -LiteralPath $root) { [void]$discoveryDirs.Add($root) }
-}
-
-# OneDrive candidate roots
-$odBase = Join-Path $userRoot 'OneDrive*'
-$oneDriveCandidates = @(Get-ChildItem -Path $odBase -Directory -ErrorAction SilentlyContinue | Sort-Object Name)
-foreach ($od in $oneDriveCandidates) {
-  [void]$discoveryDirs.Add($od.FullName)
-  $npiPath = Join-Path $od.FullName 'NPI Information - Documents'
-  if (Test-Path -LiteralPath $npiPath) {
-    [void]$discoveryDirs.Add($npiPath)
+  # Priority 1: Exact sibling directory
+  if (Test-Path -LiteralPath $siblingWeeklyBomDir) {
+    $resolvedWeeklyBomDir = (Get-Item -LiteralPath $siblingWeeklyBomDir).FullName
+    $siblingDiscoverySucceeded = $true
+    Write-Log "Sibling Weekly BOM directory found and selected: $resolvedWeeklyBomDir"
+  } else {
+    Write-Log "Sibling directory '1. Weekly BOM' not found at '$siblingWeeklyBomDir'."
+    
+    # Priority 4: Search ToolsParent for a directory named '1. Weekly BOM' (non-recursively / depth 1)
+    Write-Log "Searching parent directory '$ToolsParent' for a folder named '1. Weekly BOM'..."
+    $foundDirs = Get-ChildItem -LiteralPath $ToolsParent -Directory -Filter '1. Weekly BOM' -ErrorAction SilentlyContinue
+    if ($foundDirs.Count -gt 0) {
+      $resolvedWeeklyBomDir = $foundDirs[0].FullName
+      $siblingDiscoverySucceeded = $true
+      Write-Log "Discovered '1. Weekly BOM' under parent: $resolvedWeeklyBomDir"
+    } else {
+      # Priority 3: Fall back to application root
+      if (Test-Path -LiteralPath $AppRoot) {
+        $resolvedWeeklyBomDir = (Get-Item -LiteralPath $AppRoot).FullName
+        Write-Log "Using compatibility fallback (application root): $resolvedWeeklyBomDir"
+      }
+    }
   }
 }
 
-# Likely SharePoint-synced company folders
-Get-ChildItem -Path $userRoot -Directory -ErrorAction SilentlyContinue |
-  Where-Object { $_.Name -like '*WAHL*' -or $_.Name -like '*SharePoint*' } |
-  ForEach-Object { [void]$discoveryDirs.Add($_.FullName) }
+# If resolved directory is still null or does not exist, produce a clear actionable error message
+if (-not $resolvedWeeklyBomDir -or -not (Test-Path -LiteralPath $resolvedWeeklyBomDir)) {
+  $errMsg = @"
+The folder "1. Weekly BOM" was not found beside the Master Carton tool.
 
-# Sibling and project directories
-[void]$discoveryDirs.Add($projectDir)
-[void]$discoveryDirs.Add((Join-Path $projectDir '1. Weekly BOM'))
-$parentDir = Split-Path -Parent $projectDir
-[void]$discoveryDirs.Add($parentDir)
-[void]$discoveryDirs.Add((Join-Path $parentDir '1. Weekly BOM'))
+Expected location:
+$siblingWeeklyBomDir
 
-# Deduplicate search paths
-$uniqueSearchDirs = @()
-foreach ($d in $discoveryDirs) {
-  if ($d -and (Test-Path -LiteralPath $d)) {
-    $normalized = (Get-Item -LiteralPath $d).FullName
-    if ($normalized -notin $uniqueSearchDirs) { $uniqueSearchDirs += $normalized }
+Move or sync the Weekly BOM folder to that location, update config.ini, or open the workbooks manually from the application.
+"@
+  Write-Log "ERROR: $errMsg"
+  if (-not $manifestsOnly) {
+    try {
+      Add-Type -AssemblyName System.Windows.Forms
+      [void][System.Windows.Forms.MessageBox]::Show($errMsg, "Master Carton Fit Tool - Directory Missing", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
+    } catch {}
   }
 }
-Write-Log "Deduplicated Search Roots: $($uniqueSearchDirs -join ', ')"
+
+# Log search location information as requested
+Write-Log "Script directory: $ScriptDirectory"
+Write-Log "Resolved application root: $AppRoot"
+Write-Log "Resolved parent tools directory: $ToolsParent"
+Write-Log "Expected Weekly BOM directory: $siblingWeeklyBomDir"
+if ($configuredWeeklyBomFolder) {
+  Write-Log "Configured override: $configuredWeeklyBomFolder"
+} else {
+  Write-Log "Configured override: [None]"
+}
+Write-Log "Whether sibling discovery succeeded: $siblingDiscoverySucceeded"
+Write-Log "Search scope: Sibling/configured local Weekly BOM directory only"
+Write-Log "Broader search (OneDrive root, UserProfile, SharePoint, mounted drives) was intentionally skipped to prevent slow scanning and hydration issues."
 
 # 1. Locate Dimension Workbook
 Write-Log "Checking source data..."
 Write-Log "Preparing carton data..."
 Write-Log "Phase: Locating Dimension Workbook"
+
 $dimensionFile = $null
-foreach ($d in $uniqueSearchDirs) {
-  $files = Get-ChildItem -Path $d -Filter $dimPattern -File -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -notlike '~$*' } |
-    Sort-Object LastWriteTimeUtc -Descending
-  foreach ($f in $files) {
-    if (Test-IsValidDimensionWorkbook -File $f) {
-      $dimensionFile = $f
-      break
+$dimCandidatesList = [System.Collections.ArrayList]::new()
+
+if ($resolvedWeeklyBomDir -and (Test-Path -LiteralPath $resolvedWeeklyBomDir)) {
+  # 1a. Try canonical dimension filename: Products Physical Dimension - FG 1.Apr.25.xlsx
+  $canonicalDimPath = Join-Path $resolvedWeeklyBomDir 'Products Physical Dimension - FG 1.Apr.25.xlsx'
+  $canonicalDimFileInfo = New-Object System.IO.FileInfo -ArgumentList $canonicalDimPath
+
+  if (Test-Path -LiteralPath $canonicalDimPath) {
+    [void]$dimCandidatesList.Add($canonicalDimFileInfo)
+    Write-Log "Found canonical dimension file: $($canonicalDimFileInfo.FullName). Validating..."
+    try {
+      $stream = [System.IO.File]::OpenRead($canonicalDimFileInfo.FullName)
+      $stream.Close()
+      
+      if (Test-IsValidDimensionWorkbook -File $canonicalDimFileInfo) {
+        $dimensionFile = $canonicalDimFileInfo
+        Write-Log "Selected canonical dimension file: $($dimensionFile.FullName)"
+      } else {
+        Write-Log "Rejected canonical dimension file: Failed structural validation."
+      }
+    } catch {
+      Write-Log "Rejected canonical dimension file: File read/availability failure (could be cloud-only). Error: $_"
     }
   }
-  if ($dimensionFile) { break }
+
+  # 1b. If canonical was not found or valid, find matching dimension workbooks inside the local folder
+  if (-not $dimensionFile) {
+    $dimCandidates = Get-ChildItem -LiteralPath $resolvedWeeklyBomDir -File -ErrorAction SilentlyContinue |
+      Where-Object {
+        $_.Name -notlike '~$*' -and
+        $_.Length -gt 0 -and
+        (
+          $_.Name -like 'Products Physical Dimension*.xlsx' -or
+          $_.Name -like 'Products Physical Dimension*.xlsm' -or
+          $_.Name -like $dimPattern -or
+          $_.Name -like ($dimPattern -replace '\.xlsx$', '.xlsm')
+        ) -and
+        $_.FullName -ne $canonicalDimPath
+      } |
+      Sort-Object @{ Expression = 'LastWriteTimeUtc'; Descending = $true }, @{ Expression = 'Name'; Descending = $true }
+
+    foreach ($candidate in $dimCandidates) {
+      [void]$dimCandidatesList.Add($candidate)
+    }
+
+    Write-Log "Found $($dimCandidates.Count) alternative local dimension candidates. Evaluating in order..."
+    foreach ($candidate in $dimCandidates) {
+      try {
+        $stream = [System.IO.File]::OpenRead($candidate.FullName)
+        $stream.Close()
+        
+        if (Test-IsValidDimensionWorkbook -File $candidate) {
+          $dimensionFile = $candidate
+          Write-Log "Selected alternative dimension file: $($dimensionFile.FullName) (Last Modified: $($dimensionFile.LastWriteTimeUtc))"
+          break
+        } else {
+          Write-Log "Rejected dimension candidate '$($candidate.Name)': Failed structural validation."
+        }
+      } catch {
+        Write-Log "Rejected dimension candidate '$($candidate.Name)': File read/availability failure (could be cloud-only). Error: $_"
+      }
+    }
+  }
+}
+
+# Log findings
+if ($dimCandidatesList.Count -gt 0) {
+  $names = @($dimCandidatesList | ForEach-Object { $_.Name })
+  Write-Log "Dimension candidates found locally: $($names -join ', ')"
+} else {
+  Write-Log "Dimension candidates found locally: [None]"
 }
 
 if ($dimensionFile) {
-  Write-Log "Found Dimension Workbook: $($dimensionFile.FullName)"
+  Write-Log "Selected dimension workbook: $($dimensionFile.FullName)"
 } else {
-  Write-Log "WARNING: Dimension Workbook not found"
+  Write-Log "WARNING: Dimension Workbook not found or could not be read."
+  $errMsg = @"
+No valid Dimension Workbook was found or could be read in the local search directory.
+
+Expected canonical filename:
+Products Physical Dimension - FG 1.Apr.25.xlsx
+
+Search Location:
+$resolvedWeeklyBomDir
+
+Please ensure a valid Excel file exists and is available locally (fully downloaded from OneDrive), or open the workbooks manually from the application.
+"@
+  if (-not $manifestsOnly) {
+    try {
+      Add-Type -AssemblyName System.Windows.Forms
+      [void][System.Windows.Forms.MessageBox]::Show($errMsg, "Master Carton Fit Tool - Dimension Workbook Missing", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning)
+    } catch {}
+  }
 }
+
 
 # 2. Locate latest BOM Workbook
 Write-Log "Phase: Locating latest BOM Workbook"
 $bomFile = $null
-$bomCandidates = [System.Collections.ArrayList]::new()
+$bomCandidatesList = [System.Collections.ArrayList]::new()
 
-# BOM filename date parser
-function Parse-BomDate {
-  param([string]$name)
-  if ($name -match 'BOM\s*&?\s*FORMULA\s+([A-Za-z]+)\s+(\d{1,2})\s+D365\.xlsx') {
-    $months = @{ JAN=1;FEB=2;MAR=3;APR=4;MAY=5;JUN=6;JUL=7;AUG=8;SEP=9;OCT=10;NOV=11;DEC=12 }
-    $m = $matches[1].ToUpper().Substring(0,3)
-    $mon = $months[$m]
-    if ($mon) {
-      $d = [int]$matches[2]
-      if ($d -ge 1 -and $d -le 31) {
-        try { return [DateTime]::new(2026, $mon, $d) } catch {}
+if ($resolvedWeeklyBomDir -and (Test-Path -LiteralPath $resolvedWeeklyBomDir)) {
+  # Enumerate local candidates matching the BOM patterns
+  $bomCandidates = Get-ChildItem -LiteralPath $resolvedWeeklyBomDir -File -ErrorAction SilentlyContinue |
+    Where-Object {
+      $_.Name -notlike '~$*' -and
+      $_.Length -gt 0 -and
+      (
+        $_.Name -like 'BOM & FORMULA*D365.xlsx' -or
+        $_.Name -like 'BOM & FORMULA*D365.xlsm' -or
+        $_.Name -like $bomPattern -or
+        $_.Name -like ($bomPattern -replace '\.xlsx$', '.xlsm')
+      )
+    } |
+    Sort-Object @{ Expression = 'LastWriteTimeUtc'; Descending = $true }, @{ Expression = 'Name'; Descending = $true }
+
+  foreach ($candidate in $bomCandidates) {
+    [void]$bomCandidatesList.Add($candidate)
+  }
+
+  Write-Log "Found $($bomCandidates.Count) local BOM candidates. Evaluating in order of newest LastWriteTimeUtc..."
+  foreach ($candidate in $bomCandidates) {
+    try {
+      $stream = [System.IO.File]::OpenRead($candidate.FullName)
+      $stream.Close()
+      
+      if (Test-IsValidBomWorkbook -File $candidate) {
+        $bomFile = $candidate
+        Write-Log "Selected BOM Workbook: $($bomFile.FullName) (Last Modified: $($bomFile.LastWriteTimeUtc))"
+        break
+      } else {
+        Write-Log "Rejected BOM candidate '$($candidate.Name)': Failed structural validation."
       }
-    }
-  }
-  return [DateTime]::MinValue
-}
-
-foreach ($d in $uniqueSearchDirs) {
-  $files = Get-ChildItem -Path $d -Filter $bomPattern -File -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -notlike '~$*' -and $_.Name -notlike '*Physical Dimension*' }
-  foreach ($f in $files) {
-    if (Test-IsValidBomWorkbook -File $f) {
-      $bomDate = Parse-BomDate $f.Name
-      [void]$bomCandidates.Add([pscustomobject]@{
-        File = $f
-        Date = $bomDate
-        Modified = $f.LastWriteTimeUtc
-      })
+    } catch {
+      Write-Log "Rejected BOM candidate '$($candidate.Name)': File read/availability failure (could be cloud-only). Error: $_"
     }
   }
 }
 
-if ($bomCandidates.Count -gt 0) {
-  # Sort by parsed Date descending, then LastWriteTimeUtc descending
-  $sortedBoms = @($bomCandidates | Sort-Object Date, Modified -Descending)
-  $bomFile = $sortedBoms[0].File
-  Write-Log "Found BOM Workbook: $($bomFile.FullName) (Parsed Date: $($sortedBoms[0].Date.ToString('yyyy-MM-dd')))"
+# Log findings
+if ($bomCandidatesList.Count -gt 0) {
+  $names = @($bomCandidatesList | ForEach-Object { $_.Name })
+  Write-Log "BOM candidates found locally: $($names -join ', ')"
 } else {
-  Write-Log "WARNING: BOM Workbook not found"
+  Write-Log "BOM candidates found locally: [None]"
+}
+
+if ($bomFile) {
+  Write-Log "Selected BOM workbook: $($bomFile.FullName)"
+} else {
+  Write-Log "WARNING: BOM Workbook not found or could not be read."
+  $errMsg = @"
+No valid BOM Workbook was found or could be read in the local search directory.
+
+Expected pattern:
+BOM & FORMULA*D365.xlsx or .xlsm
+
+Search Location:
+$resolvedWeeklyBomDir
+
+Please ensure a valid Excel file exists and is available locally (fully downloaded from OneDrive), or open the workbooks manually from the application.
+"@
+  if (-not $manifestsOnly) {
+    try {
+      Add-Type -AssemblyName System.Windows.Forms
+      [void][System.Windows.Forms.MessageBox]::Show($errMsg, "Master Carton Fit Tool - BOM Workbook Missing", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning)
+    } catch {}
+  }
 }
 
 # Generate cache freshness checks
@@ -1064,22 +1229,32 @@ if ($rebuildNeeded) {
 
   # Generate cache_state.ini
   Write-Log "Writing cache_state.ini..."
+  $dimPathVal = if ($dimensionFile) { $dimensionFile.FullName } else { "" }
+  $dimNameVal = if ($dimensionFile) { $dimensionFile.Name } else { "" }
+  $dimSizeVal = if ($dimensionFile) { $dimensionFile.Length } else { "" }
+  $dimModVal = if ($dimensionFile) { $dimensionFile.LastWriteTimeUtc.ToString('o') } else { "" }
+  
+  $bomPathVal = if ($bomFile) { $bomFile.FullName } else { "" }
+  $bomNameVal = if ($bomFile) { $bomFile.Name } else { "" }
+  $bomSizeVal = if ($bomFile) { $bomFile.Length } else { "" }
+  $bomModVal = if ($bomFile) { $bomFile.LastWriteTimeUtc.ToString('o') } else { "" }
+
   $stateContent = @(
     "[DimensionWorkbook]",
-    "Path=$($dimensionFile.FullName)",
-    "Filename=$($dimensionFile.Name)",
-    "Size=$($dimensionFile.Length)",
-    "LastModifiedUtc=$($dimensionFile.LastWriteTimeUtc.ToString('o'))",
+    "Path=$dimPathVal",
+    "Filename=$dimNameVal",
+    "Size=$dimSizeVal",
+    "LastModifiedUtc=$dimModVal",
     "Hash=$dimHash",
     "CacheSchemaVersion=$cacheVersion",
     "PreprocessingVersion=2.0",
     "GeneratedUtc=$((Get-Date).ToUniversalTime().ToString('o'))",
     "",
     "[BomWorkbook]",
-    "Path=$($bomFile.FullName)",
-    "Filename=$($bomFile.Name)",
-    "Size=$($bomFile.Length)",
-    "LastModifiedUtc=$($bomFile.LastWriteTimeUtc.ToString('o'))",
+    "Path=$bomPathVal",
+    "Filename=$bomNameVal",
+    "Size=$bomSizeVal",
+    "LastModifiedUtc=$bomModVal",
     "Hash=$bomHash",
     "CacheSchemaVersion=$cacheVersion",
     "PreprocessingVersion=2.0",
