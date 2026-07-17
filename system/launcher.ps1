@@ -977,10 +977,12 @@ if ($rebuildNeeded) {
     }
   }
 
-  # 4. Build FG ID -> Carton ID Map and check for conflicts
+  # 4. Build FG ID -> Carton ID Map, check for conflicts, and determine assignment_status per FG
   $fgToCartonMap = @{}      # resolved: fgId -> cartonId (string)
   $fgConflicts = @{}        # conflicting: fgId -> array of cartonIds
-  
+  $fgAssignmentStatus = @{} # fgId -> "SINGLE" | "MULTIPLE_CARTONS" | "QUANTITY_CONFLICT"
+  $fgQuantityConflicts = @{} # fgId -> array of { cartonId, quantities[] }
+
   if ($bomFile) {
     $groupedByFg = $bomRowsRaw | Group-Object fgId
     foreach ($grp in $groupedByFg) {
@@ -992,6 +994,63 @@ if ($rebuildNeeded) {
         $fgConflicts[$fgId] = $uniqueCartons
         Add-DataQuality -issue "Conflicting BOM carton assignments" -entityType "FG" -entityId $fgId -desc "FG is assigned to multiple conflicting cartons in BOM" -detail "$($uniqueCartons -join ', ')"
       }
+    }
+  }
+
+  # Determine assignment_status per FG by re-evaluating assignments
+  $fgCartonCounts = @{}  # fgId -> @{ cartonIds[], quantityMap }
+  foreach ($assign in $assignments) {
+    $fgId = $assign.fg_id
+    $cartonId = $assign.carton_id
+    $qty = $assign.target_quantity
+    if (-not $fgCartonCounts.ContainsKey($fgId)) {
+      $fgCartonCounts[$fgId] = @{ CartonIds = [System.Collections.ArrayList]::new(); CartonQtyMap = @{} }
+    }
+    [void]$fgCartonCounts[$fgId].CartonIds.Add($cartonId)
+    if (-not $fgCartonCounts[$fgId].CartonQtyMap.ContainsKey($cartonId)) {
+      $fgCartonCounts[$fgId].CartonQtyMap[$cartonId] = [System.Collections.ArrayList]::new()
+    }
+    if ($qty -and $qty -ne '') {
+      [void]$fgCartonCounts[$fgId].CartonQtyMap[$cartonId].Add($qty)
+    }
+  }
+
+  foreach ($fgId in $fgCartonCounts.Keys) {
+    $info = $fgCartonCounts[$fgId]
+    $uniqueCartonList = @($info.CartonIds | Select-Object -Unique)
+    if ($uniqueCartonList.Count -gt 1) {
+      $fgAssignmentStatus[$fgId] = "MULTIPLE_CARTONS"
+    } else {
+      # One unique carton - check for quantity conflicts
+      $cartonId = $uniqueCartonList[0]
+      $qtyList = $info.CartonQtyMap[$cartonId]
+      $uniqueQtys = @($qtyList | Select-Object -Unique)
+      if ($uniqueQtys.Count -gt 1) {
+        $fgAssignmentStatus[$fgId] = "QUANTITY_CONFLICT"
+        $fgQuantityConflicts[$fgId] = @{ cartonId = $cartonId; quantities = $uniqueQtys }
+      } else {
+        $fgAssignmentStatus[$fgId] = "SINGLE"
+      }
+    }
+  }
+
+  # Update assignment_status on each assignment row
+  foreach ($assign in $assignments) {
+    $fgId = $assign.fg_id
+    $cartonId = $assign.carton_id
+    $status = $fgAssignmentStatus[$fgId]
+    if (-not $status) { $status = "SINGLE" }
+    $assign | Add-Member -MemberType NoteProperty -Name 'assignment_status' -Value $status -Force
+
+    # For MULTIPLE_CARTONS, the conflict_flag should indicate there are alternative cartons
+    if ($status -eq "MULTIPLE_CARTONS") {
+      $otherCartons = @($fgConflicts[$fgId] | Where-Object { $_ -ne $cartonId })
+      $assign.conflict_flag = "true"
+      $assign.conflict_detail = "Alternative carton assignments in latest BOM: $($otherCartons -join ', ')"
+    } elseif ($status -eq "QUANTITY_CONFLICT" -and $assign.conflict_flag -ne "true") {
+      $assign.conflict_flag = "true"
+      $qtys = $fgQuantityConflicts[$fgId].quantities
+      $assign.conflict_detail = "Conflicting BOM quantities for carton $cartonId`: $($qtys -join ', ')"
     }
   }
 
@@ -1344,7 +1403,7 @@ if ($rebuildNeeded) {
 
   Write-Log "Writing bom_carton_assignments.csv..."
   $assignExport = @($assignments)
-  if ($assignExport.Count -eq 0) { $assignExport = @([pscustomobject]@{ fg_id=""; fg_name=""; carton_id=""; carton_name=""; target_quantity=""; quantity_source=""; source_workbook=""; source_sheet=""; source_row=""; conflict_flag=""; conflict_detail="" }) }
+  if ($assignExport.Count -eq 0) { $assignExport = @([pscustomobject]@{ fg_id=""; fg_name=""; carton_id=""; carton_name=""; target_quantity=""; quantity_source=""; source_workbook=""; source_sheet=""; source_row=""; conflict_flag=""; conflict_detail=""; assignment_status="" }) }
   $assignExport | Export-Csv -Path (Join-Path $generatedDir 'bom_carton_assignments.csv') -NoTypeInformation -Encoding UTF8
 
   Write-Log "Writing carton_fg_reverse_index.csv..."

@@ -1319,6 +1319,14 @@
           <span id="auditMcNote" hidden></span>
         </label>
 
+        <label id="auditMcSelectLabel" hidden>
+          <span data-i18n="auditMcSelect">Select current production carton</span>
+          <select id="auditMcSelect" required>
+            <option value="" disabled selected data-i18n="auditMcSelectPrompt">— Select a carton assignment —</option>
+          </select>
+          <span id="auditMcSelectNote" class="audit-select-note"></span>
+        </label>
+
         <label>
           <span data-i18n="auditThreshold">Underutilization threshold (%)</span>
           <input id="auditThreshold" type="number" min="1" max="100" step="1" value="75">
@@ -1497,6 +1505,23 @@
           auditMcNone: "No Weekly BOM carton assignment found; enter carton manually",
           auditMcManual: "Manual carton override; editable",
           auditMcWaiting: "Waiting for Weekly BOM data",
+          auditMcSelect: "Select current production carton",
+          auditMcSelectPrompt: "— Select a carton assignment —",
+          auditMcMultipleNote: "Multiple carton assignments were found in the latest Weekly BOM. Select the current production carton.",
+          auditMcConflictNote: "Conflicting BOM quantities were found. Select the production quantity to audit.",
+          auditAssignmentSource: "Assignment source",
+          auditAssignmentLatestBom: "Latest Weekly BOM",
+          auditAssignmentUserSelected: "User-selected latest-BOM assignment",
+          auditAssignmentManual: "Manual override",
+          auditAssignmentNone: "No BOM assignment",
+          betterExistingFound: "BETTER EXISTING CARTON FOUND",
+          noBetterExistingFound: "NO BETTER EXISTING CARTON FOUND",
+          replaceCurrentValidationRequired: "REPLACE CURRENT CARTON — VALIDATION REQUIRED",
+          reviewRequiredIncomplete: "REVIEW REQUIRED — INCOMPLETE DATA",
+          currentCartonRemainsBest: "CURRENT CARTON REMAINS BEST",
+          adjustedUtilization: "Adjusted utilization",
+          auditBetterFoundSummary: "A better existing carton was found. Validate the suggested carton before changing the BOM.",
+          auditUnderNoBetter: "Current carton fits but is below the utilization threshold. No better existing carton was found.",
           auditCurrentCard: "Current carton check",
           auditSuggestionCard: "Best existing carton suggestion",
           auditClosestCard: "Best available existing carton — still does not fit",
@@ -1568,6 +1593,23 @@
           auditMcNone: "Không tìm thấy thùng trong BOM tuần; hãy nhập mã thùng thủ công",
           auditMcManual: "Đang dùng mã thùng nhập tay; có thể chỉnh sửa",
           auditMcWaiting: "Đang chờ dữ liệu BOM tuần",
+          auditMcSelect: "Chọn thùng sản xuất hiện tại",
+          auditMcSelectPrompt: "— Chọn một thùng trong BOM —",
+          auditMcMultipleNote: "Có nhiều mã thùng được tìm thấy trong BOM tuần mới nhất. Hãy chọn thùng sản xuất hiện tại.",
+          auditMcConflictNote: "Phát hiện số lượng BOM mâu thuẫn. Hãy chọn số lượng sản xuất để đánh giá.",
+          auditAssignmentSource: "Nguồn dữ liệu gán",
+          auditAssignmentLatestBom: "BOM tuần mới nhất",
+          auditAssignmentUserSelected: "Người dùng chọn từ BOM mới nhất",
+          auditAssignmentManual: "Nhập tay",
+          auditAssignmentNone: "Không có dữ liệu BOM",
+          betterExistingFound: "ĐÃ TÌM THẤY THÙNG TỐT HƠN",
+          noBetterExistingFound: "KHÔNG TÌM THẤY THÙNG TỐT HƠN",
+          replaceCurrentValidationRequired: "CẦN THAY THẾ THÙNG HIỆN TẠI — CẦN XÁC NHẬN",
+          reviewRequiredIncomplete: "CẦN XEM XÉT — DỮ LIỆU KHÔNG ĐẦY ĐỦ",
+          currentCartonRemainsBest: "THÙNG HIỆN TẠI VẪN LÀ TỐT NHẤT",
+          adjustedUtilization: "Tỷ lệ sử dụng đã điều chỉnh",
+          auditBetterFoundSummary: "Đã tìm thấy thùng hiện có tốt hơn. Hãy xác nhận thùng đề xuất trước khi thay đổi BOM.",
+          auditUnderNoBetter: "Thùng hiện tại vừa nhưng dưới ngưỡng tỷ lệ sử dụng. Không tìm thấy thùng hiện có nào tốt hơn.",
           auditCurrentCard: "Kiểm tra thùng hiện tại",
           auditSuggestionCard: "Thùng hiện có tốt nhất được đề xuất",
           auditClosestCard: "Thùng hiện có gần nhất — vẫn không vừa",
@@ -1932,16 +1974,18 @@
           const fgRows = rowsByFg.get(this.key(fg.fg_id)) || [];
           if (!fg.fg_name) fg.fg_name = String(fgRows.find(r => r.fgName)?.fgName || '').trim();
           const candidates = this.cartonCandidates(fgRows, data.cartons, fg.fg_id);
-          const preferred = candidates[0] || null;
           fg.bomCartonCandidates = candidates.map(r => String(r.itemNumber).trim());
-          fg.bomAssignmentFound = !!preferred;
+          fg.bomAssignmentFound = candidates.length > 0;
           fg.bomCartonAmbiguous = candidates.length > 1;
+          fg.assignmentStatus = candidates.length > 1 ? 'MULTIPLE_CARTONS' : candidates.length === 1 ? 'SINGLE' : '';
           fg.bomRows = fgRows;
-          fg.chosenBomCartonRow = preferred;
+          fg.chosenBomCartonRow = null;
           fg.sourceSheet = weeklyBom.source;
           fg.sourceName = weeklyBom.source;
           fg.sourceFormat = 'weekly_bom';
-          if (preferred) {
+          if (candidates.length === 1) {
+            const preferred = candidates[0];
+            fg.chosenBomCartonRow = preferred;
             const id = String(preferred.itemNumber).trim();
             const carton = cartonById.get(this.key(id));
             fg.assignedCartonId = id;
@@ -1961,6 +2005,13 @@
               fg.targetQty = NaN;
               fg.targetSource = 'weekly_bom_no_target';
             }
+          } else if (candidates.length > 1) {
+            fg.assignedCartonId = '';
+            fg.assignedCartonName = '';
+            fg.target = NaN;
+            fg.targetQty = NaN;
+            fg.assignmentSource = 'weekly_bom_multiple';
+            fg.targetSource = 'weekly_bom_ambiguous';
           } else {
             fg.assignedCartonId = '';
             fg.assignedCartonName = '';
@@ -1968,6 +2019,17 @@
             fg.targetQty = NaN;
             fg.assignmentSource = 'weekly_bom_missing';
             fg.targetSource = 'weekly_bom_missing';
+          }
+          if (fg._bomAssignments === undefined) {
+            fg._bomAssignments = candidates.map(c => ({
+              cartonId: String(c.itemNumber).trim(),
+              cartonName: String(c.productName || '').trim(),
+              targetQty: this.deriveTargetFromBomRow(c),
+              quantitySource: 'weekly_bom',
+              sourceWorkbook: String(weeklyBom.source || '').trim(),
+              sourceSheet: String(c.sourceSheet || '').trim(),
+              sourceRow: c.sourceRow || 0
+            }));
           }
         }
         data.weeklyBomSource = weeklyBom.source;
@@ -1994,15 +2056,38 @@
             if (fg.mvpAssignedCartonName === undefined) fg.mvpAssignedCartonName = String(fg.assignedCartonName || '').trim();
             const fgRows = rowsByFg.get(this.key(fg.fg_id)) || [];
             if (!fg.fg_name) fg.fg_name = String(fgRows.find(r => r.fgName)?.fgName || '').trim();
-            const candidates = this.cartonCandidates(fgRows, cartons, fg.fg_id), preferred = candidates[0] || null;
-            Object.assign(fg, { bomCartonCandidates: candidates.map(r => String(r.itemNumber).trim()), bomAssignmentFound: !!preferred, bomCartonAmbiguous: candidates.length > 1, bomRows: fgRows, chosenBomCartonRow: preferred, sourceSheet: weeklyBom.source, sourceName: weeklyBom.source, sourceFormat: 'weekly_bom' });
-            if (preferred) {
+            const candidates = this.cartonCandidates(fgRows, cartons, fg.fg_id);
+            fg.bomCartonCandidates = candidates.map(r => String(r.itemNumber).trim());
+            fg.bomAssignmentFound = candidates.length > 0;
+            fg.bomCartonAmbiguous = candidates.length > 1;
+            fg.assignmentStatus = candidates.length > 1 ? 'MULTIPLE_CARTONS' : candidates.length === 1 ? 'SINGLE' : '';
+            fg.bomRows = fgRows;
+            fg.chosenBomCartonRow = null;
+            fg.sourceSheet = weeklyBom.source;
+            fg.sourceName = weeklyBom.source;
+            fg.sourceFormat = 'weekly_bom';
+            if (candidates.length === 1) {
+              const preferred = candidates[0];
+              fg.chosenBomCartonRow = preferred;
               const id = String(preferred.itemNumber).trim(), carton = cartonById.get(this.key(id)), derivedTarget = this.deriveTargetFromBomRow(preferred), ps = Number(preferred?.perSeries), norm = Number(preferred?.norm);
               fg.assignedCartonId = id; fg.assignedCartonName = carton?.carton_name || String(preferred.productName || '').trim(); fg.assignmentSource = 'weekly_bom';
               if (!fg.fg_name) fg.fg_name = String(preferred.fgName || '').trim();
               if (Number.isInteger(derivedTarget) && derivedTarget > 0) { fg.target = derivedTarget; fg.targetQty = derivedTarget; fg.targetSource = Number.isFinite(ps) && ps > 1 ? 'weekly_bom_per_series' : Number.isFinite(norm) && norm > 0 ? 'weekly_bom_norm' : 'weekly_bom_quantity' }
               else { fg.target = NaN; fg.targetQty = NaN; fg.targetSource = 'weekly_bom_no_target' }
+            } else if (candidates.length > 1) {
+              fg.assignedCartonId = ''; fg.assignedCartonName = ''; fg.target = NaN; fg.targetQty = NaN; fg.assignmentSource = 'weekly_bom_multiple'; fg.targetSource = 'weekly_bom_ambiguous';
             } else { fg.assignedCartonId = ''; fg.assignedCartonName = ''; fg.target = NaN; fg.targetQty = NaN; fg.assignmentSource = 'weekly_bom_missing'; fg.targetSource = 'weekly_bom_missing' }
+            if (fg._bomAssignments === undefined) {
+              fg._bomAssignments = candidates.map(c => ({
+                cartonId: String(c.itemNumber).trim(),
+                cartonName: String(c.productName || '').trim(),
+                targetQty: this.deriveTargetFromBomRow(c),
+                quantitySource: 'weekly_bom',
+                sourceWorkbook: String(weeklyBom.source || '').trim(),
+                sourceSheet: String(c.sourceSheet || '').trim(),
+                sourceRow: c.sourceRow || 0
+              }));
+            }
           }
           progress?.updateTask({ current: rows.length + end, total, detail: `${end.toLocaleString()} / ${data.fgs.length.toLocaleString()} finished goods reconciled` }, taskId);
           if (progress?.isCancelled(taskId)) throw new TaskCancelledError(); await yieldToBrowser();
@@ -2911,6 +2996,41 @@
       }
       static decorate(candidate, baseline, target, options = {}) { candidate.recommendation = this.assess(candidate, baseline, target, options); return candidate }
       static compare(a, b) { const x = a.recommendation || {}, y = b.recommendation || {}; return RecommendationPolicy.evidenceRank(x.fitEvidenceClass) - RecommendationPolicy.evidenceRank(y.fitEvidenceClass) || Number(y.utilizationGain || 0) - Number(x.utilizationGain || 0) || Number(y.volumeReduction || 0) - Number(x.volumeReduction || 0) || Math.abs(Number(x.capacitySurplus || 0)) - Math.abs(Number(y.capacitySurplus || 0)) || Number(/^active$/i.test(String(b.carton?.lifecycle || ''))) - Number(/^active$/i.test(String(a.carton?.lifecycle || ''))) || Number(x.cartonVolume || 0) - Number(y.cartonVolume || 0) || String(a.carton?.carton_id || '').localeCompare(String(b.carton?.carton_id || ''), undefined, { numeric: true, sensitivity: 'base' }) }
+      static assessAudit(candidate, baseline, target, { estimatedAllowed = false } = {}) {
+        const values = this.values(candidate, target);
+        if (!baseline) return { ...values, adjustedUtilizationGain: 0, utilizationGain: 0, volumeReduction: 0, qualifies: values.passes && values.capacity >= target, decision: values.passes && values.capacity >= target ? 'ESTIMATED IMPROVEMENT — VALIDATION REQUIRED' : 'FITS BUT WORSE THAN CURRENT' };
+        const adjustedUtilizationGain = values.adjustedUtilization - baseline.adjustedUtilization;
+        const utilizationGain = values.utilization - baseline.utilization;
+        const volumeReduction = baseline.cartonVolume > 0 ? (baseline.cartonVolume - values.cartonVolume) / baseline.cartonVolume : 0;
+        const sameCarton = values.cartonId === normalizeId(baseline.cartonId);
+        const utilizationImproves = adjustedUtilizationGain >= this.MIN_UTILIZATION_GAIN;
+        const weakerEvidence = this.evidenceRank(values.fitEvidenceClass) > this.evidenceRank(baseline.fitEvidenceClass);
+        const estimated = this.evidenceRank(values.fitEvidenceClass) >= this.evidenceRank('FIT_WITH_MULTI_AXIS_ADJUSTMENT');
+        const evidenceProtected = weakerEvidence && estimated && (!estimatedAllowed || adjustedUtilizationGain < this.ESTIMATED_RESULT_MIN_GAIN);
+        const qualifies = values.passes && values.capacity >= target && values.capacitySurplus >= 0 && !sameCarton && utilizationImproves && !evidenceProtected;
+        const decision = sameCarton ? 'CURRENT CARTON REMAINS BEST' : qualifies && estimated ? 'ESTIMATED IMPROVEMENT — VALIDATION REQUIRED' : qualifies ? 'RECOMMENDED — MEANINGFUL IMPROVEMENT' : 'FITS BUT WORSE THAN CURRENT';
+        return { ...values, adjustedUtilizationGain, utilizationGain, volumeReduction, weakerEvidence, estimated, qualifies, decision };
+      }
+      static decorateAudit(candidate, baseline, target, options = {}) { candidate.recommendation = this.assessAudit(candidate, baseline, target, options); return candidate }
+      static compareAudit(a, b) {
+        const x = a.recommendation || {}, y = b.recommendation || {};
+        const adjA = Number(x.adjustedUtilization ?? 0), adjB = Number(y.adjustedUtilization ?? 0);
+        if (Number.isFinite(adjA) && Number.isFinite(adjB)) {
+          const diff = adjB - adjA;
+          if (Math.abs(diff) > 1e-9) return diff;
+        } else if (Number.isFinite(adjA)) return -1;
+        else if (Number.isFinite(adjB)) return 1;
+        const nominalA = (x.fitEvidenceClass === 'FIT_NOMINAL' || x.fitEvidenceClass === 'FIT_RECORDED_NOMINAL') ? 1 : 0;
+        const nominalB = (y.fitEvidenceClass === 'FIT_NOMINAL' || y.fitEvidenceClass === 'FIT_RECORDED_NOMINAL') ? 1 : 0;
+        if (nominalB !== nominalA) return nominalB - nominalA;
+        const volA = Number(x.cartonVolume ?? 0), volB = Number(y.cartonVolume ?? 0);
+        if (volA !== volB) return volA - volB;
+        const surpA = Math.abs(Number(x.capacitySurplus ?? 0)), surpB = Math.abs(Number(y.capacitySurplus ?? 0));
+        if (surpA !== surpB) return surpA - surpB;
+        const lifeA = Number(/^active$/i.test(String(a.carton?.lifecycle || ''))), lifeB = Number(/^active$/i.test(String(b.carton?.lifecycle || '')));
+        if (lifeB !== lifeA) return lifeB - lifeA;
+        return String(a.carton?.carton_id || '').localeCompare(String(b.carton?.carton_id || ''), undefined, { numeric: true, sensitivity: 'base' });
+      }
     }
 
     class DisabledLegacySharedDecisionEngine {
@@ -3524,17 +3644,34 @@
           const fgId = String(row.fg_id || '').trim();
           const cartonId = String(row.carton_id || '').trim();
           const targetQty = parseInt(row.target_quantity) || NaN;
-          
+          const status = String(row.assignment_status || 'SINGLE').trim();
+
           const fg = fgById.get(idKey(fgId));
           if (fg) {
-            fg.assignedCartonId = cartonId;
-            fg.assignedCartonName = String(row.carton_name || '').trim();
-            fg.mvpAssignedCartonId = cartonId;
-            fg.mvpAssignedCartonName = String(row.carton_name || '').trim();
-            fg.target = targetQty;
-            fg.targetSource = String(row.quantity_source || 'weekly_bom_norm').trim();
+            if (!fg._bomAssignments) fg._bomAssignments = [];
+            const dup = fg._bomAssignments.find(a => idKey(a.cartonId) === idKey(cartonId) && a.targetQty === targetQty);
+            if (!dup) {
+              fg._bomAssignments.push({ cartonId, cartonName: String(row.carton_name || '').trim(), targetQty, quantitySource: String(row.quantity_source || '').trim(), sourceWorkbook: String(row.source_workbook || '').trim(), sourceSheet: String(row.source_sheet || '').trim(), sourceRow: parseInt(row.source_row) || 0 });
+            }
+            fg.assignmentStatus = status;
             fg.bomAssignmentFound = true;
-            fg.bomCartonAmbiguous = false;
+            fg.bomCartonAmbiguous = status === 'MULTIPLE_CARTONS' || status === 'QUANTITY_CONFLICT';
+
+            if (status === 'SINGLE') {
+              fg.assignedCartonId = cartonId;
+              fg.assignedCartonName = String(row.carton_name || '').trim();
+              fg.mvpAssignedCartonId = cartonId;
+              fg.mvpAssignedCartonName = String(row.carton_name || '').trim();
+              fg.target = targetQty;
+              fg.targetSource = String(row.quantity_source || 'weekly_bom_norm').trim();
+            } else {
+              fg.assignedCartonId = '';
+              fg.assignedCartonName = '';
+              fg.mvpAssignedCartonId = '';
+              fg.mvpAssignedCartonName = '';
+              fg.target = NaN;
+              fg.targetSource = 'weekly_bom_ambiguous';
+            }
           }
 
           weeklyBomRows.push({
@@ -3550,7 +3687,8 @@
             sourceName: String(row.source_workbook || '').trim(),
             sourceSheet: String(row.source_sheet || '').trim(),
             sourceRow: parseInt(row.source_row) || 0,
-            sourceFormat: 'reconciled'
+            sourceFormat: 'reconciled',
+            assignmentStatus: status
           });
         });
 
@@ -3990,6 +4128,15 @@
           });
         }
 
+        const mcSelect = document.querySelector('#auditMcSelect');
+        if (mcSelect) {
+          mcSelect.addEventListener('change', () => {
+            this.auditMcUserEdited = false;
+            const submitBtn = document.querySelector('#auditForm button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = !mcSelect.value;
+          });
+        }
+
         const clearBtn = document.querySelector('#auditClearButton');
         if (clearBtn) {
           clearBtn.addEventListener('click', () => this.clearAuditModule());
@@ -4040,7 +4187,13 @@
         const fgInput = document.querySelector('#auditFgId');
         if (fgInput) fgInput.value = '';
         const mcInput = document.querySelector('#auditMcId');
-        if (mcInput) mcInput.value = '';
+        if (mcInput) { mcInput.value = ''; mcInput.parentElement.hidden = false; }
+        const mcSelect = document.querySelector('#auditMcSelect');
+        if (mcSelect) mcSelect.innerHTML = '<option value="" disabled selected>' + this.t('auditMcSelectPrompt') + '</option>';
+        const mcSelectLabel = document.querySelector('#auditMcSelectLabel');
+        if (mcSelectLabel) mcSelectLabel.hidden = true;
+        const submitBtn = document.querySelector('#auditForm button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = false;
         const thresholdInput = document.querySelector('#auditThreshold');
         if (thresholdInput) thresholdInput.value = '75';
         const pcSelect = document.querySelector('#auditProductionConfirmed');
@@ -4077,37 +4230,75 @@
       autoFillAuditMasterCarton() {
         const fgInput = document.querySelector('#auditFgId');
         const mcInput = document.querySelector('#auditMcId');
+        const mcSelect = document.querySelector('#auditMcSelect');
+        const mcSelectLabel = document.querySelector('#auditMcSelectLabel');
+        const mcSelectNote = document.querySelector('#auditMcSelectNote');
         const fgId = String(fgInput?.value || '').trim();
 
         if (!fgId) {
           this.updateAuditMcNote('enterFg');
+          this.hideAuditMcSelect();
           return;
         }
 
         if (!this.data) {
           this.updateAuditMcNote('waiting');
+          this.hideAuditMcSelect();
           return;
         }
 
+        const normId = value => String(value || '').trim().toUpperCase();
+        const fgKey = normId(fgId);
+        const fg = this.getFgForAudit(fgId);
+
+        const assignmentStatus = fg?.assignmentStatus || '';
+        const bomAssignments = fg?._bomAssignments || [];
+
+        if (assignmentStatus === 'SINGLE' && bomAssignments.length === 1) {
+          this.hideAuditMcSelect();
+          const assigned = bomAssignments[0].cartonId;
+          const current = String(mcInput?.value || '').trim();
+          const fgChanged = fgId !== this.lastAuditAutoFilledFgId;
+          const canOverwrite = !current || current === this.lastAuditAutoFilledCartonId || fgChanged || !this.auditMcUserEdited;
+          if (canOverwrite) {
+            mcInput.value = assigned;
+            this.lastAuditAutoFilledFgId = fgId;
+            this.lastAuditAutoFilledCartonId = assigned;
+            this.auditMcUserEdited = false;
+            this.updateAuditMcNote('auto');
+          }
+          return;
+        }
+
+        if ((assignmentStatus === 'MULTIPLE_CARTONS' || assignmentStatus === 'QUANTITY_CONFLICT') && bomAssignments.length > 0) {
+          this.hideAuditMcInput();
+          mcSelectLabel.hidden = false;
+          const currentVal = mcSelect.value;
+          mcSelect.innerHTML = '<option value="" disabled selected>' + this.t('auditMcSelectPrompt') + '</option>';
+          const seen = new Set();
+          bomAssignments.forEach(a => {
+            const key = normId(a.cartonId) + '|' + (a.targetQty || '');
+            if (seen.has(key)) return;
+            seen.add(key);
+            const opt = document.createElement('option');
+            opt.value = JSON.stringify({ cartonId: a.cartonId, targetQty: a.targetQty });
+            opt.textContent = a.cartonId + (a.targetQty ? ' — Qty ' + a.targetQty : '');
+            mcSelect.appendChild(opt);
+          });
+          if (currentVal) mcSelect.value = currentVal;
+          const submitBtn = document.querySelector('#auditForm button[type="submit"]');
+          if (submitBtn) submitBtn.disabled = true;
+          mcSelectNote.textContent = assignmentStatus === 'MULTIPLE_CARTONS' ? this.t('auditMcMultipleNote') : this.t('auditMcConflictNote');
+          mcSelectNote.className = 'audit-select-note warn';
+          this.auditMcUserEdited = false;
+          return;
+        }
+
+        this.hideAuditMcSelect();
         const assigned = this.findWeeklyBomAssignedCartonIdForAudit(fgId);
         const current = String(mcInput?.value || '').trim();
         const fgChanged = fgId !== this.lastAuditAutoFilledFgId;
-
-        const canOverwrite =
-          !current ||
-          current === this.lastAuditAutoFilledCartonId ||
-          fgChanged ||
-          !this.auditMcUserEdited;
-
-        if (assigned && canOverwrite) {
-          mcInput.value = assigned;
-          this.lastAuditAutoFilledFgId = fgId;
-          this.lastAuditAutoFilledCartonId = assigned;
-          this.auditMcUserEdited = false;
-          this.updateAuditMcNote('auto');
-          return;
-        }
-
+        const canOverwrite = !current || current === this.lastAuditAutoFilledCartonId || fgChanged || !this.auditMcUserEdited;
         if (!assigned && canOverwrite) {
           mcInput.value = '';
           this.lastAuditAutoFilledFgId = fgId;
@@ -4116,10 +4307,23 @@
           this.updateAuditMcNote('none');
           return;
         }
-
         if (this.auditMcUserEdited) {
           this.updateAuditMcNote('manual');
         }
+      }
+
+      hideAuditMcSelect() {
+        const sel = document.querySelector('#auditMcSelectLabel');
+        const mcInput = document.querySelector('#auditMcId');
+        if (sel) sel.hidden = true;
+        if (mcInput) mcInput.parentElement.hidden = false;
+        const submitBtn = document.querySelector('#auditForm button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = false;
+      }
+
+      hideAuditMcInput() {
+        const mcInput = document.querySelector('#auditMcId');
+        if (mcInput) mcInput.parentElement.hidden = true;
       }
 
       updateAuditMcNote(mode) {
@@ -4492,19 +4696,21 @@
           const cid = String(carton.carton_id || '').trim();
           if (/^SHARED-LINE/i.test(cid) || /^NPI-MC/i.test(cid) || /proposal/i.test(cid) || cid === 'ENGINEERING PROPOSAL') continue;
           const fit = this.evaluateAuditFit(fg, carton, targetQty);
-          const candidate = { carton, fit, classification: fit.classification, capacity: fit.capacity, utilization: fit.nominalUtilization, cartonVolume: Number(fit.raw?.cartonVolume)||this.boxVolumeMm3(carton) };
-          RecommendationPolicy.decorate(candidate, baseline, targetQty, { estimatedAllowed: isOptimizedMode() });
+          const candidate = { carton, fit, classification: fit.classification, capacity: fit.capacity, utilization: fit.adjustedUtilization, cartonVolume: Number(fit.raw?.cartonVolume)||this.boxVolumeMm3(carton) };
+          RecommendationPolicy.decorateAudit(candidate, baseline, targetQty, { estimatedAllowed: isOptimizedMode() });
           evaluatedCandidates.push(candidate);
         }
         const fittingCandidates = evaluatedCandidates.filter(c => c.fit.pass && c.fit.capacity >= targetQty && normId(c.carton.carton_id) !== currentIdKey);
         const closestCandidates = evaluatedCandidates.filter(c => !c.fit.pass);
-        const qualified = fittingCandidates.filter(candidate => candidate.recommendation.qualifies).sort(RecommendationPolicy.compare);
-        const worse = fittingCandidates.filter(candidate => !candidate.recommendation.qualifies).sort((a,b)=>b.fit.nominalUtilization-a.fit.nominalUtilization||String(a.carton.carton_id||'').localeCompare(String(b.carton.carton_id||''),undefined,{numeric:true,sensitivity:'base'}));
-        const topAlternatives = [...qualified, ...worse].slice(0, 5);
+        const sortedPassing = [...fittingCandidates].sort(RecommendationPolicy.compareAudit);
+        const qualified = sortedPassing.filter(c => c.recommendation.qualifies);
+        const worse = sortedPassing.filter(c => !c.recommendation.qualifies);
+        const topAlternatives = sortedPassing.slice(0, 5);
+        const bestExisting = sortedPassing[0] || null;
         return {
           currentFit,
           baseline,
-          best: qualified[0] || null,
+          best: bestExisting,
           bestStillFails: false,
           fittingCandidates,
           closestCandidates,
@@ -4523,10 +4729,27 @@
 
         const fgInput = document.querySelector('#auditFgId');
         const mcInput = document.querySelector('#auditMcId');
+        const mcSelect = document.querySelector('#auditMcSelect');
         const thresholdInput = document.querySelector('#auditThreshold');
 
         const fgId = String(fgInput?.value || '').trim();
-        const mcId = String(mcInput?.value || '').trim();
+        let mcId, selectedTargetQty, assignmentSourceType = 'manual_override';
+
+        if (mcSelect && !mcSelect.parentElement.hidden && mcSelect.value) {
+          try {
+            const parsed = JSON.parse(mcSelect.value);
+            mcId = parsed.cartonId;
+            selectedTargetQty = parsed.targetQty;
+            assignmentSourceType = 'user_selected_bom';
+          } catch (e) {
+            this.renderAuditError('Invalid carton selection');
+            return;
+          }
+        } else {
+          mcId = String(mcInput?.value || '').trim();
+          assignmentSourceType = this.auditMcUserEdited ? 'manual_override' : 'latest_bom';
+        }
+
         const threshold = Number(thresholdInput?.value) || 75;
 
         if (!fgId || !mcId) {
@@ -4559,7 +4782,7 @@
           return;
         }
 
-        const targetQty = this.getAuditTargetQty(fgId, mcId, fg);
+        let targetQty = selectedTargetQty || this.getAuditTargetQty(fgId, mcId, fg);
         if (isNaN(targetQty) || targetQty <= 0) {
           this.renderAuditError(this.t('auditTargetMissing'));
           return;
@@ -4573,6 +4796,8 @@
           result.currentCarton = currentCarton;
           result.targetQty = targetQty;
           result.threshold = threshold;
+          result.assignmentSourceType = assignmentSourceType;
+          result.bomSourceName = this.weeklyBom?.source || (fg._bomAssignments?.[0]?.sourceWorkbook || '');
           this.progress.setPhase('GENERATING_NEW_CARTONS', this.t('engineeringProposal'), taskId);
           await this.progress.yieldToBrowser(taskId);
           const auditFg = { ...fg, target: targetQty };
@@ -4619,12 +4844,29 @@
         const summary = document.querySelector('#auditSummary');
         if (summary) {
           const currentFit = result.currentFit;
+          const bestExisting = result.best;
+          const currentAdjUtil = Number(currentFit.adjustedUtilization ?? currentFit.scenarioUtilization ?? 0);
+          const bestAdjUtil = bestExisting ? Number(bestExisting.recommendation?.adjustedUtilization ?? bestExisting.fit?.adjustedUtilization ?? 0) : 0;
+          const bestPasses = bestExisting?.fit?.pass === true;
+          const bestBetter = bestExisting && bestPasses && bestAdjUtil > currentAdjUtil + 0.001;
+
           if (!currentFit.pass) {
-            summary.className = currentFit.classification === 'BOM_CONFIRMED_MODEL_MISMATCH' ? 'audit-summary warn' : 'audit-summary bad';
-            summary.textContent = currentFit.classification === 'BOM_CONFIRMED_MODEL_MISMATCH' ? this.t('simplifiedBomMismatch') : this.t('auditNoFitSummary');
-          } else if (currentFit.utilization * 100 < result.threshold) {
+            if (currentFit.classification === 'BOM_CONFIRMED_MODEL_MISMATCH') {
+              summary.className = 'audit-summary warn';
+              summary.textContent = this.t('simplifiedBomMismatch');
+            } else if (bestBetter) {
+              summary.className = 'audit-summary warn';
+              summary.textContent = this.t('auditBetterFoundSummary');
+            } else {
+              summary.className = 'audit-summary bad';
+              summary.textContent = this.t('auditNoFitSummary');
+            }
+          } else if (bestBetter) {
             summary.className = 'audit-summary warn';
-            summary.textContent = this.t('auditUnderSummary');
+            summary.textContent = this.t('auditBetterFoundSummary');
+          } else if (currentAdjUtil * 100 < result.threshold) {
+            summary.className = 'audit-summary warn';
+            summary.textContent = this.t('auditUnderNoBetter');
           } else {
             summary.className = 'audit-summary good';
             summary.textContent = this.t('auditAcceptableSummary');
@@ -4650,10 +4892,34 @@
         const fit = result.currentFit;
         const targetQty = result.targetQty;
         const threshold = result.threshold;
+        const bestExisting = result.best;
 
         const isBomMismatch = fit.classification === 'BOM_CONFIRMED_MODEL_MISMATCH';
         const statusText = fit.pass ? this.t('auditPass') : isBomMismatch ? this.t('bomConfirmedModelMismatch') : this.t('auditFail');
         const statusClass = fit.pass ? 'good' : isBomMismatch ? 'warn' : 'bad';
+
+        const currentAdjUtil = Number(fit.adjustedUtilization ?? fit.scenarioUtilization ?? 0);
+        const bestAdjUtil = bestExisting ? Number(bestExisting.recommendation?.adjustedUtilization ?? bestExisting.fit?.adjustedUtilization ?? 0) : 0;
+        const bestPasses = bestExisting?.fit?.pass === true;
+        const bestBetter = bestExisting && bestPasses && bestAdjUtil > currentAdjUtil + 0.001;
+
+        let recDecision;
+        if (!fit.pass && bestExisting && bestPasses) {
+          recDecision = this.t('replaceCurrentValidationRequired');
+        } else if (bestBetter) {
+          recDecision = this.t('betterExistingFound');
+        } else if (!fit.pass && !bestPasses) {
+          recDecision = this.t('noBetterExistingFound');
+        } else if (!fit.pass) {
+          recDecision = this.t('reviewRequiredIncomplete');
+        } else {
+          recDecision = this.t('currentCartonRemainsBest');
+        }
+
+        const assignmentLabel = result.assignmentSourceType === 'manual_override' ? this.t('auditAssignmentManual') :
+          result.assignmentSourceType === 'user_selected_bom' ? this.t('auditAssignmentUserSelected') :
+          this.t('auditAssignmentLatestBom');
+        const bomSourceNote = result.bomSourceName ? ` (${escapeHtml(result.bomSourceName)})` : '';
 
         const fgDimsStr = dims(fg);
         const mcDimsStr = dims(currentCarton);
@@ -4664,15 +4930,16 @@
       <div class="audit-stats">
         <div><span>${escapeHtml(this.t('auditFgId'))}</span><strong>${escapeHtml(fg.fg_id)}</strong></div>
         <div><span>${escapeHtml(this.t('auditMcId'))}</span><strong>${escapeHtml(currentCarton.carton_id)}</strong></div>
+        <div><span>${escapeHtml(this.t('auditAssignmentSource'))}</span><strong>${escapeHtml(assignmentLabel)}${bomSourceNote}</strong></div>
         <div><span>${escapeHtml(this.t('auditTarget'))}</span><strong>${formatQuantity(targetQty)}</strong></div>
         <div><span>${escapeHtml(this.t('fgDimensionData'))}</span><strong>${escapeHtml(fgDimsStr)}</strong></div>
         <div><span>${escapeHtml(this.t('sourceCartonDimensions'))}</span><strong>${escapeHtml(mcDimsStr)}</strong></div>
         <div><span>${escapeHtml(this.t('usableInternalCartonDimensions'))}</span><strong>${escapeHtml(dims(fit.usableInternalCartonDimensions))}</strong></div>
         <div><span>${escapeHtml(this.t('capacity'))}</span><strong>${fmt(fit.capacity)}</strong></div>
         <div><span>${escapeHtml(this.t('auditShortage'))}</span><strong>${fmt(fit.shortage)}</strong></div>
-        <div><span>${escapeHtml(this.t('scenarioUtilization'))}</span><strong>${pct(fit.scenarioUtilization)}</strong></div>
+        <div><span>${escapeHtml(this.t('adjustedUtilization'))}</span><strong>${pct(currentAdjUtil)}</strong></div>
         <div><span>${escapeHtml(this.t('currentCartonVolume'))}</span><strong>${fmt(result.baseline.cartonVolume)} mm³</strong></div>
-        <div><span>${escapeHtml(this.t('recommendationDecision'))}</span><strong>CURRENT CARTON REMAINS BEST</strong></div>
+        <div><span>${escapeHtml(this.t('recommendationDecision'))}</span><strong>${escapeHtml(recDecision)}</strong></div>
       </div>
       ${noteValue ? `<div class="audit-explanation"><strong>${escapeHtml(this.t('packingEvidenceLabel'))}:</strong> ${escapeHtml(noteValue)}</div>` : ''}
       <div style="margin-top: 10px;">
@@ -4703,7 +4970,9 @@
         const bestVol = this.boxVolumeMm3(carton);
         const volReduction = currentVol - bestVol;
         const volRedPct = best.recommendation.volumeReduction;
-        const utilGain = best.recommendation.utilizationGain;
+        const adjUtilGain = best.recommendation.adjustedUtilizationGain ?? best.recommendation.utilizationGain ?? 0;
+        const bestAdjUtil = Number(best.recommendation?.adjustedUtilization ?? fit.adjustedUtilization ?? fit.scenarioUtilization ?? 0);
+        const currentAdjUtil = Number(result.baseline?.adjustedUtilization ?? result.currentFit?.adjustedUtilization ?? result.currentFit?.scenarioUtilization ?? 0);
 
         if (!bestStillFails) {
           cardEl.innerHTML = `
@@ -4714,9 +4983,9 @@
           <div><span>${escapeHtml(this.t('cartonName'))}</span><strong>${escapeHtml(carton.carton_name || '—')}</strong></div>
           <div><span>${escapeHtml(this.t('cartonDims'))}</span><strong>${escapeHtml(dims(carton))}</strong></div>
           <div><span>${escapeHtml(this.t('capacity'))}</span><strong>${fmt(fit.capacity)}</strong></div>
-          <div><span>${escapeHtml(this.t('scenarioUtilization'))}</span><strong class="mark-good">${pct(fit.scenarioUtilization)}</strong></div>
+          <div><span>${escapeHtml(this.t('adjustedUtilization'))}</span><strong class="mark-good">${pct(bestAdjUtil)}</strong></div>
           <div><span>${escapeHtml(this.t('volumeReduction'))}</span><strong>${signedPercent(volRedPct)} (${fmt(volReduction)} mm³)</strong></div>
-          <div><span>${escapeHtml(this.t('utilizationGain'))}</span><strong class="${utilGain >= 0 ? 'mark-good' : 'mark-bad'}">${signedPercentagePoints(utilGain)}</strong></div>
+          <div><span>${escapeHtml(this.t('utilizationGain'))}</span><strong class="${adjUtilGain >= 0 ? 'mark-good' : 'mark-bad'}">${signedPercentagePoints(adjUtilGain)}</strong></div>
           <div><span>${escapeHtml(this.t('currentCartonVolume'))}</span><strong>${fmt(currentVol)} mm³</strong></div>
           <div><span>${escapeHtml(this.t('candidateCartonVolume'))}</span><strong>${fmt(bestVol)} mm³</strong></div>
           <div><span>${escapeHtml(this.t('recommendationDecision'))}</span><strong>${escapeHtml(best.recommendation.decision)}</strong></div>
@@ -4779,21 +5048,25 @@
         alternatives.forEach((x, i) => {
           const carton = x.carton;
           const fit = x.fit;
-          const rank = x.recommendation?.qualifies ? result.qualifiedAlternatives.indexOf(x) + 1 : '—';
+          const rec = x.recommendation || {};
+          const sortedIndex = result.topAlternatives.indexOf(x);
+          const displayRank = rec.qualifies ? (sortedIndex >= 0 ? sortedIndex + 1 : '—') : '—';
+          const adjUtil = Number(rec.adjustedUtilization ?? fit.adjustedUtilization ?? fit.scenarioUtilization ?? 0);
+          const adjGain = Number(rec.adjustedUtilizationGain ?? rec.utilizationGain ?? 0);
           const tr = document.createElement('tr');
 
           const displayedDimensions=isQuickMode()?fit.usableInternalCartonDimensions:(fit.evaluatedCartonDimensions||fit.usableInternalCartonDimensions);
 
           tr.innerHTML = `
-        <td>${rank}</td>
+        <td>${displayRank}</td>
         <td><strong>${escapeHtml(carton.carton_id)}</strong></td>
         <td class="name-cell">${escapeHtml(carton.carton_name || '—')}</td>
         <td>${escapeHtml(dims(displayedDimensions))}${isQuickMode()?' internal':' evaluated'}</td>
         <td class="right num-cell">${fmt(fit.capacity)}</td>
-        <td class="right num-cell">${pct(fit.scenarioUtilization)}</td>
-        <td class="${x.recommendation.utilizationGain>=0?'mark-good':'mark-bad'}">${signedPercentagePoints(x.recommendation.utilizationGain)}</td>
+        <td class="right num-cell">${pct(adjUtil)}</td>
+        <td class="${adjGain>=0?'mark-good':'mark-bad'}">${signedPercentagePoints(adjGain)}</td>
         <td class="audit-view-cell"><span class="drag-handle" aria-hidden="true" title="${escapeHtml(this.t('dragToSuggested'))}">⋮⋮</span><button type="button" class="view-btn audit-compare-btn" data-comparison-type="existing" data-carton-id="${escapeHtml(carton.carton_id)}">${escapeHtml(this.t('auditView3d'))}</button></td>
-        <td class="${x.recommendation.qualifies?'result-pass':'result-fail'}">${escapeHtml(x.recommendation.qualifies?x.recommendation.decision:this.t('notRecommendedWorse'))}</td>
+        <td class="${rec.qualifies?'result-pass':'result-fail'}">${escapeHtml(rec.qualifies?rec.decision:this.t('notRecommendedWorse'))}</td>
         <td>${escapeHtml(carton.lifecycle || '—')}</td>
       `;
 
