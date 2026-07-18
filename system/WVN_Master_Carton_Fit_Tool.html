@@ -1234,7 +1234,7 @@
         <label><span data-i18n="clearance">Clearance (mm)</span><input id="settingClearance" type="number" min="0" step="0.5" value="5"></label>
         <label><span data-i18n="roundingIncrement">Rounding increment (mm)</span><input id="settingRounding" type="number" min="1" step="1" value="5"></label>
       </div>
-      <p class="footnote" data-i18n="scenarioModelNote" data-optimized-mode-only>Fit checks nominal dimensions first, then searches independent FG and carton ratios from 0.90 to 1.10 on one axis at a time.</p>
+      <p class="footnote" data-i18n="scenarioModelNote" data-optimized-mode-only>FG axis ratios 0.90–1.10 · step 0.05 · fixed averaged carton dimensions</p>
       <p class="quick-assumptions" data-quick-mode-only data-i18n="quickModeAssumptions">Exact active FG dimensions · Exact source carton dimensions · Six orthogonal orientations · Rigid rectangular grid · No compression · No nesting · No diagonal placement</p>
       <p class="notice" data-i18n="engineeringAdvisory">Engineering advisory only — physical sample validation required.</p>
       </div>
@@ -1278,7 +1278,7 @@
               quantity</span><input id="manualQty" type="number" min="1" step="1" required value="3"
               placeholder="3"></label>
         </div>
-        <div class="form-block allowance-summary" data-optimized-mode-only><span data-i18n="fitScenarios">Fit scenarios</span><output id="manualAllowanceSummary">0.90–1.10 · 0.05 step · independent axis ratios</output><button id="openEngineeringSettings" type="button" data-i18n="engineeringAssumptions">Engineering assumptions</button></div>
+        <div class="form-block allowance-summary" data-optimized-mode-only><span data-i18n="fitScenarios">Fit scenarios</span><output id="manualAllowanceSummary">FG axis ratios 0.90–1.10 · step 0.05 · fixed averaged carton dimensions</output><button id="openEngineeringSettings" type="button" data-i18n="engineeringAssumptions">Engineering assumptions</button></div>
         <div class="manual-actions"><button class="primary" type="submit" data-i18n="checkCartons">Check
             cartons</button><button id="suggestSharedCartonBtn" type="button" data-i18n="suggestSharedCarton">Suggest
             shared carton line</button></div>
@@ -1321,7 +1321,7 @@
 
         <label id="auditMcSelectLabel" hidden>
           <span data-i18n="auditMcSelect">Select current production carton</span>
-          <select id="auditMcSelect" required>
+          <select id="auditMcSelect" disabled>
             <option value="" disabled selected data-i18n="auditMcSelectPrompt">— Select a carton assignment —</option>
           </select>
           <span id="auditMcSelectNote" class="audit-select-note"></span>
@@ -1384,7 +1384,7 @@
       </div>
       <details id="fgCalculationSettings" class="section expandable-panel" data-optimized-mode-only hidden>
         <summary><span data-i18n="calculationAndMeasurement">Calculation and measurement settings</span><span id="calculationSettingsSummary" class="source-note">Optimized Mode</span></summary>
-        <div class="expandable-panel-body"><div id="optimizedSettingsMount"></div><div class="note" data-i18n="optimizedModeDescription">Multi-axis utilization optimization enabled.</div><div class="source-note">FG/Carton axis ratios 0.90–1.10 · step 0.05 · maximum 20,000 scenarios / 1,500 ms</div></div>
+        <div class="expandable-panel-body"><div id="optimizedSettingsMount"></div><div class="note" data-i18n="optimizedModeDescription">Multi-axis utilization optimization enabled.</div><div class="source-note">FG axis ratios 0.90–1.10 · step 0.05 · fixed averaged carton dimensions · maximum 20,000 scenarios / 1,500 ms</div></div>
       </details>
     </section>
     <section id="linkagePanel" class="section linkage-panel workflow-panel" data-workflow-panel="fg-lookup" hidden>
@@ -1735,15 +1735,15 @@
         Object.assign(this.text.vi, {
           workflows:'Quy trình', dashboard:'Bảng điều khiển', newProductNav:'Sản phẩm mới', fgLookup:'Tra cứu FG', cartonAudit:'Đánh giá thùng', batchAudit:'Đánh giá hàng loạt', cartonLookup:'Tra cứu thùng', cancelTask:'Hủy', cancellingTask:'Đang hủy an toàn…', processing:'Đang xử lý', loadingData:'Đang tải dữ liệu', engineeringAssumptions:'Giả định kỹ thuật', engineeringAdvisory:'Chỉ dùng để tư vấn. Xác nhận vật liệu thùng, định lượng giấy, độ nén, quy định, xếp pallet và mẫu thực tế trước khi phát hành.', fgMeasurementError:'Sai số đo FG (± mm)', cartonMeasurementError:'Sai số đo thùng (± mm)', wallThickness:'Độ dày thành (mm / mặt)', foldDeduction:'Khấu trừ miệng / nếp gấp (mm)', openingAxis:'Trục mở thùng', autoUnknown:'Tự động / chưa biết (xấu nhất)', minimumUtilization:'Mức sử dụng tối thiểu (%)', clearance:'Khoảng hở đóng gói (mm)', roundingIncrement:'Làm tròn đề xuất (mm)', batchAuditNote:'Đánh giá mọi FG đủ điều kiện bằng cùng quy tắc fit bảo thủ và đề xuất.', runBatchAudit:'Chạy đánh giá hàng loạt', exportCsv:'Xuất CSV', all:'Tất cả kết quả', under85:'Dưới ngưỡng', searchIncomplete:'Tìm kiếm chưa hoàn tất', missingData:'Thiếu dữ liệu', replacementAvailable:'Có thùng thay thế', newCartonRequired:'Cần thùng mới', bomConflict:'Xung đột BOM', lookupCarton:'Tra cứu thùng', auditAllUsingCarton:'Đánh giá mọi FG dùng thùng này', sideBySideComparison:'So sánh đóng gói song song', currentBaseline:'Hiện tại / cơ sở', suggestedAlternative:'Phương án đề xuất', syncViews:'Đồng bộ góc nhìn', ghost:'Khung mờ', buildingIndexes:'Đang tạo chỉ mục', rowsIndexed:'dòng đã lập chỉ mục', missingFgDimensions:'Thiếu kích thước FG', missingTarget:'Thiếu số lượng mục tiêu', missingCartonAssignment:'Thiếu gán thùng', missingCartonDimensions:'Thiếu kích thước thùng', openingAxisUnknownWarning:'Chưa biết trục mở; sử dụng khấu trừ bảo thủ nhất trong ba trục.', invalidCartonDimensions:'Kích thước ngoài của thùng bị thiếu hoặc không hợp lệ.', deductionsExceedDimensions:'Khấu trừ thành, sai số đo hoặc nếp gấp vượt kích thước thùng.', extremeAspectRatio:'Tỷ lệ kích thước thùng quá lớn; cần kỹ thuật xem xét.', dataReady:'Dữ liệu sẵn sàng', dataNotReady:'Dữ liệu chưa sẵn sàng', eligibleFgs:'FG đủ điều kiện', finishedGoods:'Thành phẩm', activeCartons:'Thùng đang hoạt động', bomRows:'Dòng BOM', phase:'Giai đoạn', status:'Trạng thái', warnings:'Cảnh báo', bestExisting:'Thùng hiện có tốt nhất', bestNew:'Thùng mới tốt nhất', utilizationPct:'Mức sử dụng %', searchComplete:'Tìm kiếm hoàn tất', cartonUsers:'FG được gán', noResults:'Không có kết quả', auditComplete:'Đánh giá hàng loạt hoàn tất', batchCancelled:'Đã hủy đánh giá hàng loạt', cartonNotIndexed:'Không tìm thấy thùng trong dữ liệu đã tải.', noCartonUsers:'Không có FG nào được gán cho thùng này.', portfolioConsolidation:'Cơ hội hợp nhất danh mục', dimensionModel:'Mô hình kích thước ngoài sang trong', quickBatchAudit:'Đánh giá nhanh hàng loạt', optimizedBatchSuggestions:'Đề xuất tối ưu hàng loạt', cartonLineReduction:'Giảm dòng thùng', runQuickBatchAudit:'Chạy đánh giá nhanh hàng loạt', runOptimizedBatchSuggestions:'Chạy đề xuất tối ưu hàng loạt', runCartonLineReduction:'Chạy phân tích giảm dòng thùng', quickBatchDescription:'Kiểm tra thùng BOM hiện tại và phương án thay thế bằng kích thước chính xác đang dùng.', optimizedBatchDescription:'Sàng lọc thùng hiện có bằng Chế độ nhanh, sau đó áp dụng 125 tổ hợp tỷ lệ FG với bước 0,05 cho các ứng viên.', consolidationBatchDescription:'Đề xuất cách các FG hiện có có thể dùng chung ít mã thùng hơn bằng phân tích set-cover tham lam.', consolidationAdvisory:'Ứng viên hợp nhất tiềm năng — cần xác nhận sản xuất và kỹ thuật.', noConsolidationResults:'Không có kết quả giảm dòng thùng nào. Hãy chạy chế độ Batch Audit phù hợp trước.', nominalFit:'VỪA DANH NGHĨA', fgRatioEstimatedFit:'VỪA THEO TỶ LỆ FG ƯỚC TÍNH', noFitLabel:'KHÔNG VỪA'
         });
-        Object.assign(this.text.en, { fitScenarios:'Fit scenarios', scenarioModelNote:'Fit checks nominal dimensions first, then searches independent FG and carton ratios from 0.90 to 1.10 on one axis at a time.', searchObjective:'Search objective', closestValidFit:'Closest valid fit', highestUtilization:'Highest utilization', searchingLengthRatios:'Searching length ratios…', searchingWidthRatios:'Searching width ratios…', searchingHeightRatios:'Searching height ratios…', rankingBestFit:'Ranking best fit…', fit:'FIT — NOMINAL', fitWithAllowance:'FIT WITH ESTIMATED RATIO ADJUSTMENT', bomConfirmedModelMismatch:'BOM CONFIRMED — MODEL MISMATCH', simplifiedBomMismatch:'Current BOM pairing — simplified model could not reproduce the packing. Check measured dimensions or actual production arrangement.', below85Warning:'Fits, but utilization is below the 85% target.', selectedScenario:'Selected scenario', adjustedAxis:'Adjusted axis', adjustmentPercentage:'Percentage adjustment', fgCartonMultipliers:'FG / carton ratios', compactBomReady:'Compact carton BOM index loaded', compactBomFallback:'Compact carton BOM preprocessing was unavailable. The browser is using the full workbook fallback.', wallAllowance:'No wall deduction is applied by the fit model', proposalFootnote:'Generated dimensions use the continuous single-axis ratio fit model, 5 mm clearance, and the shared rounding increment. Physical sample validation is required.', nominalUtilization:'Nominal utilization', scenarioUtilization:'Adjusted utilization', evaluatedDimensions:'Evaluated dimensions', nominalDimensions:'Nominal dimensions', adjustedScenarioConfirmation:'Fit found using estimated dimension ratios. Physical confirmation is required.' });
-        Object.assign(this.text.vi, { fitScenarios:'Kịch bản xếp thùng', scenarioModelNote:'Phép tính kiểm tra kích thước danh nghĩa trước, sau đó tìm tỷ lệ FG và thùng độc lập từ 0,90 đến 1,10 trên từng trục riêng.', searchObjective:'Mục tiêu tìm kiếm', closestValidFit:'Cách vừa gần danh nghĩa nhất', highestUtilization:'Mức sử dụng cao nhất', searchingLengthRatios:'Đang tìm tỷ lệ chiều dài…', searchingWidthRatios:'Đang tìm tỷ lệ chiều rộng…', searchingHeightRatios:'Đang tìm tỷ lệ chiều cao…', rankingBestFit:'Đang xếp hạng cách vừa tốt nhất…', fit:'VỪA — DANH NGHĨA', fitWithAllowance:'VỪA KHI ĐIỀU CHỈNH TỶ LỆ ƯỚC TÍNH', bomConfirmedModelMismatch:'BOM ĐÃ XÁC NHẬN — MÔ HÌNH KHÔNG KHỚP', simplifiedBomMismatch:'Cặp BOM hiện tại — mô hình đơn giản không tái hiện được cách xếp. Kiểm tra kích thước đo thực tế hoặc cách đóng gói sản xuất.', below85Warning:'Vừa, nhưng mức sử dụng thấp hơn mục tiêu 85%.', selectedScenario:'Kịch bản đã chọn', adjustedAxis:'Trục điều chỉnh', adjustmentPercentage:'Phần trăm điều chỉnh', fgCartonMultipliers:'Tỷ lệ FG / thùng', compactBomReady:'Đã tải chỉ mục BOM thùng gọn nhẹ', compactBomFallback:'Không có dữ liệu BOM thùng đã tiền xử lý. Trình duyệt đang dùng phương án dự phòng đọc toàn bộ workbook.', wallAllowance:'Mô hình fit không khấu trừ độ dày thành thùng', proposalFootnote:'Kích thước đề xuất dùng mô hình tỷ lệ liên tục một trục, khoảng hở 5 mm và bước làm tròn dùng chung. Cần xác nhận bằng mẫu thực tế.', nominalUtilization:'Mức sử dụng danh nghĩa', scenarioUtilization:'Mức sử dụng đã điều chỉnh', evaluatedDimensions:'Kích thước đã đánh giá', nominalDimensions:'Kích thước danh nghĩa', adjustedScenarioConfirmation:'Đã tìm thấy cách vừa bằng tỷ lệ kích thước ước tính. Cần xác nhận thực tế.' });
+        Object.assign(this.text.en, { fitScenarios:'Fit scenarios', scenarioModelNote:'FG axis ratios 0.90–1.10 · step 0.05 · fixed averaged carton dimensions', searchObjective:'Search objective', closestValidFit:'Closest valid fit', highestUtilization:'Highest utilization', searchingLengthRatios:'Searching length ratios…', searchingWidthRatios:'Searching width ratios…', searchingHeightRatios:'Searching height ratios…', rankingBestFit:'Ranking best fit…', fit:'FIT — NOMINAL', fitWithAllowance:'FIT WITH ESTIMATED RATIO ADJUSTMENT', bomConfirmedModelMismatch:'BOM CONFIRMED — MODEL MISMATCH', simplifiedBomMismatch:'Current BOM pairing — simplified model could not reproduce the packing. Check measured dimensions or actual production arrangement.', below85Warning:'Fits, but utilization is below the 85% target.', selectedScenario:'Selected scenario', adjustedAxis:'Adjusted axis', adjustmentPercentage:'Percentage adjustment', fgCartonMultipliers:'FG / carton ratios', compactBomReady:'Compact carton BOM index loaded', compactBomFallback:'Compact carton BOM preprocessing was unavailable. The browser is using the full workbook fallback.', wallAllowance:'No wall deduction is applied by the fit model', proposalFootnote:'Generated dimensions use the continuous single-axis ratio fit model, 5 mm clearance, and the shared rounding increment. Physical sample validation is required.', nominalUtilization:'Nominal utilization', scenarioUtilization:'Adjusted utilization', evaluatedDimensions:'Evaluated dimensions', nominalDimensions:'Nominal dimensions', adjustedScenarioConfirmation:'Fit found using estimated dimension ratios. Physical confirmation is required.' });
+        Object.assign(this.text.vi, { fitScenarios:'Kịch bản xếp thùng', scenarioModelNote:'Tỷ lệ trục FG 0,90–1,10 · bước 0,05 · kích thước thùng trung bình cố định', searchObjective:'Mục tiêu tìm kiếm', closestValidFit:'Cách vừa gần danh nghĩa nhất', highestUtilization:'Mức sử dụng cao nhất', searchingLengthRatios:'Đang tìm tỷ lệ chiều dài…', searchingWidthRatios:'Đang tìm tỷ lệ chiều rộng…', searchingHeightRatios:'Đang tìm tỷ lệ chiều cao…', rankingBestFit:'Đang xếp hạng cách vừa tốt nhất…', fit:'VỪA — DANH NGHĨA', fitWithAllowance:'VỪA KHI ĐIỀU CHỈNH TỶ LỆ ƯỚC TÍNH', bomConfirmedModelMismatch:'BOM ĐÃ XÁC NHẬN — MÔ HÌNH KHÔNG KHỚP', simplifiedBomMismatch:'Cặp BOM hiện tại — mô hình đơn giản không tái hiện được cách xếp. Kiểm tra kích thước đo thực tế hoặc cách đóng gói sản xuất.', below85Warning:'Vừa, nhưng mức sử dụng thấp hơn mục tiêu 85%.', selectedScenario:'Kịch bản đã chọn', adjustedAxis:'Trục điều chỉnh', adjustmentPercentage:'Phần trăm điều chỉnh', fgCartonMultipliers:'Tỷ lệ FG / thùng', compactBomReady:'Đã tải chỉ mục BOM thùng gọn nhẹ', compactBomFallback:'Không có dữ liệu BOM thùng đã tiền xử lý. Trình duyệt đang dùng phương án dự phòng đọc toàn bộ workbook.', wallAllowance:'Mô hình fit không khấu trừ độ dày thành thùng', proposalFootnote:'Kích thước đề xuất dùng mô hình tỷ lệ liên tục một trục, khoảng hở 5 mm và bước làm tròn dùng chung. Cần xác nhận bằng mẫu thực tế.', nominalUtilization:'Mức sử dụng danh nghĩa', scenarioUtilization:'Mức sử dụng đã điều chỉnh', evaluatedDimensions:'Kích thước đã đánh giá', nominalDimensions:'Kích thước danh nghĩa', adjustedScenarioConfirmation:'Đã tìm thấy cách vừa bằng tỷ lệ kích thước ước tính. Cần xác nhận thực tế.' });
         for (const key of ['addNpi', 'sessionAdded', 'duplicateId', 'applyOptimized', 'overrideApplied']) { delete this.text.en[key]; delete this.text.vi[key] }
       }
-      static { Object.assign(this.text.en,{remeasuredLength:'Remeasured FG length (mm)',remeasuredWidth:'Remeasured FG width (mm)',remeasuredHeight:'Remeasured FG height (mm)',applyRemeasurement:'Apply remeasurement',clearRemeasurement:'Clear',searchLimitReached:'SEARCH LIMIT REACHED',searchingMultiAxisRatios:'Searching multi-axis ratios…',scenarioModelNote:'Fit checks remeasured dimensions first, workbook dimensions second, then searches six independent ratios from 0.90 to 1.10 with a bounded best-first search.',adjustedScenarioConfirmation:'Estimated fit based on multi-axis measurement variation. Physical confirmation required.'}); Object.assign(this.text.vi,{remeasuredLength:'Chiều dài FG đo lại (mm)',remeasuredWidth:'Chiều rộng FG đo lại (mm)',remeasuredHeight:'Chiều cao FG đo lại (mm)',applyRemeasurement:'Áp dụng số đo lại',clearRemeasurement:'Xóa',searchLimitReached:'ĐÃ ĐẠT GIỚI HẠN TÌM KIẾM',searchingMultiAxisRatios:'Đang tìm tỷ lệ đa trục…',scenarioModelNote:'Kiểm tra kích thước đo lại trước, kích thước workbook sau, rồi tìm sáu tỷ lệ độc lập từ 0,90 đến 1,10 bằng tìm kiếm ưu tiên có giới hạn.',adjustedScenarioConfirmation:'Ước tính vừa dựa trên biến thiên đo lường đa trục. Cần xác nhận thực tế.'}) }
+      static { Object.assign(this.text.en,{remeasuredLength:'Remeasured FG length (mm)',remeasuredWidth:'Remeasured FG width (mm)',remeasuredHeight:'Remeasured FG height (mm)',applyRemeasurement:'Apply remeasurement',clearRemeasurement:'Clear',searchLimitReached:'SEARCH LIMIT REACHED',searchingMultiAxisRatios:'Searching multi-axis ratios…',scenarioModelNote:'Optimized Mode keeps the launcher-averaged carton dimensions fixed and evaluates FG length, width, and height ratios from 0.90 to 1.10 in 0.05 steps.',adjustedScenarioConfirmation:'Estimated fit based on multi-axis measurement variation. Physical confirmation required.'}); Object.assign(this.text.vi,{remeasuredLength:'Chiều dài FG đo lại (mm)',remeasuredWidth:'Chiều rộng FG đo lại (mm)',remeasuredHeight:'Chiều cao FG đo lại (mm)',applyRemeasurement:'Áp dụng số đo lại',clearRemeasurement:'Xóa',searchLimitReached:'ĐÃ ĐẠT GIỚI HẠN TÌM KIẾM',searchingMultiAxisRatios:'Đang tìm tỷ lệ đa trục…',scenarioModelNote:'Chế độ Tối ưu giữ cố định kích thước thùng trung bình do launcher chuẩn bị và kiểm tra tỷ lệ dài, rộng và cao của FG từ 0,90 đến 1,10 với bước 0,05.',adjustedScenarioConfirmation:'Ước tính vừa dựa trên biến thiên đo lường đa trục. Cần xác nhận thực tế.'}) }
       static { Object.assign(this.text.en,{bestWithinLimit:'Best candidate found within the configured search limit.'}); Object.assign(this.text.vi,{bestWithinLimit:'Ứng viên tốt nhất tìm được trong giới hạn tìm kiếm đã cấu hình.'}) }
       static { Object.assign(this.text.en,{calculationAndMeasurement:'Calculation and measurement settings',physicalValidationRequired:'Physical sample validation required',targetQuantity:'Target quantity',estimatedRemaining:'Estimated remaining',estimatingTime:'Estimated remaining: calculating…',fewSeconds:'a few seconds',finishing:'Finishing…',completedIn:'Completed in {time}',missingDimensionQueryComplete:'Missing-dimension data query complete',noFitCalculations:'No fit calculations were performed.',missingDataIssue:'Missing-data issue',assignmentSource:'Assignment source',dimensionSource:'Dimension source',recommendedAction:'Recommended action',totalMissingRecords:'Total missing-data records',cartonRecordsNotFound:'Carton records not found',bothDimensionsMissing:'Both FG and carton missing'}); Object.assign(this.text.vi,{calculationAndMeasurement:'Cài đặt tính toán và đo thực tế',physicalValidationRequired:'Cần xác nhận bằng mẫu thực tế',targetQuantity:'Số lượng mục tiêu',estimatedRemaining:'Thời gian còn lại dự kiến',estimatingTime:'Thời gian còn lại: đang ước tính…',fewSeconds:'vài giây',finishing:'Đang hoàn tất…',completedIn:'Hoàn tất trong {time}',missingDimensionQueryComplete:'Truy vấn dữ liệu thiếu kích thước đã hoàn tất',noFitCalculations:'Không thực hiện phép tính độ vừa.',missingDataIssue:'Loại dữ liệu thiếu',assignmentSource:'Nguồn gán thùng',dimensionSource:'Nguồn kích thước',recommendedAction:'Hành động đề xuất',totalMissingRecords:'Tổng bản ghi thiếu dữ liệu',cartonRecordsNotFound:'Không tìm thấy bản ghi thùng',bothDimensionsMissing:'Thiếu cả kích thước FG và thùng'}) }
       static { Object.assign(this.text.en,{betterExistingCarton:'Better existing carton',currentCartonBest:'Current BOM carton is the best qualifying existing option.',noMeaningfulImprovement:'No existing carton provides a meaningful utilization or carton-volume improvement.',noBetterAlternative:'No better existing-carton alternative found. Current BOM carton remains the recommended option.',currentUtilization:'Current utilization',candidateUtilization:'Candidate utilization',utilizationGain:'Utilization gain',currentCartonVolume:'Current carton volume',candidateCartonVolume:'Candidate carton volume',volumeReduction:'Volume reduction',capacitySurplusChange:'Capacity-surplus change',evidenceClass:'Evidence class',recommendationDecision:'Recommendation decision',notRecommendedWorse:'Not recommended — worse than current carton'}); Object.assign(this.text.vi,{betterExistingCarton:'Thùng hiện có tốt hơn',currentCartonBest:'Thùng BOM hiện tại là lựa chọn hiện có đạt tiêu chí tốt nhất.',noMeaningfulImprovement:'Không có thùng hiện có nào cải thiện đáng kể mức sử dụng hoặc thể tích thùng.',noBetterAlternative:'Không tìm thấy thùng hiện có tốt hơn. Thùng BOM hiện tại vẫn là lựa chọn đề xuất.',currentUtilization:'Mức sử dụng hiện tại',candidateUtilization:'Mức sử dụng ứng viên',utilizationGain:'Mức tăng sử dụng',currentCartonVolume:'Thể tích thùng hiện tại',candidateCartonVolume:'Thể tích thùng ứng viên',volumeReduction:'Mức giảm thể tích',capacitySurplusChange:'Thay đổi sức chứa dư',evidenceClass:'Cấp độ bằng chứng',recommendationDecision:'Quyết định đề xuất',notRecommendedWorse:'Không đề xuất — kém hơn thùng hiện tại'}) }
-      static { Object.assign(this.text.en,{quickMode:'⚡ Quick Mode',optimizedMode:'⚙ Optimized Mode',enterRemeasurement:'Enter remeasurement',exactValuesOnly:'Exact source dimensions only',optimizationEnabled:'Dimension optimization enabled',calculationMode:'Calculation mode',quickModeDescription:'Exact source values only. No tolerance or ratio adjustment.',optimizedModeDescription:'Multi-axis utilization optimization enabled.',quickModeAssumptions:'Exact active FG dimensions · Exact source carton dimensions · Six orthogonal orientations · Rigid rectangular grid · No compression · No nesting · No diagonal placement',fitRemeasuredExact:'FIT — EXACT REMEASURED DIMENSIONS',fitSourceExact:'FIT — EXACT SOURCE DIMENSIONS',doesNotFitExact:'DOES NOT FIT — EXACT VALUES',missingDimensionData:'MISSING DIMENSION DATA',optimizedModeSlow:'Optimized Mode may take significantly longer.'}); Object.assign(this.text.vi,{quickMode:'⚡ Chế độ nhanh',optimizedMode:'⚙ Chế độ tối ưu',enterRemeasurement:'Nhập kích thước đo lại',exactValuesOnly:'Chỉ dùng kích thước chính xác từ nguồn',optimizationEnabled:'Đã bật tối ưu kích thước',calculationMode:'Chế độ tính toán',quickModeDescription:'Chỉ dùng giá trị chính xác từ nguồn. Không áp dụng dung sai hoặc tỷ lệ.',optimizedModeDescription:'Đã bật tối ưu tỷ lệ sử dụng đa trục.',quickModeAssumptions:'Kích thước FG chính xác đang dùng · Kích thước thùng chính xác từ nguồn · Sáu hướng vuông góc · Lưới chữ nhật cứng · Không nén · Không lồng · Không đặt chéo',fitRemeasuredExact:'VỪA — KÍCH THƯỚC ĐO LẠI CHÍNH XÁC',fitSourceExact:'VỪA — KÍCH THƯỚC NGUỒN CHÍNH XÁC',doesNotFitExact:'KHÔNG VỪA — GIÁ TRỊ CHÍNH XÁC',missingDimensionData:'THIẾU DỮ LIỆU KÍCH THƯỚC',optimizedModeSlow:'Chế độ tối ưu có thể mất nhiều thời gian hơn.'}) }
+      static { Object.assign(this.text.en,{quickMode:'⚡ Quick Mode',optimizedMode:'⚙ Optimized Mode',enterRemeasurement:'Enter remeasurement',exactValuesOnly:'Exact source dimensions only',optimizationEnabled:'Dimension optimization enabled',calculationMode:'Calculation mode',quickModeDescription:'Exact source values only. No tolerance or ratio adjustment.',optimizedModeDescription:'FG axis ratios 0.90–1.10 · step 0.05 · fixed averaged carton dimensions',quickModeAssumptions:'Exact active FG dimensions · Exact source carton dimensions · Six orthogonal orientations · Rigid rectangular grid · No compression · No nesting · No diagonal placement',fitRemeasuredExact:'FIT — EXACT REMEASURED DIMENSIONS',fitSourceExact:'FIT — EXACT SOURCE DIMENSIONS',doesNotFitExact:'DOES NOT FIT — EXACT VALUES',missingDimensionData:'MISSING DIMENSION DATA',optimizedModeSlow:'Optimized Mode may take significantly longer.'}); Object.assign(this.text.vi,{quickMode:'⚡ Chế độ nhanh',optimizedMode:'⚙ Chế độ tối ưu',enterRemeasurement:'Nhập kích thước đo lại',exactValuesOnly:'Chỉ dùng kích thước chính xác từ nguồn',optimizationEnabled:'Đã bật tối ưu kích thước',calculationMode:'Chế độ tính toán',quickModeDescription:'Chỉ dùng giá trị chính xác từ nguồn. Không áp dụng dung sai hoặc tỷ lệ.',optimizedModeDescription:'Chế độ Tối ưu giữ cố định kích thước thùng trung bình do launcher chuẩn bị và kiểm tra tỷ lệ FG từ 0,90 đến 1,10, bước 0,05.',quickModeAssumptions:'Kích thước FG chính xác đang dùng · Kích thước thùng chính xác từ nguồn · Sáu hướng vuông góc · Lưới chữ nhật cứng · Không nén · Không lồng · Không đặt chéo',fitRemeasuredExact:'VỪA — KÍCH THƯỚC ĐO LẠI CHÍNH XÁC',fitSourceExact:'VỪA — KÍCH THƯỚC NGUỒN CHÍNH XÁC',doesNotFitExact:'KHÔNG VỪA — GIÁ TRỊ CHÍNH XÁC',missingDimensionData:'THIẾU DỮ LIỆU KÍCH THƯỚC',optimizedModeSlow:'Chế độ tối ưu có thể mất nhiều thời gian hơn.'}) }
       static { Object.assign(this.text.en,{sourceCartonDimensions:'Source carton dimensions',usableInternalCartonDimensions:'Usable internal carton dimensions',assumedWallThickness:'Assumed wall thickness',quickWallDeduction:'Quick Mode — exact source values with 5 mm carton wall deduction per side',quickInternalSource:'Quick Mode — source dimensions identified as internal; no wall deduction applied',quickOutsideAssumption:'Quick Mode assumption — source carton dimensions treated as outside dimensions with 5 mm walls per side',invalidQuickInternalDimensions:'Wall deduction produced invalid usable internal carton dimensions.',wallDeductionApplied:'Wall deduction applied',quickModeDescription:'Exact FG values and usable internal carton dimensions. No tolerance or ratio adjustment.',quickModeAssumptions:'Exact active FG dimensions · Source carton normalized once to usable internal dimensions · 5 mm wall per side unless marked internal · Six orthogonal orientations · Rigid rectangular grid · No compression · No nesting · No diagonal placement'}); Object.assign(this.text.vi,{sourceCartonDimensions:'Kích thước thùng từ nguồn',usableInternalCartonDimensions:'Kích thước trong sử dụng được',assumedWallThickness:'Độ dày thành thùng giả định',quickWallDeduction:'Chế độ nhanh — giá trị nguồn chính xác với khấu trừ thành thùng 5 mm mỗi bên',quickInternalSource:'Chế độ nhanh — kích thước nguồn được xác định là kích thước trong; không khấu trừ thành thùng',quickOutsideAssumption:'Giả định Chế độ nhanh — kích thước thùng nguồn là kích thước ngoài với thành 5 mm mỗi bên',invalidQuickInternalDimensions:'Khấu trừ thành thùng tạo ra kích thước trong không hợp lệ.',wallDeductionApplied:'Đã áp dụng khấu trừ thành thùng',quickModeDescription:'Dùng kích thước FG chính xác và kích thước trong sử dụng được của thùng. Không áp dụng dung sai hoặc tỷ lệ.',quickModeAssumptions:'Kích thước FG chính xác đang dùng · Chuẩn hóa kích thước thùng một lần sang kích thước trong · Thành thùng 5 mm mỗi bên trừ khi được đánh dấu là kích thước trong · Sáu hướng vuông góc · Lưới chữ nhật cứng · Không nén · Không lồng · Không đặt chéo'}) }
       static { Object.assign(this.text.en,{cartonWidth:'Carton width',launcherPreparedSource:'Launcher-prepared carton dimensions',wallThicknessPerSide:'Wall thickness per side',dragAlternativeHere:'Drag an alternative or proposal here, or select View 3D.',simpleGridCapacity:'Simple-grid capacity',dragToSuggested:'Drag to Suggested 3D view'}); Object.assign(this.text.vi,{cartonWidth:'Chiều rộng thùng',launcherPreparedSource:'Kích thước thùng đã được launcher chuẩn bị',wallThicknessPerSide:'Độ dày thành thùng mỗi bên',dragAlternativeHere:'Kéo một thùng thay thế hoặc đề xuất vào đây, hoặc chọn Xem 3D.',simpleGridCapacity:'Sức chứa lưới đơn giản',dragToSuggested:'Kéo vào chế độ xem 3D đề xuất'}) }
       static t(key, vars = {}) { let s = this.text[this.language][key] ?? this.text.en[key] ?? key; for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, v); return s }
@@ -3111,7 +3111,7 @@
           const end=Math.min(fgs.length,start+20);
           for(let i=start;i<end;i++){
             const fg=fgs[i],remeasuredFg=remeasuredByFg.get(normalizeId(fg.fg_id))||null,activeFg=remeasuredFg?{...fg,...remeasuredFg,target:fg.target}:fg,warnings=store.dataWarningsByFg.get(normalizeId(fg.fg_id))||[],assignedId=store.assignedCartonByFg.get(normalizeId(fg.fg_id))||'',carton=store.cartonById.get(assignedId),eligible=CartonFitEngine.validFG(activeFg)&&!!carton&&CartonFitEngine.validCarton(carton);
-            const decision=eligible?await SharedDecisionEngine.evaluateAllAsync(fg,carton,settings,{bomConfirmed:!!assignedId,objective:'exactValues',signal:{get aborted(){return progress?.isCancelled(taskId)||false}}}):null;
+            const decision=eligible?await SharedDecisionEngine.evaluateAllAsync(activeFg,carton,settings,{bomConfirmed:!!assignedId,objective:'exactValues',signal:{get aborted(){return progress?.isCancelled(taskId)||false}}}):null;
             const baseline=eligible&&decision?RecommendationPolicy.baseline(carton,decision,fg.target,decision.classification):null;
             let existing={recommendations:[]},bestNew=null;
             if(CartonFitEngine.validFG(activeFg)&&baseline&&(!decision?.passes||decision.nominalUtilization<threshold)){
@@ -3173,7 +3173,7 @@
           const fg=fgs[i],remeasuredFg=remeasuredByFg.get(normalizeId(fg.fg_id))||null,activeFg=remeasuredFg?{...fg,...remeasuredFg,target:fg.target}:fg,assignedId=store.assignedCartonByFg.get(normalizeId(fg.fg_id))||'',currentCarton=store.cartonById.get(assignedId);
           if(!CartonFitEngine.validFG(activeFg)||!currentCarton||!CartonFitEngine.validCarton(currentCarton)){rows.push(this.emptyRow(fg,activeFg,assignedId,store.dataWarningsByFg.get(normalizeId(fg.fg_id))||[],'MISSING_DATA','CARTON_LINE_REDUCTION'));continue}
           progress?.updateTask({phase:'EVALUATING_CURRENT',detail:`Evaluating: ${fg.fg_id||''}`,current:i+1,total:fgs.length},taskId);
-          const quickCurrent=await SharedDecisionEngine.evaluateAllAsync(fg,currentCarton,settings,{bomConfirmed:!!assignedId,objective:'exactValues',signal:{get aborted(){return progress?.isCancelled(taskId)||false}}});
+          const quickCurrent=await SharedDecisionEngine.evaluateAllAsync(activeFg,currentCarton,settings,{bomConfirmed:!!assignedId,objective:'exactValues',signal:{get aborted(){return progress?.isCancelled(taskId)||false}}});
           progress?.updateTask({phase:'QUICK_SCREENING',detail:`Screening: ${fg.fg_id||''}`,current:i+1,total:fgs.length},taskId);
           const shortlist=this.buildShortlist(activeFg,currentCarton,assignedId,cartons,fg.target);
           const candidates=[];
@@ -3181,10 +3181,10 @@
           AppState.calculationMode=CALCULATION_MODES.OPTIMIZED;
           for(const sc of shortlist){
             if(progress?.isCancelled(taskId))break;
-            let r;try{r=await SharedDecisionEngine.evaluateAllAsync(fg,sc,settings,{objective:'highestUtilization',signal:{get aborted(){return progress?.isCancelled(taskId)||false}}});}catch(_){continue}
+            let r;try{r=await SharedDecisionEngine.evaluateAllAsync(activeFg,sc,settings,{objective:'highestUtilization',signal:{get aborted(){return progress?.isCancelled(taskId)||false}}});}catch(_){continue}
             if(!r?.passes)continue;
             const u=r.adjustedUtilization||r.scenarioUtilization||r.nominalUtilization||0;
-            candidates.push({carton:sc,cartonId:normalizeId(sc.carton_id),utilization:u,capacity:r.capacity,ratios:r.ratios,isNominal:!r.totalAdjustment||r.totalAdjustment<1e-9,lifecycle:sc.lifecycle||'Active',searchComplete:r.searchComplete!==false});
+            candidates.push({carton:sc,cartonId:normalizeId(sc.carton_id),utilization:u,capacity:r.capacity,ratios:r.ratios,arrangement:r.arrangement,orientation:r.orientation,evaluatedFgDimensions:r.evaluatedFgDimensions,usableInternalCartonDimensions:r.usableInternalCartonDimensions,classification:r.classification,isNominal:!r.totalAdjustment||r.totalAdjustment<1e-9,lifecycle:sc.lifecycle||'Active',searchComplete:r.searchComplete!==false});
           }
           AppState.calculationMode=CALCULATION_MODES.QUICK;
           candidates.sort((a,b)=>b.utilization-a.utilization);
@@ -3251,9 +3251,15 @@
         const cartonByFgIndex=new Map();
         for(const sel of selection.selected){for(const idx of coverageGetIndices(sel.cartonId,fgCandidates)){if(!cartonByFgIndex.has(idx))cartonByFgIndex.set(idx,sel.cartonId)}}
         for(let i=0;i<fgCandidates.length;i++){
-          const fc=fgCandidates[i],assigned=assignedFgIndices.has(i),recCartonId=cartonByFgIndex.get(i)||'',recCarton=recCartonId?selection.selected.find(s=>s.cartonId===recCartonId):null;
+          const fc=fgCandidates[i],assigned=assignedFgIndices.has(i),recCartonId=cartonByFgIndex.get(i)||'',recCandidate=recCartonId?fc.candidates.find(c=>c.cartonId===recCartonId):null;
           const reason=!assigned?'No suitable existing carton found':recCartonId===fc.assignedId?'Current carton already in reduced portfolio':`Consolidated to reduce carton lines`;
-          rows.push({batchRunMode:'CARTON_LINE_REDUCTION',fg:fc.fg,fgId:fc.fg.fg_id,fgName:fc.fg.fg_name,fgDimensions:dims(fc.activeFg),sourceFgDimensions:dims(fc.activeFg),assignedCartonId:fc.assignedId,currentCartonId:fc.assignedId,recommendedCartonId:recCartonId,targetQty:fc.fg.target,capacity:fc.quickCurrent?.capacity??'',utilization:fc.quickCurrent?.nominalUtilization??'',status:fc.quickCurrent?.classification||'MISSING_DATA',searchStatus:assigned?'COVERED':'UNCOVERED',eligible:true,replacementAvailable:assigned&&recCartonId!==fc.assignedId,recommendationReason:reason,warnings:[]});
+          const isCurrentRetained=recCartonId===fc.assignedId;
+          const recCapacity=isCurrentRetained?(fc.quickCurrent?.capacity??''):(recCandidate?.capacity??'');
+          const recUtilization=isCurrentRetained?(fc.quickCurrent?.nominalUtilization??''):(recCandidate?.utilization??'');
+          const recFgRatios=isCurrentRetained?'':(recCandidate?.ratios?`${(recCandidate.ratios.fgLengthRatio||1).toFixed(2)}/${(recCandidate.ratios.fgWidthRatio||1).toFixed(2)}/${(recCandidate.ratios.fgHeightRatio||1).toFixed(2)}`:'');
+          const recScenarioFgDim=isCurrentRetained?'':(recCandidate?.evaluatedFgDimensions?dims(recCandidate.evaluatedFgDimensions):'');
+          const recArrangement=isCurrentRetained?(fc.quickCurrent?.arrangement??''):(recCandidate?.arrangement??'');
+          rows.push({batchRunMode:'CARTON_LINE_REDUCTION',fg:fc.fg,fgId:fc.fg.fg_id,fgName:fc.fg.fg_name,fgDimensions:dims(fc.activeFg),sourceFgDimensions:dims(fc.activeFg),scenarioFgDimensions:recScenarioFgDim,selectedFgRatios:recFgRatios,assignedCartonId:fc.assignedId,currentCartonId:fc.assignedId,currentCartonCapacity:fc.quickCurrent?.capacity??'',currentCartonUtilization:fc.quickCurrent?.nominalUtilization??'',currentCartonStatus:fc.quickCurrent?.classification||'MISSING_DATA',recommendedCartonId:recCartonId,recommendedCartonCapacity:recCapacity,recommendedCartonUtilization:recUtilization,recommendedCartonArrangement:recArrangement,recommendedFgRatios:recFgRatios,recommendedScenarioFgDimensions:recScenarioFgDim,recommendedSearchStatus:isCurrentRetained?'QUICK_COMPLETE':(recCandidate?.searchComplete?'OPTIMIZED_COMPLETE':'OPTIMIZED_LIMIT_REACHED'),arrangement:recArrangement,capacity:recCapacity,utilization:recUtilization,targetQty:fc.fg.target,status:isCurrentRetained?(fc.quickCurrent?.classification||'MISSING_DATA'):(recCandidate?.classification||(recCandidate?.capacity>0?'NOMINAL_FIT':'NO_FIT')),searchStatus:assigned?'COVERED':'UNCOVERED',eligible:true,replacementAvailable:assigned&&recCartonId!==fc.assignedId,recommendationReason:reason,warnings:[]});
         }
         const currentLineCount=[...new Set(fgCandidates.map(fc=>fc.assignedId).filter(Boolean))].length;
         const proposedLineCount=selection.selected.length;
@@ -3528,9 +3534,9 @@
         const number = (id, fallback) => { const n = Number(document.querySelector(`#${id}`)?.value); return Number.isFinite(n) && n >= 0 ? n : fallback };
         DimensionSettings.current={minimumUtilizationPct:number('settingMinUtil',85),clearanceMm:number('settingClearance',5),roundingIncrementMm:Math.max(1,number('settingRounding',5))};
         FitSettings.current={...FitSettings.defaults,searchObjective:getSearchObjective(),minimumUtilizationPct:DimensionSettings.current.minimumUtilizationPct,clearanceMm:DimensionSettings.current.clearanceMm,roundingIncrementMm:DimensionSettings.current.roundingIncrementMm};
-        const summary=document.querySelector('#manualAllowanceSummary');if(summary)summary.textContent='0.90–1.10 · 0.05 step · independent axis ratios';this.updateCalculationSettingsSummary();SharedDecisionEngine.clearCache();
+        const summary=document.querySelector('#manualAllowanceSummary');if(summary)summary.textContent='FG axis ratios 0.90–1.10 · step 0.05 · fixed averaged carton dimensions';this.updateCalculationSettingsSummary();SharedDecisionEngine.clearCache();
       }
-      updateToleranceLabels() { const summary=document.querySelector('#manualAllowanceSummary');if(summary)summary.textContent='0.90–1.10 · 0.05 step · independent axis ratios' }
+      updateToleranceLabels() { const summary=document.querySelector('#manualAllowanceSummary');if(summary)summary.textContent='FG axis ratios 0.90–1.10 · step 0.05 · fixed averaged carton dimensions' }
       updateBatchModeUi(){const filter=document.querySelector('#batchFilter')?.value||'all',mode=filter==='consolidation'?'consolidation':(document.querySelector('#batchRunMode')?.value||'quick'),button=document.querySelector('#batchRunButton'),desc=document.querySelector('#batchModeDescription');const labelMap={quick:'runQuickBatchAudit',optimized:'runOptimizedBatchSuggestions',consolidation:'runCartonLineReduction'};const descMap={quick:'quickBatchDescription',optimized:'optimizedBatchDescription',consolidation:'consolidationBatchDescription'};if(button)button.textContent=this.t(labelMap[mode]||'runQuickBatchAudit');if(desc)desc.textContent=this.t(descMap[mode]||'quickBatchDescription')}
       getBatchRunMode(){const filter=document.querySelector('#batchFilter')?.value||'all';if(filter==='consolidation')return'consolidation';return document.querySelector('#batchRunMode')?.value||'quick'}
       updateCalculationSettingsSummary(){const summary=document.querySelector('#calculationSettingsSummary');if(summary)summary.textContent=this.t(isOptimizedMode()?'optimizedMode':'quickMode')}
@@ -4180,6 +4186,9 @@
             }
           });
         }
+
+        this.setAuditCartonControlMode('manual');
+        this.updateAuditMcNote('enterFg');
       }
 
       clearAuditModule() {
@@ -4190,10 +4199,7 @@
         if (mcInput) { mcInput.value = ''; mcInput.parentElement.hidden = false; }
         const mcSelect = document.querySelector('#auditMcSelect');
         if (mcSelect) mcSelect.innerHTML = '<option value="" disabled selected>' + this.t('auditMcSelectPrompt') + '</option>';
-        const mcSelectLabel = document.querySelector('#auditMcSelectLabel');
-        if (mcSelectLabel) mcSelectLabel.hidden = true;
-        const submitBtn = document.querySelector('#auditForm button[type="submit"]');
-        if (submitBtn) submitBtn.disabled = false;
+        this.setAuditCartonControlMode('manual');
         const thresholdInput = document.querySelector('#auditThreshold');
         if (thresholdInput) thresholdInput.value = '75';
         const pcSelect = document.querySelector('#auditProductionConfirmed');
@@ -4237,32 +4243,33 @@
 
         if (!fgId) {
           this.updateAuditMcNote('enterFg');
-          this.hideAuditMcSelect();
+          this.setAuditCartonControlMode('manual');
           return;
         }
 
         if (!this.data) {
           this.updateAuditMcNote('waiting');
-          this.hideAuditMcSelect();
+          this.setAuditCartonControlMode('manual');
           return;
         }
 
         const normId = value => String(value || '').trim().toUpperCase();
         const fgKey = normId(fgId);
         const fg = this.getFgForAudit(fgId);
+        this._auditAutoFillRequestFgId = fgKey;
 
         const assignmentStatus = fg?.assignmentStatus || '';
         const bomAssignments = fg?._bomAssignments || [];
 
         if (assignmentStatus === 'SINGLE' && bomAssignments.length === 1) {
-          this.hideAuditMcSelect();
+          this.setAuditCartonControlMode('manual');
           const assigned = bomAssignments[0].cartonId;
           const current = String(mcInput?.value || '').trim();
-          const fgChanged = fgId !== this.lastAuditAutoFilledFgId;
+          const fgChanged = fgKey !== this.lastAuditAutoFilledFgId;
           const canOverwrite = !current || current === this.lastAuditAutoFilledCartonId || fgChanged || !this.auditMcUserEdited;
           if (canOverwrite) {
             mcInput.value = assigned;
-            this.lastAuditAutoFilledFgId = fgId;
+            this.lastAuditAutoFilledFgId = fgKey;
             this.lastAuditAutoFilledCartonId = assigned;
             this.auditMcUserEdited = false;
             this.updateAuditMcNote('auto');
@@ -4271,9 +4278,8 @@
         }
 
         if ((assignmentStatus === 'MULTIPLE_CARTONS' || assignmentStatus === 'QUANTITY_CONFLICT') && bomAssignments.length > 0) {
-          this.hideAuditMcInput();
-          mcSelectLabel.hidden = false;
-          const currentVal = mcSelect.value;
+          this.setAuditCartonControlMode('selector');
+          const previousSelection = mcSelect.value;
           mcSelect.innerHTML = '<option value="" disabled selected>' + this.t('auditMcSelectPrompt') + '</option>';
           const seen = new Set();
           bomAssignments.forEach(a => {
@@ -4285,23 +4291,36 @@
             opt.textContent = a.cartonId + (a.targetQty ? ' — Qty ' + a.targetQty : '');
             mcSelect.appendChild(opt);
           });
-          if (currentVal) mcSelect.value = currentVal;
+          if (previousSelection && Array.from(mcSelect.options).some(option => option.value === previousSelection)) {
+            mcSelect.value = previousSelection;
+          }
           const submitBtn = document.querySelector('#auditForm button[type="submit"]');
-          if (submitBtn) submitBtn.disabled = true;
+          if (submitBtn) submitBtn.disabled = !mcSelect.value;
           mcSelectNote.textContent = assignmentStatus === 'MULTIPLE_CARTONS' ? this.t('auditMcMultipleNote') : this.t('auditMcConflictNote');
           mcSelectNote.className = 'audit-select-note warn';
           this.auditMcUserEdited = false;
           return;
         }
 
-        this.hideAuditMcSelect();
+        // No assignment or fallback
+        this.setAuditCartonControlMode('manual');
+        // Race check: ignore stale results
+        if (this._auditAutoFillRequestFgId !== fgKey) return;
         const assigned = this.findWeeklyBomAssignedCartonIdForAudit(fgId);
         const current = String(mcInput?.value || '').trim();
-        const fgChanged = fgId !== this.lastAuditAutoFilledFgId;
+        const fgChanged = fgKey !== this.lastAuditAutoFilledFgId;
         const canOverwrite = !current || current === this.lastAuditAutoFilledCartonId || fgChanged || !this.auditMcUserEdited;
+        if (assigned && canOverwrite) {
+          mcInput.value = assigned;
+          this.lastAuditAutoFilledFgId = fgKey;
+          this.lastAuditAutoFilledCartonId = assigned;
+          this.auditMcUserEdited = false;
+          this.updateAuditMcNote('auto');
+          return;
+        }
         if (!assigned && canOverwrite) {
           mcInput.value = '';
-          this.lastAuditAutoFilledFgId = fgId;
+          this.lastAuditAutoFilledFgId = fgKey;
           this.lastAuditAutoFilledCartonId = '';
           this.auditMcUserEdited = false;
           this.updateAuditMcNote('none');
@@ -4312,19 +4331,27 @@
         }
       }
 
-      hideAuditMcSelect() {
-        const sel = document.querySelector('#auditMcSelectLabel');
+      setAuditCartonControlMode(mode) {
         const mcInput = document.querySelector('#auditMcId');
-        if (sel) sel.hidden = true;
-        if (mcInput) mcInput.parentElement.hidden = false;
+        const mcSelect = document.querySelector('#auditMcSelect');
+        const mcSelectLabel = document.querySelector('#auditMcSelectLabel');
         const submitBtn = document.querySelector('#auditForm button[type="submit"]');
-        if (submitBtn) submitBtn.disabled = false;
+
+        if (mode === 'manual') {
+          if (mcInput) { mcInput.parentElement.hidden = false; mcInput.disabled = false; mcInput.required = true; }
+          if (mcSelect) { mcSelect.disabled = true; mcSelect.required = false; }
+          if (mcSelectLabel) mcSelectLabel.hidden = true;
+          if (submitBtn) submitBtn.disabled = false;
+        } else if (mode === 'selector') {
+          if (mcInput) { mcInput.parentElement.hidden = true; mcInput.disabled = true; mcInput.required = false; }
+          if (mcSelect) { mcSelect.disabled = false; mcSelect.required = true; }
+          if (mcSelectLabel) mcSelectLabel.hidden = false;
+          if (submitBtn) submitBtn.disabled = !mcSelect?.value;
+        }
       }
 
-      hideAuditMcInput() {
-        const mcInput = document.querySelector('#auditMcId');
-        if (mcInput) mcInput.parentElement.hidden = true;
-      }
+      hideAuditMcSelect() { this.setAuditCartonControlMode('manual'); }
+      hideAuditMcInput() { this.setAuditCartonControlMode('selector'); }
 
       updateAuditMcNote(mode) {
         const noteEl = document.querySelector('#auditMcNote');
@@ -4754,6 +4781,8 @@
 
         if (!fgId || !mcId) {
           this.renderAuditError(this.t('auditInputMissing'));
+          const activeControl = mcSelect && !mcSelect.disabled ? mcSelect : (mcInput || fgInput);
+          if (activeControl && !activeControl.hidden) activeControl.focus();
           return;
         }
 

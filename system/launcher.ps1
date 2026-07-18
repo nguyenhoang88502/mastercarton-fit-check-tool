@@ -656,43 +656,91 @@ $bomHash = ""
 if ($dimensionFile) { $dimHash = (Get-FileHash -LiteralPath $dimensionFile.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
 if ($bomFile) { $bomHash = (Get-FileHash -LiteralPath $bomFile.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
 
-$cacheVersion = "1.0"
+$CacheSchemaVersion = "2.0"
+$PreprocessingVersion = "BOM_LINKED_CA_AVERAGE_V1"
+
+$RequiredGeneratedFiles = @(
+  (Join-Path $generatedDir 'fg_dimensions.csv'),
+  (Join-Path $generatedDir 'carton_dimensions.csv'),
+  (Join-Path $generatedDir 'bom_carton_assignments.csv'),
+  (Join-Path $generatedDir 'carton_fg_reverse_index.csv'),
+  (Join-Path $generatedDir 'carton_dimension_sources.csv'),
+  (Join-Path $generatedDir 'data_quality.csv')
+)
+
 $rebuildNeeded = $forceRebuild -or (-not (Test-Path -LiteralPath $cacheStatePath))
 
 if (-not $rebuildNeeded) {
   $cacheState = Read-IniFile -FilePath $cacheStatePath
-  
-  $dimCacheMatch = $false
-  if ($cacheState.ContainsKey('DimensionWorkbook') -and $dimensionFile) {
-    $c = $cacheState['DimensionWorkbook']
-    if ($c['Path'] -eq $dimensionFile.FullName -and
-        $c['Size'] -eq $dimensionFile.Length.ToString() -and
-        $c['LastModifiedUtc'] -eq $dimensionFile.LastWriteTimeUtc.ToString('o') -and
-        $c['Hash'] -eq $dimHash -and
-        $c['CacheSchemaVersion'] -eq $cacheVersion) {
-      $dimCacheMatch = $true
+
+  foreach ($requiredFile in $RequiredGeneratedFiles) {
+    if (-not (Test-Path -LiteralPath $requiredFile)) {
+      Write-Log ("Cache rebuild required: generated file is missing: " + [System.IO.Path]::GetFileName($requiredFile))
+      $rebuildNeeded = $true
+      break
     }
   }
-  
-  $bomCacheMatch = $false
-  if ($cacheState.ContainsKey('BomWorkbook') -and $bomFile) {
-    $c = $cacheState['BomWorkbook']
-    if ($c['Path'] -eq $bomFile.FullName -and
-        $c['Size'] -eq $bomFile.Length.ToString() -and
-        $c['LastModifiedUtc'] -eq $bomFile.LastWriteTimeUtc.ToString('o') -and
-        $c['Hash'] -eq $bomHash -and
-        $c['CacheSchemaVersion'] -eq $cacheVersion) {
-      $bomCacheMatch = $true
+
+  if (-not $rebuildNeeded) {
+    $dimensionVersionMatch =
+      $cacheState.ContainsKey('DimensionWorkbook') -and
+      $cacheState['DimensionWorkbook']['CacheSchemaVersion'] -eq $CacheSchemaVersion -and
+      $cacheState['DimensionWorkbook']['PreprocessingVersion'] -eq $PreprocessingVersion
+
+    $bomVersionMatch =
+      $cacheState.ContainsKey('BomWorkbook') -and
+      $cacheState['BomWorkbook']['CacheSchemaVersion'] -eq $CacheSchemaVersion -and
+      $cacheState['BomWorkbook']['PreprocessingVersion'] -eq $PreprocessingVersion
+
+    if (-not $dimensionVersionMatch) {
+      Write-Log "Cache rebuild required: DimensionWorkbook processing version does not match."
+      $rebuildNeeded = $true
+    }
+
+    if (-not $bomVersionMatch) {
+      Write-Log "Cache rebuild required: BomWorkbook processing version does not match."
+      $rebuildNeeded = $true
     }
   }
-  
-  $rebuildNeeded = -not ($dimCacheMatch -and $bomCacheMatch)
+
+  if (-not $rebuildNeeded) {
+    $dimCacheMatch = $false
+    if ($cacheState.ContainsKey('DimensionWorkbook') -and $dimensionFile) {
+      $c = $cacheState['DimensionWorkbook']
+      if ($c['Path'] -eq $dimensionFile.FullName -and
+          $c['Size'] -eq $dimensionFile.Length.ToString() -and
+          $c['LastModifiedUtc'] -eq $dimensionFile.LastWriteTimeUtc.ToString('o') -and
+          $c['Hash'] -eq $dimHash) {
+        $dimCacheMatch = $true
+      }
+    }
+
+    $bomCacheMatch = $false
+    if ($cacheState.ContainsKey('BomWorkbook') -and $bomFile) {
+      $c = $cacheState['BomWorkbook']
+      if ($c['Path'] -eq $bomFile.FullName -and
+          $c['Size'] -eq $bomFile.Length.ToString() -and
+          $c['LastModifiedUtc'] -eq $bomFile.LastWriteTimeUtc.ToString('o') -and
+          $c['Hash'] -eq $bomHash) {
+        $bomCacheMatch = $true
+      }
+    }
+
+    if (-not $dimCacheMatch) {
+      Write-Log "Cache rebuild required: dimension workbook hash changed."
+    }
+    if (-not $bomCacheMatch) {
+      Write-Log "Cache rebuild required: BOM workbook hash changed."
+    }
+
+    $rebuildNeeded = -not ($dimCacheMatch -and $bomCacheMatch)
+  }
 }
 
 if ($rebuildNeeded) {
   Write-Log "Caches are stale, missing, or force-rebuild requested. Rebuilding CSV data..."
 } else {
-  Write-Log "Cache is fresh. Reusing prepared CSV data."
+  Write-Log "Cache reused: source fingerprints and processing versions match."
 }
 
 # We initialize lists for exporting CSVs
@@ -1416,40 +1464,56 @@ if ($rebuildNeeded) {
   if ($dqExport.Count -eq 0) { $dqExport = @([pscustomobject]@{ issue_type=""; entity_type=""; entity_id=""; description=""; source_detail="" }) }
   $dqExport | Export-Csv -Path (Join-Path $generatedDir 'data_quality.csv') -NoTypeInformation -Encoding UTF8
 
-  # Generate cache_state.ini
-  Write-Log "Writing cache_state.ini..."
-  $dimPathVal = if ($dimensionFile) { $dimensionFile.FullName } else { "" }
-  $dimNameVal = if ($dimensionFile) { $dimensionFile.Name } else { "" }
-  $dimSizeVal = if ($dimensionFile) { $dimensionFile.Length } else { "" }
-  $dimModVal = if ($dimensionFile) { $dimensionFile.LastWriteTimeUtc.ToString('o') } else { "" }
-  
-  $bomPathVal = if ($bomFile) { $bomFile.FullName } else { "" }
-  $bomNameVal = if ($bomFile) { $bomFile.Name } else { "" }
-  $bomSizeVal = if ($bomFile) { $bomFile.Length } else { "" }
-  $bomModVal = if ($bomFile) { $bomFile.LastWriteTimeUtc.ToString('o') } else { "" }
+  # Generate cache_state.ini — write only after confirming generated outputs exist
+  $genCartonCsvPath = Join-Path $generatedDir 'carton_dimensions.csv'
+  $genFgCsvPath = Join-Path $generatedDir 'fg_dimensions.csv'
+  $allRequiredOutputsExist = $true
+  foreach ($requiredFile in $RequiredGeneratedFiles) {
+    if (-not (Test-Path -LiteralPath $requiredFile)) {
+      Write-Log ("WARNING: Required generated output is missing: " + [System.IO.Path]::GetFileName($requiredFile))
+      $allRequiredOutputsExist = $false
+    }
+  }
 
-  $stateContent = @(
-    "[DimensionWorkbook]",
-    "Path=$dimPathVal",
-    "Filename=$dimNameVal",
-    "Size=$dimSizeVal",
-    "LastModifiedUtc=$dimModVal",
-    "Hash=$dimHash",
-    "CacheSchemaVersion=$cacheVersion",
-    "PreprocessingVersion=2.0",
-    "GeneratedUtc=$((Get-Date).ToUniversalTime().ToString('o'))",
-    "",
-    "[BomWorkbook]",
-    "Path=$bomPathVal",
-    "Filename=$bomNameVal",
-    "Size=$bomSizeVal",
-    "LastModifiedUtc=$bomModVal",
-    "Hash=$bomHash",
-    "CacheSchemaVersion=$cacheVersion",
-    "PreprocessingVersion=2.0",
-    "GeneratedUtc=$((Get-Date).ToUniversalTime().ToString('o'))"
-  )
-  Set-Content -LiteralPath $cacheStatePath -Value $stateContent -Encoding UTF8
+  if ($allRequiredOutputsExist) {
+    Write-Log "Writing cache_state.ini..."
+    $dimPathVal = if ($dimensionFile) { $dimensionFile.FullName } else { "" }
+    $dimNameVal = if ($dimensionFile) { $dimensionFile.Name } else { "" }
+    $dimSizeVal = if ($dimensionFile) { $dimensionFile.Length } else { "" }
+    $dimModVal = if ($dimensionFile) { $dimensionFile.LastWriteTimeUtc.ToString('o') } else { "" }
+
+    $bomPathVal = if ($bomFile) { $bomFile.FullName } else { "" }
+    $bomNameVal = if ($bomFile) { $bomFile.Name } else { "" }
+    $bomSizeVal = if ($bomFile) { $bomFile.Length } else { "" }
+    $bomModVal = if ($bomFile) { $bomFile.LastWriteTimeUtc.ToString('o') } else { "" }
+
+    $genUtc = (Get-Date).ToUniversalTime().ToString('o')
+    $stateContent = @(
+      "[DimensionWorkbook]",
+      "Path=$dimPathVal",
+      "Filename=$dimNameVal",
+      "Size=$dimSizeVal",
+      "LastModifiedUtc=$dimModVal",
+      "Hash=$dimHash",
+      "CacheSchemaVersion=$CacheSchemaVersion",
+      "PreprocessingVersion=$PreprocessingVersion",
+      "GeneratedUtc=$genUtc",
+      "",
+      "[BomWorkbook]",
+      "Path=$bomPathVal",
+      "Filename=$bomNameVal",
+      "Size=$bomSizeVal",
+      "LastModifiedUtc=$bomModVal",
+      "Hash=$bomHash",
+      "CacheSchemaVersion=$CacheSchemaVersion",
+      "PreprocessingVersion=$PreprocessingVersion",
+      "GeneratedUtc=$genUtc"
+    )
+    Set-Content -LiteralPath $cacheStatePath -Value $stateContent -Encoding UTF8
+    Write-Log "Cache state written successfully. Preprocessing completed."
+  } else {
+    Write-Log "WARNING: cache_state.ini was not written because generated outputs are incomplete."
+  }
   Write-Log "Preprocessing completed successfully. Derived dimensions and indices generated."
 }
 
