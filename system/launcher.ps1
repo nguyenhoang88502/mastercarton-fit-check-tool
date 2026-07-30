@@ -132,6 +132,84 @@ function Normalize-ItemId {
   return $text
 }
 
+function Build-MasterCartonPictureIndex {
+  param(
+    [string]$PictureFolder,
+    [string]$OutputCsvPath
+  )
+
+  $header = 'carton_id,image_sequence,variant_number,filename,image_uri'
+  $supportedExtensions = @('.png', '.jpg', '.jpeg', '.webp')
+  $filenamePattern = '^(?<cartonId>[^_]+)_image(?<sequence>\d+)(?:_(?<variant>\d+))?$'
+  $records = New-Object System.Collections.Generic.List[object]
+  $totalImageFiles = 0
+  $ignoredFilenames = 0
+
+  try {
+    if (-not (Test-Path -LiteralPath $PictureFolder -PathType Container)) {
+      Write-Log "Master-carton picture folder not found: $PictureFolder"
+      Set-Content -LiteralPath $OutputCsvPath -Value $header -Encoding UTF8
+      Write-Log "Master-carton picture index: total image files found=0; valid indexed files=0; ignored filenames=0; unique carton IDs=0"
+      return
+    }
+
+    $imageFiles = @(
+      Get-ChildItem -LiteralPath $PictureFolder -File -ErrorAction Stop |
+        Where-Object { $supportedExtensions -contains $_.Extension.ToLowerInvariant() }
+    )
+    $totalImageFiles = $imageFiles.Count
+
+    foreach ($file in $imageFiles) {
+      if ($file.BaseName -notmatch $filenamePattern) {
+        $ignoredFilenames++
+        continue
+      }
+
+      $parsedCartonId = $Matches.cartonId
+      $imageSequence = [int]$Matches.sequence
+      $parsedVariant = $Matches.variant
+      $cartonId = Normalize-ItemId $parsedCartonId
+      if (-not $cartonId) {
+        $ignoredFilenames++
+        continue
+      }
+
+      $variantNumber = 0
+      if ($parsedVariant) { $variantNumber = [int]$parsedVariant }
+      $fileUri = (New-Object System.Uri($file.FullName)).AbsoluteUri
+      $records.Add([pscustomobject]@{
+        carton_id = $cartonId
+        image_sequence = $imageSequence
+        variant_number = $variantNumber
+        filename = $file.Name
+        image_uri = $fileUri
+      })
+    }
+
+    $sortedRecords = @(
+      $records |
+        Sort-Object `
+          @{ Expression = { [string]$_.carton_id } }, `
+          @{ Expression = { [int]$_.image_sequence } }, `
+          @{ Expression = { [int]$_.variant_number } }, `
+          @{ Expression = { [string]$_.filename } }
+    )
+
+    if ($sortedRecords.Count -gt 0) {
+      $sortedRecords | Export-Csv -LiteralPath $OutputCsvPath -NoTypeInformation -Encoding UTF8
+    } else {
+      Set-Content -LiteralPath $OutputCsvPath -Value $header -Encoding UTF8
+    }
+
+    $uniqueCartonCount = @($sortedRecords | Select-Object -ExpandProperty carton_id -Unique).Count
+    Write-Log "Master-carton picture folder resolved: $PictureFolder"
+    Write-Log "Master-carton picture index: total image files found=$totalImageFiles; valid indexed files=$($sortedRecords.Count); ignored filenames=$ignoredFilenames; unique carton IDs=$uniqueCartonCount"
+  } catch {
+    Write-Log "WARNING: Master-carton picture indexing failed: $($_.Exception.Message)"
+    Set-Content -LiteralPath $OutputCsvPath -Value $header -Encoding UTF8
+  }
+}
+
 function Convert-ToFiniteNumber {
   param($Value)
   $number = 0.0
@@ -649,6 +727,9 @@ Please ensure a valid Excel file exists and is available locally (fully download
 # Generate cache freshness checks
 $generatedDir = Join-Path $systemDir 'generated'
 if (-not (Test-Path -LiteralPath $generatedDir)) { New-Item -ItemType Directory -Path $generatedDir -Force | Out-Null }
+$masterCartonPictureFolder = Join-Path $siblingWeeklyBomDir 'Master_Carton_Pics'
+$masterCartonPictureIndexPath = Join-Path $generatedDir 'master_carton_picture_index.csv'
+Build-MasterCartonPictureIndex -PictureFolder $masterCartonPictureFolder -OutputCsvPath $masterCartonPictureIndexPath
 $cacheStatePath = Join-Path $generatedDir 'cache_state.ini'
 
 $dimHash = ""
