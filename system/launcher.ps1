@@ -20,6 +20,7 @@ $htmlPath = $HtmlPath
 
 $manifestsOnly = $args -contains '--manifests-only'
 $forceRebuildArg = $args -contains '--force-rebuild'
+$verboseLogging = $args -contains '--verbose'
 $logPath = $null
 
 try {
@@ -32,6 +33,11 @@ try {
   Write-Warning "Launcher log folder is unavailable. Continuing without a file log. $($_.Exception.Message)"
 }
 
+# Write-Log is the plain-English line a manager or QA reader should see: what
+# happened, which files were used, whether there is a problem. Write-Detail is
+# the technical trace (hashes, raw paths, per-sheet/per-candidate mechanics);
+# it is written only when --verbose (or config.ini [Launcher] Verbose=true) is
+# set, so the default console output and log file both stay readable.
 function Write-Log {
   param([string]$msg)
   $ts = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
@@ -44,6 +50,12 @@ function Write-Log {
       Write-Warning "Could not append to launcher log '$logPath'. Continuing. $($_.Exception.Message)"
     }
   }
+}
+
+function Write-Detail {
+  param([string]$msg)
+  if (-not $verboseLogging) { return }
+  Write-Log "    $msg"
 }
 
 $launcherMutex = New-Object System.Threading.Mutex($false, 'Local\WVN_Master_Carton_Fit_Tool_Launcher')
@@ -62,9 +74,9 @@ if (-not $launcherMutexAcquired) {
 
 try {
 
-Write-Log "=== WVN Master Carton Fit Tool Launcher ==="
-Write-Log "System Directory: $systemDir"
-Write-Log "Project Directory: $projectDir"
+Write-Log "=== WVN Master Carton Fit Tool ==="
+Write-Detail "System directory: $systemDir"
+Write-Detail "Project directory: $projectDir"
 
 function Get-ExcelColumnIndex {
   param([string]$cellReference)
@@ -217,10 +229,11 @@ function Build-MasterCartonPictureIndex {
   $stagedPath = Join-Path ([System.IO.Path]::GetDirectoryName($OutputCsvPath)) (".picture-index-$PID-$([guid]::NewGuid().ToString('N')).tmp")
   try {
     if (-not (Test-Path -LiteralPath $PictureFolder -PathType Container)) {
-      Write-Log "Master-carton picture folder not found: $PictureFolder"
+      Write-Log "WARNING: No master-carton picture folder was found. Picture galleries will be empty until pictures are added."
+      Write-Detail "Picture folder not found: $PictureFolder"
       Set-Content -LiteralPath $stagedPath -Value $header -Encoding UTF8 -ErrorAction Stop
       Publish-SingleGeneratedFile -StagedPath $stagedPath -DestinationPath $OutputCsvPath
-      Write-Log "Master-carton picture index: total image files found=0; valid indexed files=0; ignored filenames=0; unique carton IDs=0"
+      Write-Detail "Master-carton picture index: total image files found=0; valid indexed files=0; ignored filenames=0; unique carton IDs=0"
       return
     }
 
@@ -274,10 +287,14 @@ function Build-MasterCartonPictureIndex {
     Publish-SingleGeneratedFile -StagedPath $stagedPath -DestinationPath $OutputCsvPath
 
     $uniqueCartonCount = @($sortedRecords | Select-Object -ExpandProperty carton_id -Unique).Count
-    Write-Log "Master-carton picture folder resolved: $PictureFolder"
-    Write-Log "Master-carton picture index: total image files found=$totalImageFiles; valid indexed files=$($sortedRecords.Count); ignored filenames=$ignoredFilenames; unique carton IDs=$uniqueCartonCount"
+    Write-Detail "Master-carton picture folder resolved: $PictureFolder"
+    Write-Log "Found $totalImageFiles carton picture(s); $($sortedRecords.Count) indexed for $uniqueCartonCount carton(s)."
+    if ($ignoredFilenames -gt 0) {
+      Write-Log "WARNING: $ignoredFilenames picture file name(s) did not match the expected naming pattern and were skipped."
+    }
   } catch {
-    Write-Log "WARNING: Master-carton picture indexing failed; the previous index was preserved. $($_.Exception.Message)"
+    Write-Log "WARNING: Could not update the carton picture list. Keeping the previous version."
+    Write-Detail "Picture index error: $($_.Exception.Message)"
   } finally {
     if (Test-Path -LiteralPath $stagedPath -PathType Leaf) {
       Remove-Item -LiteralPath $stagedPath -Force -ErrorAction SilentlyContinue
@@ -341,16 +358,16 @@ function Publish-GeneratedDataset {
       $stagedPath = Join-Path $stagingDirectory $name
       $destination = Join-Path $OutputDirectory $name
       if ($name -eq 'cache_state.ini') {
-        Write-Log "Writing cache_state.ini last..."
+        Write-Detail "Writing cache_state.ini last..."
       } else {
-        Write-Log "Publishing $name..."
+        Write-Detail "Publishing $name..."
       }
       Move-StagedFileWithRetry -StagedPath $stagedPath -DestinationPath $destination
       $publishedNames.Add($name)
     }
   } catch {
     $publishError = $_
-    Write-Log "WARNING: Generated dataset publish failed. Restoring the previous complete dataset."
+    Write-Log "WARNING: Could not save the new data files. Keeping the previous complete dataset instead."
     for ($i = $publishedNames.Count - 1; $i -ge 0; $i--) {
       $name = $publishedNames[$i]
       $destination = Join-Path $OutputDirectory $name
@@ -363,7 +380,7 @@ function Publish-GeneratedDataset {
           Remove-Item -LiteralPath $destination -Force -ErrorAction Stop
         }
       } catch {
-        Write-Log "ERROR: Rollback failed for $name. $($_.Exception.Message)"
+        Write-Log "ERROR: Could not restore the previous version of $name. $($_.Exception.Message)"
       }
     }
     throw $publishError
@@ -495,13 +512,15 @@ function Test-FileReadAvailable {
 function Get-UnlockedFileHash {
   param([Parameter(Mandatory = $true)][System.IO.FileInfo]$File)
   if (-not (Test-FileReadAvailable -File $File)) {
-    Write-Log "Skipped locked file: $($File.FullName)"
+    Write-Log "The workbook '$($File.Name)' became unavailable (locked) while preparing data. It will be skipped."
+    Write-Detail "Locked file: $($File.FullName)"
     return $null
   }
   try {
     return (Get-FileHash -LiteralPath $File.FullName -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
   } catch {
-    Write-Log "Skipped locked file: $($File.FullName). Hashing was not attempted again. $($_.Exception.Message)"
+    Write-Log "The workbook '$($File.Name)' could not be read while preparing data. It will be skipped."
+    Write-Detail "Locked file: $($File.FullName). $($_.Exception.Message)"
     return $null
   }
 }
@@ -574,7 +593,7 @@ function Get-BomBusinessDateFromFilename {
     $res.MonthToken = $monthToken
     $res.Day = $dayVal
     $res.InferredYear = $mYear
-    Write-Log "Inferred business date for '$name': $($candidateDate.ToString('yyyy-MM-dd')) (Year inferred as $mYear from LastWriteTimeUtc)"
+    Write-Detail "Inferred business date for '$name': $($candidateDate.ToString('yyyy-MM-dd')) (Year inferred as $mYear from LastWriteTimeUtc)"
   } else {
     $res.Error = "Filename does not match expected pattern BOM & FORMULA [MONTH] [DAY] D365"
   }
@@ -587,8 +606,12 @@ $configPath = Join-Path $SystemDir 'config.ini'
 try {
   $config = Read-IniFile -FilePath $configPath
 } catch {
-  Write-Log "WARNING: config.ini is malformed or unreadable; safe defaults will be used. $($_.Exception.Message)"
+  Write-Log "WARNING: The settings file (config.ini) could not be read; using default settings. $($_.Exception.Message)"
   $config = @{}
+}
+
+if (-not $verboseLogging -and $config.ContainsKey('Launcher') -and $config['Launcher']['Verbose']) {
+  $verboseLogging = $config['Launcher']['Verbose'] -eq 'true'
 }
 
 $dimPattern = '*Physical Dimension*.xlsx'
@@ -606,7 +629,7 @@ if (-not $forceRebuild -and $config.ContainsKey('Launcher') -and $config['Launch
 if ($config.ContainsKey('Search')) {
   $legacySearchKeys = @($config['Search'].Keys | Where-Object { $config['Search'][$_] })
   if ($legacySearchKeys.Count -gt 0) {
-    Write-Log "WARNING: Legacy [Search] path keys are ignored: $($legacySearchKeys -join ', '). Source paths are resolved from PSScriptRoot only."
+    Write-Log "WARNING: The old [Search] settings in config.ini are no longer used and were ignored: $($legacySearchKeys -join ', ')."
   }
 }
 
@@ -618,7 +641,7 @@ if ($config.ContainsKey('Folders')) {
     $weeklyBomFolderName = $config['Folders']['WeeklyBomFolderName']
   } elseif ($config['Folders']['WeeklyBomFolder']) {
     $weeklyBomFolderName = $config['Folders']['WeeklyBomFolder']
-    Write-Log "WARNING: config.ini key [Folders] WeeklyBomFolder is deprecated. Use WeeklyBomFolderName."
+    Write-Log "WARNING: The config.ini setting 'WeeklyBomFolder' is outdated. Please rename it to 'WeeklyBomFolderName'."
   }
 }
 $WeeklyBomDir = Join-Path $ToolsRoot $weeklyBomFolderName
@@ -631,13 +654,13 @@ if ($config.ContainsKey('Folders') -and $config['Folders']['PictureFolderName'])
 
 $expectedAppFolderName = 'WVN_Master_Carton_Fit_Tool'
 if ((Split-Path -Leaf $AppRoot) -cne $expectedAppFolderName) {
-  Write-Log "WARNING: Application folder is named '$(Split-Path -Leaf $AppRoot)'; expected '$expectedAppFolderName'. Continuing because the relative structure is valid."
+  Write-Log "WARNING: This folder should be named '$expectedAppFolderName' (it is currently '$(Split-Path -Leaf $AppRoot)'). The tool still works, but please rename it when convenient."
 }
 
 $duplicateNestedRoot = Join-Path $AppRoot $expectedAppFolderName
 if ((Test-Path -LiteralPath (Join-Path $duplicateNestedRoot 'Open_WVN_Master_Carton_Fit_Tool.cmd') -PathType Leaf) -and
     (Test-Path -LiteralPath (Join-Path $duplicateNestedRoot 'system') -PathType Container)) {
-  Write-Log "WARNING: Duplicate nested application folders detected. Keep the folder containing the CMD and system directory as the application root."
+  Write-Log "WARNING: This tool appears to be nested inside a duplicate copy of itself. Keep only the folder that directly contains the CMD file and the 'system' folder."
 }
 
 if (-not (Test-Path -LiteralPath $WeeklyBomDir -PathType Container)) {
@@ -650,17 +673,15 @@ Keep "$weeklyBomFolderName" and "$expectedAppFolderName" as sibling folders.
 
 $resolvedWeeklyBomDir = (Get-Item -LiteralPath $WeeklyBomDir -ErrorAction Stop).FullName
 $siblingWeeklyBomDir = $resolvedWeeklyBomDir
-Write-Log "Script directory: $SystemDir"
-Write-Log "Resolved application root: $AppRoot"
-Write-Log "Resolved parent tools directory: $ToolsRoot"
-Write-Log "Weekly BOM directory: $resolvedWeeklyBomDir"
-Write-Log "Search scope: exact sibling Weekly BOM directory only."
-Write-Log "Broader profile, OneDrive, SharePoint, drive, and application-root scans are disabled."
+Write-Detail "Script directory: $SystemDir"
+Write-Detail "Resolved application root: $AppRoot"
+Write-Detail "Resolved parent tools directory: $ToolsRoot"
+Write-Detail "Weekly BOM directory: $resolvedWeeklyBomDir"
+Write-Detail "Search scope: exact sibling Weekly BOM directory only."
+Write-Detail "Broader profile, OneDrive, SharePoint, drive, and application-root scans are disabled."
 
 # 1. Locate Dimension Workbook
-Write-Log "Checking source data..."
-Write-Log "Preparing carton data..."
-Write-Log "Phase: Locating Dimension Workbook"
+Write-Log "Looking for the dimension workbook..."
 
 $dimensionFile = $null
 $dimCandidatesList = [System.Collections.ArrayList]::new()
@@ -673,20 +694,22 @@ if ($resolvedWeeklyBomDir -and (Test-Path -LiteralPath $resolvedWeeklyBomDir)) {
 
   if (Test-Path -LiteralPath $canonicalDimPath) {
     [void]$dimCandidatesList.Add($canonicalDimFileInfo)
-    Write-Log "Found canonical dimension file: $($canonicalDimFileInfo.FullName). Checking strict read availability..."
+    Write-Detail "Found canonical dimension file: $($canonicalDimFileInfo.FullName). Checking strict read availability..."
     if (-not (Test-FileReadAvailable -File $canonicalDimFileInfo)) {
       [void]$lockedDimensionFiles.Add($canonicalDimFileInfo)
-      Write-Log "Skipped locked file: $($canonicalDimFileInfo.FullName)"
+      Write-Log "The workbook '$($canonicalDimFileInfo.Name)' is currently open in Excel. Skipping it and checking for another copy..."
+      Write-Detail "Locked file: $($canonicalDimFileInfo.FullName)"
     } else {
       try {
       if (Test-IsValidDimensionWorkbook -File $canonicalDimFileInfo) {
         $dimensionFile = $canonicalDimFileInfo
-        Write-Log "Selected canonical dimension file: $($dimensionFile.FullName)"
+        Write-Log "Using dimension workbook: $($dimensionFile.Name)"
+        Write-Detail "Dimension workbook path: $($dimensionFile.FullName)"
       } else {
-        Write-Log "Rejected canonical dimension file: Failed structural validation."
+        Write-Detail "Rejected canonical dimension file: Failed structural validation."
       }
       } catch {
-        Write-Log "Rejected canonical dimension file: validation read failed. $($_.Exception.Message)"
+        Write-Detail "Rejected canonical dimension file: validation read failed. $($_.Exception.Message)"
       }
     }
   }
@@ -711,23 +734,25 @@ if ($resolvedWeeklyBomDir -and (Test-Path -LiteralPath $resolvedWeeklyBomDir)) {
       [void]$dimCandidatesList.Add($candidate)
     }
 
-    Write-Log "Found $($dimCandidates.Count) alternative local dimension candidates. Evaluating in order..."
+    Write-Detail "Found $($dimCandidates.Count) alternative local dimension candidates. Evaluating in order..."
     foreach ($candidate in $dimCandidates) {
       if (-not (Test-FileReadAvailable -File $candidate)) {
         [void]$lockedDimensionFiles.Add($candidate)
-        Write-Log "Skipped locked file: $($candidate.FullName)"
+        Write-Log "The workbook '$($candidate.Name)' is currently open in Excel. Skipping it and checking for another copy..."
+        Write-Detail "Locked file: $($candidate.FullName)"
         continue
       }
       try {
         if (Test-IsValidDimensionWorkbook -File $candidate) {
           $dimensionFile = $candidate
-          Write-Log "Selected alternative dimension file: $($dimensionFile.FullName) (Last Modified: $($dimensionFile.LastWriteTimeUtc))"
+          Write-Log "Using dimension workbook: $($dimensionFile.Name)"
+          Write-Detail "Dimension workbook path: $($dimensionFile.FullName) (Last Modified: $($dimensionFile.LastWriteTimeUtc))"
           break
         } else {
-          Write-Log "Rejected dimension candidate '$($candidate.Name)': Failed structural validation."
+          Write-Detail "Rejected dimension candidate '$($candidate.Name)': Failed structural validation."
         }
       } catch {
-        Write-Log "Rejected dimension candidate '$($candidate.Name)': validation read failed. $($_.Exception.Message)"
+        Write-Detail "Rejected dimension candidate '$($candidate.Name)': validation read failed. $($_.Exception.Message)"
       }
     }
   }
@@ -736,20 +761,20 @@ if ($resolvedWeeklyBomDir -and (Test-Path -LiteralPath $resolvedWeeklyBomDir)) {
 # Log findings
 if ($dimCandidatesList.Count -gt 0) {
   $names = @($dimCandidatesList | ForEach-Object { $_.Name })
-  Write-Log "Dimension candidates found locally: $($names -join ', ')"
+  Write-Detail "Dimension candidates found locally: $($names -join ', ')"
 } else {
-  Write-Log "Dimension candidates found locally: [None]"
+  Write-Detail "Dimension candidates found locally: [None]"
 }
 
 if ($dimensionFile) {
-  Write-Log "Selected dimension workbook: $($dimensionFile.FullName)"
+  Write-Detail "Selected dimension workbook: $($dimensionFile.FullName)"
 } else {
-  Write-Log "WARNING: No valid unlocked Dimension Workbook was selected."
+  Write-Log "WARNING: No usable dimension workbook was found. All copies may be locked or missing."
 }
 
 
 # 2. Locate latest BOM Workbook
-Write-Log "Phase: Locating latest BOM Workbook"
+Write-Log "Looking for the latest weekly BOM workbook..."
 $bomFile = $null
 $bomCandidatesList = [System.Collections.ArrayList]::new()
 $decoratedCandidates = [System.Collections.ArrayList]::new()
@@ -775,7 +800,7 @@ if ($resolvedWeeklyBomDir -and (Test-Path -LiteralPath $resolvedWeeklyBomDir)) {
     
     $parsed = Get-BomBusinessDateFromFilename -File $candidate
     if (-not $parsed.Success) {
-      Write-Log "Filename date could not be parsed for '$($candidate.Name)'; candidate eligible only for modification-time fallback. Reason: $($parsed.Error)"
+      Write-Detail "Filename date could not be parsed for '$($candidate.Name)'; candidate eligible only for modification-time fallback. Reason: $($parsed.Error)"
     }
     
     [void]$decoratedCandidates.Add([pscustomobject]@{
@@ -809,7 +834,8 @@ foreach ($candidate in $sortedCandidates) {
     $candidate.WorkbookValid = $false
     $candidate.ValidationError = "Skipped locked file."
     [void]$lockedBomFiles.Add($candidate.File)
-    Write-Log "Skipped locked file: $($candidate.File.FullName)"
+    Write-Log "The workbook '$($candidate.File.Name)' is currently open in Excel. Skipping it and checking for another copy..."
+    Write-Detail "Locked file: $($candidate.File.FullName)"
     continue
   }
   try {
@@ -827,19 +853,19 @@ foreach ($candidate in $sortedCandidates) {
 
 # Log findings
 foreach ($candidate in $sortedCandidates) {
-  Write-Log "BOM candidate:"
-  Write-Log "  Name: $($candidate.Name)"
+  Write-Detail "BOM candidate:"
+  Write-Detail "  Name: $($candidate.Name)"
   if ($candidate.FilenameDateValid) {
-    Write-Log "  Parsed business date: $($candidate.ParsedBusinessDate.ToString('yyyy-MM-dd'))"
+    Write-Detail "  Parsed business date: $($candidate.ParsedBusinessDate.ToString('yyyy-MM-dd'))"
   } else {
-    Write-Log "  Parsed business date: [Unparseable]"
+    Write-Detail "  Parsed business date: [Unparseable]"
   }
   # Convert UTC to standard log format
-  Write-Log "  Last modified UTC: $($candidate.LastWriteTimeUtc.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))"
+  Write-Detail "  Last modified UTC: $($candidate.LastWriteTimeUtc.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))"
   if ($candidate.WorkbookValid) {
-    Write-Log "  Workbook validation: valid"
+    Write-Detail "  Workbook validation: valid"
   } else {
-    Write-Log "  Workbook validation: invalid ($($candidate.ValidationError))"
+    Write-Detail "  Workbook validation: invalid ($($candidate.ValidationError))"
   }
 }
 
@@ -858,12 +884,10 @@ foreach ($candidate in $sortedCandidates) {
 }
 
 if ($bomFile) {
-  Write-Log "Selected BOM:"
-  Write-Log "  $($bomFile.Name)"
-  Write-Log "Selection reason:"
-  Write-Log "  $selectedReason"
+  Write-Log "Using BOM workbook: $($bomFile.Name)"
+  Write-Detail "Selection reason: $selectedReason"
 } else {
-  Write-Log "WARNING: No valid unlocked BOM Workbook was selected."
+  Write-Log "WARNING: No usable BOM workbook was found. All copies may be locked or missing."
 }
 
 # Generate cache freshness checks
@@ -899,16 +923,16 @@ if ($bomFile -and -not $bomHash) {
 function Test-RequiredGeneratedFiles {
   foreach ($requiredFile in $RequiredGeneratedFiles) {
     if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
-      Write-Log "Cache invalid: generated file is missing: $([System.IO.Path]::GetFileName($requiredFile))"
+      Write-Detail "Cache invalid: generated file is missing: $([System.IO.Path]::GetFileName($requiredFile))"
       return $false
     }
     try {
       if ((Get-Item -LiteralPath $requiredFile -ErrorAction Stop).Length -le 0) {
-        Write-Log "Cache invalid: generated file is empty: $([System.IO.Path]::GetFileName($requiredFile))"
+        Write-Detail "Cache invalid: generated file is empty: $([System.IO.Path]::GetFileName($requiredFile))"
         return $false
       }
     } catch {
-      Write-Log "Cache invalid: generated file is unreadable: $([System.IO.Path]::GetFileName($requiredFile))"
+      Write-Detail "Cache invalid: generated file is unreadable: $([System.IO.Path]::GetFileName($requiredFile))"
       return $false
     }
   }
@@ -960,7 +984,7 @@ try {
     $cacheReadable = $true
   }
 } catch {
-  Write-Log "Cache invalid: cache_state.ini is unreadable. $($_.Exception.Message)"
+  Write-Detail "Cache invalid: cache_state.ini is unreadable. $($_.Exception.Message)"
 }
 
 $generatedCacheComplete = $cacheReadable -and (Test-RequiredGeneratedFiles)
@@ -974,7 +998,12 @@ $sourceUnavailable = -not ($dimensionFile -and $bomFile)
 if ($sourceUnavailable) {
   if ($cacheValid -and (($lockedDimensionFiles.Count -gt 0) -or ($lockedBomFiles.Count -gt 0))) {
     $rebuildNeeded = $false
-    Write-Log "Source workbook is locked. Reusing the last valid generated data."
+    $lockedSourceNames = @(
+      @($lockedDimensionFiles | Select-Object -Last 1 -ExpandProperty Name -ErrorAction SilentlyContinue) +
+      @($lockedBomFiles | Select-Object -Last 1 -ExpandProperty Name -ErrorAction SilentlyContinue)
+    ) | Where-Object { $_ } | Select-Object -Unique
+    $lockedSourceText = if ($lockedSourceNames.Count -gt 0) { $lockedSourceNames -join ', ' } else { 'the source workbook' }
+    Write-Log "The workbook '$lockedSourceText' is currently open in Excel. The tool will use the previously prepared data instead."
   } else {
     throw @"
 No valid unlocked workbook is available.
@@ -984,20 +1013,20 @@ The previous generated cache is missing, incomplete, stale, or does not match th
   }
 } elseif ($forceRebuild) {
   $rebuildNeeded = $true
-  Write-Log "Force rebuild requested. Rebuilding CSV data."
+  Write-Log "A full data refresh was requested. Reprocessing the workbooks..."
 } elseif ($cacheValid) {
   $rebuildNeeded = $false
-  Write-Log "Cache reused: all required outputs, source fingerprints, schema, and preprocessing versions match."
+  Write-Log "Data already up-to-date - using the previously prepared files."
 } else {
   $rebuildNeeded = $true
-  Write-Log "Cache is stale, missing, or incomplete. Rebuilding CSV data."
+  Write-Log "The prepared data is out of date. Reprocessing the workbooks..."
 }
 
 $masterCartonPictureFolder = Join-Path $resolvedWeeklyBomDir $pictureFolderName
 $legacyMasterCartonPictureFolder = Join-Path $resolvedWeeklyBomDir 'Master_Carton_Pics'
 if (-not (Test-Path -LiteralPath $masterCartonPictureFolder -PathType Container) -and
     (Test-Path -LiteralPath $legacyMasterCartonPictureFolder -PathType Container)) {
-  Write-Log "WARNING: Picture folder '$legacyMasterCartonPictureFolder' uses the legacy name. Rename it to '$pictureFolderName'. Using it for this run."
+  Write-Log "Please rename the folder 'Master_Carton_Pics' to '$pictureFolderName' so future runs can find it automatically. Using the old folder name for this run."
   $masterCartonPictureFolder = $legacyMasterCartonPictureFolder
 }
 $masterCartonPictureIndexPath = Join-Path $GeneratedDir 'master_carton_picture_index.csv'
@@ -1030,7 +1059,7 @@ if ($rebuildNeeded) {
   $backupSheet = $null
   
   if ($dimensionFile) {
-    Write-Log "Reading Dimension Workbook..."
+    Write-Log "Reading the dimension workbook..."
     $sheets = @(Read-XlsxSheets -File $dimensionFile)
     $dimensionSheet = $sheets | Where-Object Name -eq 'Dimension' | Select-Object -First 1
     $backupSheet = $sheets | Where-Object Name -eq 'Mastercarton_Dimensions' | Select-Object -First 1
@@ -1054,7 +1083,7 @@ if ($rebuildNeeded) {
         }
       }
     }
-    Write-Log "Indexed $($knownCartonIds.Count) known carton IDs from dimension workbook."
+    Write-Log "Found $($knownCartonIds.Count) carton records in the workbook."
   }
 
   # 2. Collect backup master carton records
@@ -1097,13 +1126,15 @@ if ($rebuildNeeded) {
 
   # 3. Parse BOM carton assignments
   $bomRowsRaw = [System.Collections.ArrayList]::new()
+  $totalBomRowsProcessed = 0
   if ($bomFile) {
-    Write-Log "Processing BOM Workbook..."
+    Write-Log "Reading the BOM workbook..."
     $bomSheets = @(Read-XlsxSheets -File $bomFile -SkipSheets 1)
-    
+
     foreach ($sheet in $bomSheets) {
-      Write-Log "BOM Scan: sheet '$($sheet.Name)' ($($sheet.Rows.Count) rows)"
-      
+      $totalBomRowsProcessed += $sheet.Rows.Count
+      Write-Detail "BOM Scan: sheet '$($sheet.Name)' ($($sheet.Rows.Count) rows)"
+
       # Try flat sheet format
       $flat = $null
       for ($hr = 0; $hr -lt [math]::Min(60, $sheet.Rows.Count); $hr++) {
@@ -1741,13 +1772,57 @@ if ($rebuildNeeded) {
   )
 
   Publish-GeneratedDataset -CsvData $csvData -CacheStateContent $stateContent -OutputDirectory $GeneratedDir
-  Write-Log "Cache state written successfully after all generated CSVs."
-  Write-Log "Preprocessing completed successfully. Derived dimensions and indices generated."
+  Write-Detail "Cache state written successfully after all generated CSVs."
+  Write-Log "Finished preparing the data."
+  $summaryFgCount = $allFgs.Count
+  $summaryCartonCount = $allCartons.Count
+  $summaryAssignmentCount = $assignments.Count
+  $summaryBomRowsText = "{0:N0}" -f $totalBomRowsProcessed
 }
+
+# ---- Stakeholder-friendly summary --------------------------------------------
+# Answers the four questions a manager, QA, or process owner actually asks:
+# did it work, which files were used, how much was processed, where did it go.
+function Get-GeneratedCsvRecordCount {
+  param([string]$Path)
+  if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
+  try {
+    $rows = @(Import-Csv -LiteralPath $Path)
+    if ($rows.Count -eq 1) {
+      $allBlank = $true
+      foreach ($prop in $rows[0].PSObject.Properties) { if ($prop.Value) { $allBlank = $false; break } }
+      if ($allBlank) { return 0 }
+    }
+    return $rows.Count
+  } catch {
+    return $null
+  }
+}
+
+if (-not $rebuildNeeded) {
+  $summaryFgCount = Get-GeneratedCsvRecordCount (Join-Path $GeneratedDir 'fg_dimensions.csv')
+  $summaryCartonCount = Get-GeneratedCsvRecordCount (Join-Path $GeneratedDir 'carton_dimensions.csv')
+  $summaryAssignmentCount = Get-GeneratedCsvRecordCount (Join-Path $GeneratedDir 'bom_carton_assignments.csv')
+  $summaryBomRowsText = "not reprocessed this run (using previously prepared data)"
+}
+
+Write-Log ""
+Write-Log "==================== SUMMARY ===================="
+Write-Log "Result: Success"
+Write-Log "Dimension workbook used: $(if ($dimensionFile) { $dimensionFile.Name } else { '(none used this run - previously prepared data was reused)' })"
+Write-Log "BOM workbook used: $(if ($bomFile) { $bomFile.Name } else { '(none used this run - previously prepared data was reused)' })"
+Write-Log "Finished Goods (FGs): $summaryFgCount"
+Write-Log "Master Cartons: $summaryCartonCount"
+Write-Log "FG-to-carton assignments: $summaryAssignmentCount"
+Write-Log "BOM rows processed: $summaryBomRowsText"
+Write-Log "Generated data files: $GeneratedDir"
+Write-Log "==================================================="
+Write-Log ""
+if (-not $verboseLogging) { Write-Log "(For a detailed technical log, run with --verbose.)" }
 
 # Browser launching
 if ($manifestsOnly) {
-  Write-Log "Manifests and data files prepared. Skipping browser launch (--manifests-only)."
+  Write-Log "Data files are ready. Skipping the browser launch (--manifests-only)."
 } else {
   $htmlPath = Join-Path $systemDir 'WVN_Master_Carton_Fit_Tool.html'
   $chromePath = Join-Path $env:ProgramFiles 'Google\Chrome\Application\chrome.exe'
@@ -1755,15 +1830,16 @@ if ($manifestsOnly) {
   $browser = $null
   if (Test-Path -LiteralPath $chromePath) { $browser = $chromePath }
   elseif (Test-Path -LiteralPath $edgePath) { $browser = $edgePath }
-  
+
   if ($browser) {
     $tempProfile = Join-Path $env:TEMP "WVNMasterCartonToolChrome-$(Get-Random)"
-    Write-Log "Launching browser: $browser"
-    Write-Log "HTML URL: $htmlPath"
-    
+    Write-Log "Opening the tool in your browser..."
+    Write-Detail "Launching browser: $browser"
+    Write-Detail "HTML URL: $htmlPath"
+
     # Hide console window if ShowConsole=false
     $showConsole = if ($config.ContainsKey('Launcher') -and $config['Launcher'].ContainsKey('ShowConsole')) { $config['Launcher']['ShowConsole'] -eq 'true' } else { $false }
-    
+
     if (-not $showConsole) {
       # Use a background process to open browser so console window exits quietly
       Start-Process -FilePath $browser -ArgumentList "--user-data-dir=`"$tempProfile`"", '--allow-file-access-from-files', "`"$htmlPath`""

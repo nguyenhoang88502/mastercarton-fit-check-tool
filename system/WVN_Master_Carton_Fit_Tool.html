@@ -1195,10 +1195,17 @@
     .workflow-form{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.workflow-form label{display:flex;flex-direction:column;gap:4px;font-weight:700;min-width:190px}.workflow-actions{display:flex;gap:8px;flex-wrap:wrap}.batch-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}.batch-toolbar select{height:34px}.batch-table{max-height:520px;overflow:auto}.batch-table table{min-width:1900px}.pagination{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px}.comparison-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.comparison-pane{border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--panel)}.comparison-pane h3{margin:0;padding:9px 12px;background:var(--soft);border-bottom:1px solid var(--line)}.comparison-pane .visual-body{grid-template-columns:minmax(240px,1fr) 170px}.comparison-controls{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;margin-bottom:8px}.comparison-pane svg{width:100%;height:300px;background:linear-gradient(160deg,var(--canvas1),var(--canvas2));cursor:grab}.data-ready-pill{font-weight:800;padding:5px 9px;border-radius:999px;background:var(--soft);color:var(--muted)}.data-ready-pill.good{background:#e8f7ee;color:var(--good)}.data-ready-pill.bad{background:#fff0ef;color:var(--bad)}
     .carton-picture-panel{margin-top:10px;border:1px solid var(--line);border-radius:7px;background:var(--panel);overflow:hidden}
     .carton-picture-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line)}
-    .carton-picture-frame{min-height:220px;max-height:420px;padding:10px;display:flex;align-items:center;justify-content:center;background:var(--soft)}
-    .carton-picture-image{display:block;width:100%;height:100%;max-height:400px;object-fit:contain}
+    .carton-picture-frame{position:relative;min-height:220px;max-height:420px;padding:10px;display:flex;align-items:center;justify-content:center;background:var(--soft)}
+    .carton-picture-image{display:block;width:100%;height:100%;max-height:400px;object-fit:contain;opacity:1;transition:opacity .15s ease}
+    .carton-picture-image.is-swapping{opacity:.35}
+    .carton-picture-image[hidden]{display:none}
     .carton-picture-controls{display:flex;justify-content:center;gap:8px;padding:8px 12px;border-top:1px solid var(--line)}
     .carton-picture-empty{padding:30px 12px;text-align:center;color:var(--muted)}
+    .carton-picture-spinner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;background:color-mix(in srgb, var(--soft) 70%, transparent);color:var(--muted);font-size:.85em;font-weight:700;pointer-events:none}
+    .carton-picture-spinner .spinner-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--blue);animation:carton-picture-spin .8s linear infinite}
+    @keyframes carton-picture-spin{to{transform:rotate(360deg)}}
+    .carton-picture-error{position:absolute;inset:10px;display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;color:var(--muted);background:var(--soft);border-radius:5px}
+    .carton-picture-spinner[hidden],.carton-picture-error[hidden]{display:none}
     @media(max-width:1100px){.workflow-nav button{min-width:118px}.kpi-grid,.settings-grid{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:700px){.kpi-grid,.settings-grid,.comparison-grid{grid-template-columns:1fr}.comparison-pane .visual-body{grid-template-columns:1fr}}
   </style>
@@ -1767,7 +1774,7 @@
       static { Object.assign(this.text.en,{sourceCartonDimensions:'Source carton dimensions',usableInternalCartonDimensions:'Usable internal carton dimensions',assumedWallThickness:'Assumed wall thickness',quickWallDeduction:'Quick Mode — exact source values with 5 mm carton wall deduction per side',quickInternalSource:'Quick Mode — source dimensions identified as internal; no wall deduction applied',quickOutsideAssumption:'Quick Mode assumption — source carton dimensions treated as outside dimensions with 5 mm walls per side',invalidQuickInternalDimensions:'Wall deduction produced invalid usable internal carton dimensions.',wallDeductionApplied:'Wall deduction applied',quickModeDescription:'Exact FG values and usable internal carton dimensions. No tolerance or ratio adjustment.',quickModeAssumptions:'Exact active FG dimensions · Source carton normalized once to usable internal dimensions · 5 mm wall per side unless marked internal · Six orthogonal orientations · Rigid rectangular grid · No compression · No nesting · No diagonal placement'}); Object.assign(this.text.vi,{sourceCartonDimensions:'Kích thước thùng từ nguồn',usableInternalCartonDimensions:'Kích thước trong sử dụng được',assumedWallThickness:'Độ dày thành thùng giả định',quickWallDeduction:'Chế độ nhanh — giá trị nguồn chính xác với khấu trừ thành thùng 5 mm mỗi bên',quickInternalSource:'Chế độ nhanh — kích thước nguồn được xác định là kích thước trong; không khấu trừ thành thùng',quickOutsideAssumption:'Giả định Chế độ nhanh — kích thước thùng nguồn là kích thước ngoài với thành 5 mm mỗi bên',invalidQuickInternalDimensions:'Khấu trừ thành thùng tạo ra kích thước trong không hợp lệ.',wallDeductionApplied:'Đã áp dụng khấu trừ thành thùng',quickModeDescription:'Dùng kích thước FG chính xác và kích thước trong sử dụng được của thùng. Không áp dụng dung sai hoặc tỷ lệ.',quickModeAssumptions:'Kích thước FG chính xác đang dùng · Chuẩn hóa kích thước thùng một lần sang kích thước trong · Thành thùng 5 mm mỗi bên trừ khi được đánh dấu là kích thước trong · Sáu hướng vuông góc · Lưới chữ nhật cứng · Không nén · Không lồng · Không đặt chéo'}) }
       static { Object.assign(this.text.en,{cartonWidth:'Carton width',launcherPreparedSource:'Launcher-prepared carton dimensions',wallThicknessPerSide:'Wall thickness per side',dragAlternativeHere:'Drag an alternative or proposal here, or select View 3D.',simpleGridCapacity:'Simple-grid capacity',dragToSuggested:'Drag to Suggested 3D view'}); Object.assign(this.text.vi,{cartonWidth:'Chiều rộng thùng',launcherPreparedSource:'Kích thước thùng đã được launcher chuẩn bị',wallThicknessPerSide:'Độ dày thành thùng mỗi bên',dragAlternativeHere:'Kéo một thùng thay thế hoặc đề xuất vào đây, hoặc chọn Xem 3D.',simpleGridCapacity:'Sức chứa lưới đơn giản',dragToSuggested:'Kéo vào chế độ xem 3D đề xuất'}) }
       static { Object.assign(this.text.en,{optimizedBatchDescription:'Screens every physically eligible existing carton, then ranks alternatives only by adjusted utilization.'}); Object.assign(this.text.vi,{optimizedBatchDescription:'Kiểm tra mọi thùng hiện có đủ điều kiện vật lý, sau đó chỉ xếp hạng phương án thay thế theo mức sử dụng đã điều chỉnh.'}) }
-      static { Object.assign(this.text.en,{masterCartonPicture:'Master-carton picture',noCartonPictureFound:'No carton picture found',cartonPictureLoadFailed:'Carton picture could not be loaded',previousPicture:'Previous',nextPicture:'Next',pictureCount:'{current} of {total}',noCurrentCartonAssigned:'No current carton assigned'}); Object.assign(this.text.vi,{masterCartonPicture:'Hình ảnh thùng master',noCartonPictureFound:'Không tìm thấy hình ảnh thùng',cartonPictureLoadFailed:'Không thể tải hình ảnh thùng',previousPicture:'Ảnh trước',nextPicture:'Ảnh sau',pictureCount:'{current} / {total}',noCurrentCartonAssigned:'Chưa có thùng hiện tại được gán'}) }
+      static { Object.assign(this.text.en,{masterCartonPicture:'Master-carton picture',noCartonPictureFound:'No carton picture found',cartonPictureLoadFailed:'Image not available',previousPicture:'Previous',nextPicture:'Next',pictureCount:'{current} of {total}',noCurrentCartonAssigned:'No current carton assigned',loadingPicture:'Loading…'}); Object.assign(this.text.vi,{masterCartonPicture:'Hình ảnh thùng master',noCartonPictureFound:'Không tìm thấy hình ảnh thùng',cartonPictureLoadFailed:'Hình ảnh không khả dụng',previousPicture:'Ảnh trước',nextPicture:'Ảnh sau',pictureCount:'{current} / {total}',noCurrentCartonAssigned:'Chưa có thùng hiện tại được gán',loadingPicture:'Đang tải…'}) }
       static t(key, vars = {}) { let s = this.text[this.language][key] ?? this.text.en[key] ?? key; for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, v); return s }
     }
 
@@ -3631,14 +3638,90 @@
           console.warn('[master-carton pictures] picture index unavailable:', error?.message || error);
         }
       }
+      resetMasterCartonPreloadCache(state) {
+        state.preloadCache = new Map();
+        state.requestToken = (state.requestToken || 0) + 1;
+      }
+      getOrCreateMasterCartonPreloadEntry(state, picture) {
+        if (!state.preloadCache) state.preloadCache = new Map();
+        const key = picture.imageUri;
+        let entry = state.preloadCache.get(key);
+        if (entry) return entry;
+        entry = { status: 'pending', url: picture.imageUri };
+        entry.promise = new Promise(resolve => {
+          const img = new Image();
+          img.onload = () => { entry.status = 'loaded'; resolve(); };
+          img.onerror = () => { entry.status = 'error'; resolve(); };
+          img.src = picture.imageUri;
+        });
+        state.preloadCache.set(key, entry);
+        return entry;
+      }
+      preloadMasterCartonPictureNeighbors(state, pictures) {
+        if (pictures.length <= 1) return;
+        const nextIndex = (state.index + 1) % pictures.length;
+        const prevIndex = (state.index - 1 + pictures.length) % pictures.length;
+        this.getOrCreateMasterCartonPreloadEntry(state, pictures[nextIndex]);
+        if (prevIndex !== nextIndex) this.getOrCreateMasterCartonPreloadEntry(state, pictures[prevIndex]);
+      }
+      updateMasterCartonPictureFrame(target, state, pictures) {
+        const picture = pictures[state.index];
+        const image = target.querySelector('.carton-picture-image');
+        const spinner = target.querySelector('[data-role="spinner"]');
+        const errorBox = target.querySelector('[data-role="error"]');
+        const countEl = target.querySelector('[data-role="count"]');
+        if (countEl) countEl.textContent = this.t('pictureCount', { current: state.index + 1, total: pictures.length });
+        if (!image) return;
+
+        state.requestToken = (state.requestToken || 0) + 1;
+        const token = state.requestToken;
+        const showSpinner = () => { if (spinner) spinner.hidden = false; };
+        const hideSpinner = () => { if (spinner) spinner.hidden = true; };
+        const showError = () => { if (errorBox) { errorBox.hidden = false; errorBox.textContent = this.t('cartonPictureLoadFailed'); } image.hidden = true; };
+        const clearError = () => { if (errorBox) errorBox.hidden = true; image.hidden = false; };
+        const applyImage = url => {
+          clearError();
+          if (image.src !== url) {
+            image.classList.add('is-swapping');
+            image.src = url;
+            requestAnimationFrame(() => image.classList.remove('is-swapping'));
+          }
+        };
+
+        const entry = this.getOrCreateMasterCartonPreloadEntry(state, picture);
+        if (entry.status === 'loaded') {
+          hideSpinner();
+          applyImage(entry.url);
+        } else if (entry.status === 'error') {
+          hideSpinner();
+          showError();
+          console.warn(`[master-carton pictures] ${state.cartonId}: failed to load ${picture.filename}`);
+        } else {
+          showSpinner();
+          entry.promise.then(() => {
+            if (token !== state.requestToken) return; // superseded by a later navigation click
+            hideSpinner();
+            if (entry.status === 'loaded') {
+              applyImage(entry.url);
+            } else {
+              showError();
+              console.warn(`[master-carton pictures] ${state.cartonId}: failed to load ${picture.filename}`);
+            }
+          });
+        }
+
+        this.preloadMasterCartonPictureNeighbors(state, pictures);
+      }
       renderMasterCartonPicturePanel(container, cartonId, cartonDescription = '', galleryKey = 'fgLookup') {
         const target = typeof container === 'string' ? document.querySelector(container) : container;
         if (!target) return;
         const state = this.cartonPictureGalleryState[galleryKey] || (this.cartonPictureGalleryState[galleryKey] = { cartonId: '', index: 0 });
         const normalizedCartonId = normalizeId(cartonId);
-        if (state.cartonId !== normalizedCartonId) {
+        const cartonChanged = state.cartonId !== normalizedCartonId;
+        if (cartonChanged) {
           state.cartonId = normalizedCartonId;
           state.index = 0;
+          this.resetMasterCartonPreloadCache(state);
         }
 
         target.hidden = false;
@@ -3656,27 +3739,31 @@
         }
 
         state.index = ((state.index % pictures.length) + pictures.length) % pictures.length;
-        const picture = pictures[state.index];
-        const count = pictures.length > 1 ? `<span class="carton-picture-count">${escapeHtml(this.t('pictureCount', { current: state.index + 1, total: pictures.length }))}</span>` : '';
-        const controls = pictures.length > 1 ? `<div class="carton-picture-controls"><button type="button" data-picture-action="previous">${escapeHtml(this.t('previousPicture'))}</button><button type="button" data-picture-action="next">${escapeHtml(this.t('nextPicture'))}</button></div>` : '';
-        target.innerHTML = `<section class="carton-picture-panel"><div class="carton-picture-head">${heading}${count}</div><div class="carton-picture-frame"><img class="carton-picture-image" alt="Master carton ${escapeHtml(String(cartonId).trim())}"></div>${controls}</section>`;
 
-        const image = target.querySelector('.carton-picture-image');
-        image.addEventListener('error', () => {
-          const frame = target.querySelector('.carton-picture-frame');
-          if (frame) frame.innerHTML = `<div class="carton-picture-empty">${escapeHtml(this.t('cartonPictureLoadFailed'))}</div>`;
-          console.warn(`[master-carton pictures] ${normalizedCartonId}: failed to load ${picture.filename}`);
-        }, { once: true });
-        image.src = picture.imageUri;
+        const needsFullBuild = cartonChanged || !target.querySelector('.carton-picture-frame');
+        if (needsFullBuild) {
+          const count = pictures.length > 1 ? `<span class="carton-picture-count" data-role="count"></span>` : '';
+          const controls = pictures.length > 1 ? `<div class="carton-picture-controls"><button type="button" data-picture-action="previous">${escapeHtml(this.t('previousPicture'))}</button><button type="button" data-picture-action="next">${escapeHtml(this.t('nextPicture'))}</button></div>` : '';
+          target.innerHTML = `<section class="carton-picture-panel"><div class="carton-picture-head">${heading}${count}</div><div class="carton-picture-frame"><img class="carton-picture-image" alt="Master carton ${escapeHtml(String(cartonId).trim())}"><div class="carton-picture-spinner" data-role="spinner" hidden aria-hidden="true"><span class="spinner-dot"></span>${escapeHtml(this.t('loadingPicture'))}</div><div class="carton-picture-error" data-role="error" hidden></div></div>${controls}</section>`;
 
-        target.querySelector('[data-picture-action="previous"]')?.addEventListener('click', () => {
-          state.index = (state.index - 1 + pictures.length) % pictures.length;
-          this.renderMasterCartonPicturePanel(target, cartonId, cartonDescription, galleryKey);
-        });
-        target.querySelector('[data-picture-action="next"]')?.addEventListener('click', () => {
-          state.index = (state.index + 1) % pictures.length;
-          this.renderMasterCartonPicturePanel(target, cartonId, cartonDescription, galleryKey);
-        });
+          const image = target.querySelector('.carton-picture-image');
+          image.addEventListener('error', () => {
+            const errorBox = target.querySelector('[data-role="error"]');
+            if (errorBox) { errorBox.hidden = false; errorBox.textContent = this.t('cartonPictureLoadFailed'); }
+            image.hidden = true;
+          });
+
+          target.querySelector('[data-picture-action="previous"]')?.addEventListener('click', () => {
+            state.index = (state.index - 1 + pictures.length) % pictures.length;
+            this.updateMasterCartonPictureFrame(target, state, pictures);
+          });
+          target.querySelector('[data-picture-action="next"]')?.addEventListener('click', () => {
+            state.index = (state.index + 1) % pictures.length;
+            this.updateMasterCartonPictureFrame(target, state, pictures);
+          });
+        }
+
+        this.updateMasterCartonPictureFrame(target, state, pictures);
       }
       clearMasterCartonPicturePanel(container, galleryKey) {
         const target = typeof container === 'string' ? document.querySelector(container) : container;
