@@ -581,8 +581,8 @@ function Get-BomBusinessDateFromFilename {
   return $res
 }
 
-# Read non-path configuration. Source paths are intentionally not configurable:
-# the only supported source is the exact sibling "1. Weekly BOM" directory.
+# Read configuration. Folder names may be overridden via [Folders]; every
+# resolved path still stays an exact relative sibling under $ToolsRoot.
 $configPath = Join-Path $SystemDir 'config.ini'
 try {
   $config = Read-IniFile -FilePath $configPath
@@ -610,6 +610,25 @@ if ($config.ContainsKey('Search')) {
   }
 }
 
+# Folder names are configurable but always resolved as exact relative
+# siblings under $ToolsRoot / $WeeklyBomDir. No absolute or scanned paths.
+$weeklyBomFolderName = '1. Weekly BOM'
+if ($config.ContainsKey('Folders')) {
+  if ($config['Folders']['WeeklyBomFolderName']) {
+    $weeklyBomFolderName = $config['Folders']['WeeklyBomFolderName']
+  } elseif ($config['Folders']['WeeklyBomFolder']) {
+    $weeklyBomFolderName = $config['Folders']['WeeklyBomFolder']
+    Write-Log "WARNING: config.ini key [Folders] WeeklyBomFolder is deprecated. Use WeeklyBomFolderName."
+  }
+}
+$WeeklyBomDir = Join-Path $ToolsRoot $weeklyBomFolderName
+$WeeklyBomDirectory = $WeeklyBomDir
+
+$pictureFolderName = 'master-carton-pictures'
+if ($config.ContainsKey('Folders') -and $config['Folders']['PictureFolderName']) {
+  $pictureFolderName = $config['Folders']['PictureFolderName']
+}
+
 $expectedAppFolderName = 'WVN_Master_Carton_Fit_Tool'
 if ((Split-Path -Leaf $AppRoot) -cne $expectedAppFolderName) {
   Write-Log "WARNING: Application folder is named '$(Split-Path -Leaf $AppRoot)'; expected '$expectedAppFolderName'. Continuing because the relative structure is valid."
@@ -623,9 +642,9 @@ if ((Test-Path -LiteralPath (Join-Path $duplicateNestedRoot 'Open_WVN_Master_Car
 
 if (-not (Test-Path -LiteralPath $WeeklyBomDir -PathType Container)) {
   throw @"
-The folder "1. Weekly BOM" was not found beside the Master Carton tool.
+The folder "$weeklyBomFolderName" was not found beside the Master Carton tool.
 Expected location: $WeeklyBomDir
-Keep "1. Weekly BOM" and "$expectedAppFolderName" as sibling folders.
+Keep "$weeklyBomFolderName" and "$expectedAppFolderName" as sibling folders.
 "@
 }
 
@@ -974,11 +993,11 @@ The previous generated cache is missing, incomplete, stale, or does not match th
   Write-Log "Cache is stale, missing, or incomplete. Rebuilding CSV data."
 }
 
-$masterCartonPictureFolder = Join-Path $resolvedWeeklyBomDir 'master-carton-pictures'
+$masterCartonPictureFolder = Join-Path $resolvedWeeklyBomDir $pictureFolderName
 $legacyMasterCartonPictureFolder = Join-Path $resolvedWeeklyBomDir 'Master_Carton_Pics'
 if (-not (Test-Path -LiteralPath $masterCartonPictureFolder -PathType Container) -and
     (Test-Path -LiteralPath $legacyMasterCartonPictureFolder -PathType Container)) {
-  Write-Log "WARNING: Picture folder '$legacyMasterCartonPictureFolder' uses the legacy name. Rename it to 'master-carton-pictures'. Using it for this run."
+  Write-Log "WARNING: Picture folder '$legacyMasterCartonPictureFolder' uses the legacy name. Rename it to '$pictureFolderName'. Using it for this run."
   $masterCartonPictureFolder = $legacyMasterCartonPictureFolder
 }
 $masterCartonPictureIndexPath = Join-Path $GeneratedDir 'master_carton_picture_index.csv'
