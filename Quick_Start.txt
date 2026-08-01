@@ -13,6 +13,11 @@ Requirements:
 - The Excel source files (OneDrive/SharePoint synced)
 
 Troubleshooting:
-- If the browser does not open, check the log file located at:
-  system/logs/WVN_Master_Carton_Fit_Tool_launcher.log
+- If double-clicking the CMD does nothing (window flashes and closes with no
+  message), this folder was likely downloaded (email, Teams, chat) and Windows
+  is silently blocking it as "from the internet." Fix it with PowerShell:
+    Get-ChildItem -Path "<this folder>" -Recurse | Unblock-File
+  then try again.
+- If the browser does not open, check the newest log file in:
+  system/logs/  (each run creates its own file, newest timestamp = latest run)
 - If automatic discovery fails, the web tool will allow you to manually select the workbook files.

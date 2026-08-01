@@ -119,10 +119,12 @@ Matching uses the exact filename pattern rather than substring matching. Images 
 
 | Symptom | Likely cause | Action |
 | --- | --- | --- |
+| CMD window flashes and closes, no message at all | Folder was downloaded (email/Teams/chat) and Windows is blocking it as "from the internet" | Run `Get-ChildItem -Path "<folder>" -Recurse \| Unblock-File` in PowerShell, then relaunch |
 | Launcher says workbook is locked | Excel, preview, Teams, or synchronization lock | Close the file and relaunch |
 | Latest BOM was skipped | File locked or invalid | Review the latest launcher log |
 | Carton Audit does not autofill | Missing or stale `bom_carton_assignments.csv` | Close source files and relaunch |
 | Browser opens with no data | Generated files missing or unavailable | Review `system/logs/` |
+| Launcher finishes but nothing opens, with a clear error naming Chrome/Edge | Browser not found in any checked install location | Open `system/WVN_Master_Carton_Fit_Tool.html` manually, or install Chrome/Edge |
 | Second launch does nothing | Another launcher is preparing | Wait for the first launch |
 | No carton picture found | No exact indexed filename | Check the naming convention |
 | Generated CSV cannot be replaced | CSV or preview is holding the file | Close it and relaunch |
