@@ -1,0 +1,68 @@
+WAHL Vietnam — Master Carton Fit Tool
+What's new: you can now add data yourself
+=========================================
+
+THE PROBLEM
+-----------
+The tool reads its product and carton list from the weekly Excel workbooks.
+If a product was not in those workbooks yet — a new one still being measured —
+there was no way to check it without waiting for the next weekly file.
+
+WHAT CHANGED
+------------
+You can now add a product or a carton yourself, and the tool remembers it.
+
+Nothing else about the tool has changed. Every existing screen and result works
+exactly as before.
+
+
+HOW TO ADD ONE PRODUCT
+----------------------
+1. Open the tool as usual.
+2. Go to the "New Product" tab.
+3. Fill in the ID, length, width, height and quantity — the same boxes you
+   already use to check cartons.
+4. Press "Save this product".
+
+That's it. The next time anyone opens the tool, that product is in the list and
+can be searched for like any other.
+
+
+HOW TO ADD MANY AT ONCE
+-----------------------
+1. Go to the "Add Data" tab.
+2. Choose whether you are adding products or cartons.
+3. Press "Download blank sheet" and fill it in with Excel.
+4. Drag the finished file onto the box on the page (or paste the rows in).
+5. The page shows you a preview, marking every row as:
+      Ready                      — will be saved
+      Replaces an existing item  — will update something already on the list
+      A short note               — something is wrong, this row is skipped
+6. Press "Save all".
+
+
+IF YOU ENTER SOMETHING TWICE
+----------------------------
+The newest numbers win. Re-measuring a product is a correction, so the tool
+replaces the old numbers instead of creating a second copy. You never have to
+find and delete the old entry first.
+
+
+THE "TURN OFF" BUTTON
+---------------------
+Top-right corner of the tool. It switches off the small background program that
+does the saving. Use it if you want the tool to be read-only for a while.
+
+Closing and re-opening the tool switches it back on.
+
+If you do not see the Save buttons at all, that background program is not
+running. Close the tool and open it again. Nothing is lost — the tool still
+works normally without it.
+
+
+WHAT GETS INSTALLED
+-------------------
+Nothing. The tool still runs from this folder using only what Windows already
+has. There is no database, no website and no setup step.
+
+Everything you add is stored in this folder on this PC.
