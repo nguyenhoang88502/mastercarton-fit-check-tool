@@ -1608,6 +1608,45 @@ if ($rebuildNeeded) {
 if ($manifestsOnly) {
   Write-Log "Manifests and data files prepared. Skipping browser launch (--manifests-only)."
 } else {
+  # Start the small helper that lets the tool save new products and cartons. Entirely
+  # optional: if anything here fails the tool still opens and works exactly as before, just
+  # without the Save controls, so this whole block is wrapped and never throws.
+  try {
+    $listenerScript = Join-Path (Split-Path -Parent $systemDir) 'http-listener\listen.ps1'
+    if (Test-Path -LiteralPath $listenerScript) {
+      $alreadyRunning = $false
+      try {
+        $probe = New-Object System.Net.Sockets.TcpClient
+        $probe.Connect('127.0.0.1', 3000)
+        $alreadyRunning = $true
+        $probe.Close()
+      }
+      catch { $alreadyRunning = $false }
+
+      if ($alreadyRunning) {
+        Write-Log "Data entry helper is already running on port 3000; leaving it alone."
+      }
+      else {
+        # Quote every path: Start-Process joins -ArgumentList with spaces without quoting,
+        # so an unquoted path containing a space is split into separate arguments.
+        Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList @(
+          '-NoProfile', '-ExecutionPolicy', 'Bypass',
+          '-File', "`"$listenerScript`"",
+          '-Port', '3000',
+          '-IdleTimeoutSeconds', '900',
+          '-MaxRequests', '100000'
+        )
+        Write-Log "Started the data entry helper in the background (port 3000)."
+      }
+    }
+    else {
+      Write-Log "Data entry helper not found; the tool will open without the Save controls."
+    }
+  }
+  catch {
+    Write-Log "Could not start the data entry helper: $($_.Exception.Message). The tool will open without the Save controls."
+  }
+
   $htmlPath = Join-Path $systemDir 'WVN_Master_Carton_Fit_Tool.html'
   $chromePath = Join-Path $env:ProgramFiles 'Google\Chrome\Application\chrome.exe'
   $edgePath = Join-Path ${env:ProgramFiles(x86)} 'Microsoft\Edge\Application\msedge.exe'

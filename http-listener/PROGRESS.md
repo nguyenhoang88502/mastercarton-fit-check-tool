@@ -7,7 +7,7 @@ orchestrator, three DeepSeek workers, QC gate after every dispatch.
 
 | Agent | Scope | Delivered |
 |---|---|---|
-| Worker A (DeepSeek) | HTML UI framework | `index.html` |
+| Worker A (DeepSeek) | HTML UI framework | `index.html` — later dropped, see below |
 | Worker B (DeepSeek) | Data architecture & validation schemas | `docs/data-contract.md` |
 | Worker C (DeepSeek) | PowerShell test suite | `tests/test.ps1` |
 | Orchestrator (Opus) | Architecture, integration, QC, arbitration | `listen.ps1`, `launcher.cmd`, all fixes below |
@@ -116,6 +116,48 @@ First full run was 16/19. All three were bad assertions, not server bugs:
   these assertions could never have passed. Now matched against `RawBody`.
 
 Second run: **19/19**.
+
+## Iteration 4 - folded into the real tool, standalone page dropped
+
+The separate data-entry page was the wrong shape: it duplicated a tool that already exists and
+would have meant two places to look. The feature moved into
+`system/WVN_Master_Carton_Fit_Tool.html` instead, and `index.html` / `launcher.cmd` were deleted.
+Worker A's page is still in `tools/worker-output/` as the record of that iteration.
+
+What changed:
+
+- **New Product tab** gained a *Save this product* button that reuses the fields already on the
+  form, so nothing new has to be typed.
+- **Add Data tab** added for bulk entry: a downloadable blank sheet, drag-and-drop or paste, a
+  preview that flags each row as ready / will-replace / has-a-problem, then Save all.
+- **Header** gained a small "Saving is on · Turn off" pill that ends the background program.
+- Every one of those controls is hidden unless the helper actually answers, so the tool is
+  unchanged for anyone without it.
+- All wording is plain language in English and Vietnamese: no ports, no servers, no CSV, no HTTP.
+
+**Duplicates now overwrite instead of erroring.** Re-measuring a product is a correction, so the
+newest entry wins and the row count does not grow. The 409 path was removed and T05 rewritten to
+assert the replacement.
+
+**Saved entries feed back into the tool.** They are merged onto the raw workbook rows inside
+`loadFromCSVs`, before any mapping, so no analysis code changed. They are stored outside
+`generated/` because the launcher rebuilds that folder from the workbooks on every run and would
+erase them. The merge is wrapped so a failure can never block startup.
+
+Three integration bugs found and fixed while testing this:
+
+7. *Referencing `toolUi` too early.* The wiring block sat above `const toolUi = new UiController()`.
+   `const` is in the temporal dead zone until its declaration, so even `typeof toolUi` throws
+   rather than reading as undefined. Deferred it to run after the controller exists.
+8. *The Add Data tab opened to an empty page.* `activateWorkflow` force-hides any panel not in a
+   hard-coded `primary` set, so the new panel was hidden the moment its tab was clicked.
+9. *Batch result read "Saved. 3 · 1 replaced".* Reworded to "3 rows saved. 1 of them replaced an
+   item that was already on the list."
+
+Verified in the real tool against real data: 968 products loaded, three saved entries merged to
+971, a saved product is findable in the normal picker with its saved dimensions, re-saving the
+same ID replaces it rather than duplicating, bad rows are skipped with a plain reason, and the
+Turn off button ends the PowerShell process.
 
 ## Known cosmetic gap
 

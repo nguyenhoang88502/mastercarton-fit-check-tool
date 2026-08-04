@@ -292,18 +292,28 @@ Test-Case "T04 fg_dimensions.csv contains posted FG_ID" {
 }
 
 # ---- T05 ----------------------------------------------------
-Test-Case "T05 duplicate FG_ID returns 409 and message 'already exists'" {
+Test-Case "T05 re-entering an existing FG_ID replaces it with the new data" {
+    # Re-measuring a product is a correction, so the newest entry wins and the row count
+    # must not grow. Post the same key with different dimensions.
     $body = @{
         fg_id      = "TEST_FG_001"
-        length_mm  = 100
-        width_mm   = 200
-        height_mm  = 300
-        target_qty = 10
+        length_mm  = 111
+        width_mm   = 222
+        height_mm  = 333
+        target_qty = 77
         source     = "MANUAL_ENTRY"
     } | ConvertTo-Json -Compress
     $res = Invoke-Api -Method POST -Uri "$baseUri/api/data/fg-dimensions" -Body $body
-    Assert-Equal 409 $res.StatusCode "Expected 409 conflict"
-    Assert-Match "already exists" "$($res.Body)" "Message must contain 'already exists'"
+    Assert-Equal 200 $res.StatusCode "Expected 200"
+    Assert-True ($res.Body.success -eq $true) "success must be true"
+    Assert-True ($res.Body.replaced -eq $true) "replaced flag must be true"
+
+    $csvFile = Join-Path $dataPath "fg_dimensions.csv"
+    $rows = @(Import-Csv $csvFile | Where-Object { $_.FG_ID -eq "TEST_FG_001" })
+    Assert-Equal 1 $rows.Count "Replacing must not add a second row for the same key"
+    Assert-Equal "111" $rows[0].Length_mm "Row must hold the NEW length"
+    Assert-Equal "333" $rows[0].Height_mm "Row must hold the NEW height"
+    Assert-Equal "77"  $rows[0].Target_Qty "Row must hold the NEW target quantity"
 }
 
 # ---- T06 ----------------------------------------------------

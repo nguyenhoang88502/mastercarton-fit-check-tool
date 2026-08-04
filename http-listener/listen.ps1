@@ -136,6 +136,44 @@ function Read-CsvSafe {
     return @($text | ConvertFrom-Csv)
 }
 
+function Write-TextReplace {
+    <# Whole-file rewrite via a temp file + move, so a crash mid-write cannot leave a
+       half-written CSV. Same retry policy as the append path. #>
+    param([string]$Path, [string]$Text, [int]$Attempts = 4, [int]$DelayMs = 150)
+
+    $tmp = "$Path.tmp"
+    [IO.File]::WriteAllText($tmp, $Text, (New-Object Text.UTF8Encoding($false)))
+    for ($i = 1; $i -le $Attempts; $i++) {
+        try {
+            [IO.File]::Copy($tmp, $Path, $true)
+            Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+            return
+        }
+        catch [System.IO.IOException] {
+            if ($i -eq $Attempts) {
+                Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+                throw
+            }
+            Start-Sleep -Milliseconds $DelayMs
+        }
+    }
+}
+
+function Write-CsvAll {
+    <# Rewrite the whole file from $Rows. Rows may be PSCustomObjects read back from CSV or
+       hashtables built from a request; $row.$column resolves against both. #>
+    param([string]$Path, [string[]]$Columns, $Rows)
+
+    $sb = New-Object System.Text.StringBuilder
+    [void]$sb.Append((($Columns | ForEach-Object { ConvertTo-CsvField $_ }) -join ','))
+    [void]$sb.Append([Environment]::NewLine)
+    foreach ($r in $Rows) {
+        [void]$sb.Append((($Columns | ForEach-Object { ConvertTo-CsvField $r.$_ }) -join ','))
+        [void]$sb.Append([Environment]::NewLine)
+    }
+    Write-TextReplace -Path $Path -Text $sb.ToString()
+}
+
 function Add-CsvRecord {
     param([string]$Path, [string[]]$Columns, [hashtable]$Record)
 
@@ -351,28 +389,40 @@ function Invoke-Insert {
         }
     }
 
-    # Duplicate detection: re-read per record so a batch sees rows inserted earlier in itself.
-    $existing = Read-CsvSafe $csvPath
-    $dupe = $existing
-    foreach ($k in $def.Keys) {
-        $wanted = $built.Key[$k]
-        $dupe = $dupe | Where-Object { $_.$k -eq $wanted }
-    }
-    if ($dupe) {
-        $keyText = ($def.Keys | ForEach-Object { "$_ '$($built.Key[$_])'" }) -join ' + '
-        return @{
-            Status  = 409
-            Payload = [ordered]@{
-                success = $false
-                status  = 409
-                error   = 'Duplicate key'
-                detail  = ('{0} already exists in {1}. Use a different key or check the existing record.' -f $keyText, $def.File)
-            }
+    # Re-read per record so a batch sees rows written earlier within the same batch.
+    $existing = @(Read-CsvSafe $csvPath)
+    $isDuplicate = $false
+    foreach ($r in $existing) {
+        $match = $true
+        foreach ($k in $def.Keys) {
+            if ([string]$r.$k -ne [string]$built.Key[$k]) { $match = $false; break }
         }
+        if ($match) { $isDuplicate = $true; break }
     }
 
     try {
-        Add-CsvRecord -Path $csvPath -Columns $def.Columns -Record $built.Record
+        if ($isDuplicate) {
+            # Re-entering an existing item REPLACES it. Someone re-measuring a product is
+            # correcting it, so the newest measurement is the one that should win; making them
+            # hunt down and delete the old row first would be the wrong default.
+            $kept = New-Object System.Collections.ArrayList
+            $written = $false
+            foreach ($r in $existing) {
+                $match = $true
+                foreach ($k in $def.Keys) {
+                    if ([string]$r.$k -ne [string]$built.Key[$k]) { $match = $false; break }
+                }
+                if ($match) {
+                    # Replace in place the first time, drop any further duplicates.
+                    if (-not $written) { [void]$kept.Add($built.Record); $written = $true }
+                }
+                else { [void]$kept.Add($r) }
+            }
+            Write-CsvAll -Path $csvPath -Columns $def.Columns -Rows $kept
+        }
+        else {
+            Add-CsvRecord -Path $csvPath -Columns $def.Columns -Record $built.Record
+        }
     }
     catch [System.IO.IOException] {
         return @{
@@ -392,11 +442,13 @@ function Invoke-Insert {
         Payload = [ordered]@{
             success     = $true
             record_id   = ('{0}-{1}' -f $primary.ToLowerInvariant(), $unixMs)
+            replaced    = $isDuplicate
             timestamp   = $built.Record.Timestamp
             csv_updated = $true
             csv_path    = ('system/generated/{0}' -f $def.File)
         }
-        Key     = $primary
+        Key      = $primary
+        Replaced = $isDuplicate
     }
 }
 
@@ -628,10 +680,9 @@ try {
                 $result = Invoke-Insert -Dataset $dataset -Body $parsed
                 Send-Json $res $result.Status $result.Payload
                 if ($result.Status -eq 200) {
-                    Write-Log ('[POST] {0} [200] {1} inserted' -f $path, $result.Key)
-                }
-                elseif ($result.Status -eq 409) {
-                    Write-Log ('[POST] {0} [409] duplicate key' -f $path)
+                    $verb = 'inserted'
+                    if ($result.Replaced) { $verb = 'replaced (newer data kept)' }
+                    Write-Log ('[POST] {0} [200] {1} {2}' -f $path, $result.Key, $verb)
                 }
                 elseif ($result.Status -eq 503) {
                     Write-Log ('[POST] {0} [503] csv locked' -f $path)
