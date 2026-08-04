@@ -19,3 +19,8 @@ Weekly BOM Carton Index.json
 Thumbs.db
 *.tmp
 *.log
+
+# HTTP listener runtime artifacts
+http-listener/system/generated/*.csv
+http-listener/tests/_run/
+http-listener/tools/worker-output/*.raw.json
