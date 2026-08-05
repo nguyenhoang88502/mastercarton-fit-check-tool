@@ -24,15 +24,15 @@ $copied = @(Get-ChildItem (Join-Path $stage 'system\generated') -File)
 if ($copied.Count -lt 5) { throw "Prepared data did not copy: only $($copied.Count) file(s) in system\generated." }
 
 # --- the saving helper ----------------------------------------------------------------------
-# tools/ (build harness) and tests/ stay out of the package: they are engineering material,
-# not something anyone opening this folder needs.
-New-Item -ItemType Directory -Path (Join-Path $stage 'http-listener\system\generated'), (Join-Path $stage 'http-listener\system\logs'), (Join-Path $stage 'http-listener\docs') -Force | Out-Null
-Copy-Item -LiteralPath (Join-Path $repo 'http-listener\listen.ps1') -Destination (Join-Path $stage 'http-listener')
-Copy-Item -LiteralPath (Join-Path $repo 'http-listener\README.md') -Destination (Join-Path $stage 'http-listener')
-Copy-Item -LiteralPath (Join-Path $repo 'http-listener\docs\data-contract.md') -Destination (Join-Path $stage 'http-listener\docs')
+# Lives under system\ so it stays out of the way: the only thing anyone opening the folder
+# should see is the .cmd and the two text files. Only listen.ps1 ships. The README, the data
+# contract, the test suite and the build harness are all engineering material and stay in the
+# repository - nobody receiving this package needs to know how the saving works.
+New-Item -ItemType Directory -Path (Join-Path $stage 'system\http-listener\system\generated'), (Join-Path $stage 'system\http-listener\system\logs') -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $repo 'system\http-listener\listen.ps1') -Destination (Join-Path $stage 'system\http-listener')
 
 # Keep the empty folders in the zip so nothing has to be created by hand.
-foreach ($keep in @('system\logs', 'http-listener\system\generated', 'http-listener\system\logs')) {
+foreach ($keep in @('system\logs', 'system\http-listener\system\generated', 'system\http-listener\system\logs')) {
     Set-Content -LiteralPath (Join-Path $stage "$keep\.keep") -Value '' -Encoding ASCII
 }
 

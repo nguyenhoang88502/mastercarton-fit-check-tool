@@ -1612,7 +1612,7 @@ if ($manifestsOnly) {
   # optional: if anything here fails the tool still opens and works exactly as before, just
   # without the Save controls, so this whole block is wrapped and never throws.
   try {
-    $listenerScript = Join-Path (Split-Path -Parent $systemDir) 'http-listener\listen.ps1'
+    $listenerScript = Join-Path $systemDir 'http-listener\listen.ps1'
     if (Test-Path -LiteralPath $listenerScript) {
       $alreadyRunning = $false
       try {
