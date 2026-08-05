@@ -1648,29 +1648,78 @@ if ($manifestsOnly) {
   }
 
   $htmlPath = Join-Path $systemDir 'WVN_Master_Carton_Fit_Tool.html'
-  $chromePath = Join-Path $env:ProgramFiles 'Google\Chrome\Application\chrome.exe'
-  $edgePath = Join-Path ${env:ProgramFiles(x86)} 'Microsoft\Edge\Application\msedge.exe'
-  $browser = $null
-  if (Test-Path -LiteralPath $chromePath) { $browser = $chromePath }
-  elseif (Test-Path -LiteralPath $edgePath) { $browser = $edgePath }
-  
-  if ($browser) {
-    $tempProfile = Join-Path $env:TEMP "WVNMasterCartonToolChrome-$(Get-Random)"
-    Write-Log "Launching browser: $browser"
-    Write-Log "HTML URL: $htmlPath"
-    
-    # Hide console window if ShowConsole=false
-    $showConsole = if ($config.ContainsKey('Launcher') -and $config['Launcher'].ContainsKey('ShowConsole')) { $config['Launcher']['ShowConsole'] -eq 'true' } else { $false }
-    
-    if (-not $showConsole) {
-      # Use a background process to open browser so console window exits quietly
-      Start-Process -FilePath $browser -ArgumentList "--user-data-dir=`"$tempProfile`"", '--allow-file-access-from-files', "`"$htmlPath`""
-    } else {
-      # Keep console open (this command waits, or starts and pauses)
-      Start-Process -FilePath $browser -ArgumentList "--user-data-dir=`"$tempProfile`"", '--allow-file-access-from-files', "`"$htmlPath`""
+
+  # The tool loads its product/carton data via fetch('./generated/*.csv'), which Chrome and
+  # Edge block by default when the page is opened as a plain file:// path (blank tool, no
+  # data). --allow-file-access-from-files lifts that, but only takes effect in a brand-new
+  # browser process, hence the throwaway -user-data-dir. So: find the user's actual default
+  # browser (not a hardcoded Program Files path - it may be a per-user install) and, if it's
+  # Chromium-based, launch it the same way as before. Anything else (Firefox, Safari, ...)
+  # doesn't support that flag, so it's opened plainly with a heads-up that data may not load.
+  function Get-DefaultBrowserPath {
+    try {
+      $assocKey = 'HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice'
+      if (-not (Test-Path -LiteralPath $assocKey)) { return $null }
+      $progId = (Get-ItemProperty -LiteralPath $assocKey -ErrorAction Stop).ProgId
+      if ([string]::IsNullOrWhiteSpace($progId)) { return $null }
+      $cmdKey = "Registry::HKEY_CLASSES_ROOT\$progId\shell\open\command"
+      if (-not (Test-Path -LiteralPath $cmdKey)) { return $null }
+      $cmd = (Get-ItemProperty -LiteralPath $cmdKey -ErrorAction Stop).'(default)'
+      if ([string]::IsNullOrWhiteSpace($cmd)) { return $null }
+      if ($cmd -match '^\s*"([^"]+)"') { return $Matches[1] }
+      if ($cmd -match '^\s*(\S+\.exe)') { return $Matches[1] }
+      return $null
     }
-  } else {
-    Write-Log "ERROR: Google Chrome or Microsoft Edge was not found in Program Files. Please open system/WVN_Master_Carton_Fit_Tool.html manually."
+    catch { return $null }
+  }
+
+  $chromiumExeNames = @('chrome.exe', 'msedge.exe', 'brave.exe', 'opera.exe', 'vivaldi.exe', 'chromium.exe')
+  $defaultBrowser = Get-DefaultBrowserPath
+  $defaultBrowserOk = $defaultBrowser -and (Test-Path -LiteralPath $defaultBrowser)
+  $defaultIsChromium = $defaultBrowserOk -and ($chromiumExeNames -contains (Split-Path -Leaf $defaultBrowser).ToLowerInvariant())
+
+  # A dedicated profile per browser, reused across runs rather than randomised every launch.
+  # It still keeps this tool's browsing state off the user's normal profile, but a brand-new
+  # profile every single time means some browsers (Vivaldi in particular) show their first-run
+  # setup wizard on every launch, blocking the page. Reusing one folder means that happens (if
+  # at all) once, ever, per machine.
+  function Get-ToolBrowserProfileDir {
+    param([string]$BrowserExePath)
+    $tag = (Split-Path -Leaf $BrowserExePath) -replace '\.exe$', '' -replace '[^a-zA-Z0-9]', ''
+    $dir = Join-Path $env:LOCALAPPDATA "WVNMasterCartonTool\BrowserProfile-$tag"
+    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    return $dir
+  }
+
+  if ($defaultIsChromium) {
+    $tempProfile = Get-ToolBrowserProfileDir -BrowserExePath $defaultBrowser
+    Write-Log "Launching your default browser: $defaultBrowser"
+    Write-Log "HTML URL: $htmlPath"
+    Start-Process -FilePath $defaultBrowser -ArgumentList "--user-data-dir=`"$tempProfile`"", '--allow-file-access-from-files', '--no-first-run', '--no-default-browser-check', "`"$htmlPath`""
+  }
+  elseif ($defaultBrowserOk) {
+    Write-Log "Launching your default browser: $defaultBrowser"
+    Write-Log "HTML URL: $htmlPath"
+    Write-Log "WARNING: your default browser is not Chrome/Edge-based, so product and carton data may not load. If the page looks empty, close it and open system/WVN_Master_Carton_Fit_Tool.html in Chrome or Edge instead."
+    Start-Process -FilePath $defaultBrowser -ArgumentList "`"$htmlPath`""
+  }
+  else {
+    # Registry lookup failed for some reason - fall back to the previous hardcoded search.
+    $chromePath = Join-Path $env:ProgramFiles 'Google\Chrome\Application\chrome.exe'
+    $edgePath = Join-Path ${env:ProgramFiles(x86)} 'Microsoft\Edge\Application\msedge.exe'
+    $browser = $null
+    if (Test-Path -LiteralPath $chromePath) { $browser = $chromePath }
+    elseif (Test-Path -LiteralPath $edgePath) { $browser = $edgePath }
+
+    if ($browser) {
+      $tempProfile = Get-ToolBrowserProfileDir -BrowserExePath $browser
+      Write-Log "Could not detect your default browser; falling back to: $browser"
+      Write-Log "HTML URL: $htmlPath"
+      Start-Process -FilePath $browser -ArgumentList "--user-data-dir=`"$tempProfile`"", '--allow-file-access-from-files', '--no-first-run', '--no-default-browser-check', "`"$htmlPath`""
+    }
+    else {
+      Write-Log "ERROR: Could not detect your default browser, and Google Chrome or Microsoft Edge were not found in Program Files. Please open system/WVN_Master_Carton_Fit_Tool.html manually."
+    }
   }
 }
 
