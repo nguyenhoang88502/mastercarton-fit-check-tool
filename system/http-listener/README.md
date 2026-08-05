@@ -126,7 +126,7 @@ directory and exits non-zero on any failure.
 ## Layout
 
 ```
-http-listener/
+system/http-listener/
 ├─ listen.ps1                   The helper
 ├─ README.md
 ├─ PROGRESS.md                  How this was built, and what QC caught
@@ -136,6 +136,10 @@ http-listener/
 ├─ tests/test.ps1
 └─ tools/                       Multi-agent build harness (not needed at runtime)
 ```
+
+It sits under `system/` so that the folder people actually open shows only the launcher and the
+two text files. **Only `listen.ps1` is shipped** — this README, the data contract, the tests and
+the build harness stay in the repository.
 
 ## If something goes wrong
 

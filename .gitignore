@@ -24,6 +24,7 @@ Thumbs.db
 system/http-listener/system/generated/*.csv
 system/http-listener/tests/_run/
 system/http-listener/tools/worker-output/*.raw.json
+system/tools/worker-output/*.raw.json
 
 # Build output - regenerate with tools\package.ps1
 dist/

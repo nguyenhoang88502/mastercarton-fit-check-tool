@@ -1214,6 +1214,11 @@
     .save-feature{display:none}
     body.saving-available .save-feature{display:inline-flex}
     body.saving-available button.save-feature{display:inline-block}
+    body.saving-available .carton-source-block.save-feature{display:block}
+    .carton-source-block{margin-top:4px}
+    .carton-source-block .dimension-row{margin-top:8px}
+    .carton-source-block>div[hidden]{display:none}
+    .carton-source-block button{margin-top:8px}
     .save-status{display:none;align-items:center;gap:6px;margin-left:auto;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--soft);font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap}
     body.saving-available .save-status{display:inline-flex}
     .save-status .save-dot{width:8px;height:8px;border-radius:50%;background:var(--good);flex:0 0 auto}
@@ -1330,6 +1335,40 @@
           <h3 data-i18n="targetGroup">Target quantity</h3><label class="target-qty"><span data-i18n="targetQty">Target
               quantity</span><input id="manualQty" type="number" min="1" step="1" required value="3"
               placeholder="3"></label>
+        </div>
+        <div class="form-block carton-source-block save-feature">
+          <h3 data-i18n="cartonSourceGroup">If a carton needs measurements</h3>
+          <label><span data-i18n="cartonSourceLabel">Carton measurement</span>
+            <select id="newProductCartonSourceMode">
+              <option value="none" data-i18n="cartonSourceNone" selected>No carton changes needed</option>
+              <option value="missing" data-i18n="cartonSourceMissing">Fix a carton with missing measurements</option>
+              <option value="new" data-i18n="cartonSourceNew">Add a brand new carton</option>
+            </select>
+          </label>
+          <div id="cartonSourceMissingFields" hidden>
+            <label><span data-i18n="cartonSourceMissingSelectLabel">Which carton</span>
+              <select id="cartonSourceMissingSelect" disabled>
+                <option value="" disabled selected data-i18n="cartonSourceMissingPrompt">— Select a carton —</option>
+              </select>
+            </label>
+            <div class="dimension-row">
+              <label><span data-i18n="length">Length</span><input id="cartonSourceMissingLength" type="number" min="0.1" step="0.1" placeholder="mm"><span class="unit">mm</span></label>
+              <label><span data-i18n="width">Width</span><input id="cartonSourceMissingWidth" type="number" min="0.1" step="0.1" placeholder="mm"><span class="unit">mm</span></label>
+              <label><span data-i18n="height">Height</span><input id="cartonSourceMissingHeight" type="number" min="0.1" step="0.1" placeholder="mm"><span class="unit">mm</span></label>
+            </div>
+            <button id="cartonSourceMissingSave" type="button" data-i18n="cartonSourceSaveMeasurements">Save these measurements</button>
+          </div>
+          <div id="cartonSourceNewFields" hidden>
+            <label><span data-i18n="cartonSourceNewId">New Carton ID</span><input id="cartonSourceNewId" type="text" maxlength="80" placeholder="e.g., 1008700"></label>
+            <label><span data-i18n="cartonSourceNewName">Carton name (optional)</span><input id="cartonSourceNewName" type="text" maxlength="120" placeholder="Optional"></label>
+            <div class="dimension-row">
+              <label><span data-i18n="length">Length</span><input id="cartonSourceNewLength" type="number" min="0.1" step="0.1" placeholder="mm"><span class="unit">mm</span></label>
+              <label><span data-i18n="width">Width</span><input id="cartonSourceNewWidth" type="number" min="0.1" step="0.1" placeholder="mm"><span class="unit">mm</span></label>
+              <label><span data-i18n="height">Height</span><input id="cartonSourceNewHeight" type="number" min="0.1" step="0.1" placeholder="mm"><span class="unit">mm</span></label>
+            </div>
+            <button id="cartonSourceNewSave" type="button" data-i18n="cartonSourceSaveNew">Save new carton</button>
+          </div>
+          <div id="cartonSourceMessage" class="save-msg" role="status" aria-live="polite"></div>
         </div>
         <div class="form-block allowance-summary hidden-fit-scenario-summary" data-optimized-mode-only><span data-i18n="fitScenarios">Fit scenarios</span><output id="manualAllowanceSummary">FG axis ratios 0.90–1.10 · step 0.05 · fixed averaged carton dimensions</output><button id="openEngineeringSettings" type="button" data-i18n="engineeringAssumptions">Engineering assumptions</button></div>
         <div class="manual-actions"><button class="primary" type="submit" data-i18n="checkCartons">Check
@@ -1831,7 +1870,7 @@
           wallAllowance: 'Thành thùng: 10 mm/mặt'
         });
         Object.assign(this.text.en, {
-          addDataNav:'Add Data', addDataTitle:'Add Data', addDataNote:'Add several products or cartons at once. Anything you add is kept and used the next time you open the tool.', kindProducts:'Products (finished goods)', kindCartons:'Cartons', addStep1:'Download the blank sheet below and fill it in.', addStep2:'Drag the finished file onto the box, or paste the rows straight in.', addStep3:'Check the preview, then choose Save.', downloadTemplate:'Download blank sheet', dropHere:'Drop your file here', dropOrClick:'or click to choose a file', pastePlaceholder:'You can also paste rows here', checkRows:'Check the rows', saveAll:'Save all', startOver:'Start over', addDataFootnote:'If an item is already in the list, the new numbers replace the old ones.', saveProduct:'Save this product', savingOn:'Saving is on', turnOffSaving:'Turn off', savedOk:'Saved.', savedReplaced:'Saved. This one was already on the list, so the new numbers replaced the old ones.', saveNeedId:'Please enter the product ID first.', saveNeedSize:'Please enter length, width and height first.', saveFailed:'Could not save. ', saveOffline:'Saving is not running right now, so nothing was saved.', saveStopped:'Saving is off. Close and reopen the tool to turn it back on.', saveNothingToCheck:'Add a file or paste some rows first.', saveNoValidRows:'None of these rows can be saved yet. See the notes in the table.', saveRowsReady:'Ready to save', saveRowsSkipped:'Will be skipped', saveDone:'Saved', saveReplacedCount:'Replaced an item already on the list', saveRowNo:'Row', saveIssue:'Problem', saveWillReplace:'Replaces an existing item', saveOkLabel:'Ready', saveWrongColumns:'That file does not have the expected columns. Please use the blank sheet.',
+          addDataNav:'Add Data', addDataTitle:'Add Data', addDataNote:'Add several products or cartons at once. Anything you add is kept and used the next time you open the tool.', kindProducts:'Products (finished goods)', kindCartons:'Cartons', addStep1:'Download the blank sheet below and fill it in.', addStep2:'Drag the finished file onto the box, or paste the rows straight in.', addStep3:'Check the preview, then choose Save.', downloadTemplate:'Download blank sheet', dropHere:'Drop your file here', dropOrClick:'or click to choose a file', pastePlaceholder:'You can also paste rows here', checkRows:'Check the rows', saveAll:'Save all', startOver:'Start over', addDataFootnote:'If an item is already in the list, the new numbers replace the old ones.', saveProduct:'Save this product', savingOn:'Saving is on', turnOffSaving:'Turn off', savedOk:'Saved.', savedReplaced:'Saved. This one was already on the list, so the new numbers replaced the old ones.', saveNeedId:'Please enter the product ID first.', saveNeedSize:'Please enter length, width and height first.', saveFailed:'Could not save. ', saveOffline:'Saving is not running right now, so nothing was saved.', saveStopped:'Saving is off. Close and reopen the tool to turn it back on.', saveNothingToCheck:'Add a file or paste some rows first.', saveNoValidRows:'None of these rows can be saved yet. See the notes in the table.', saveRowsReady:'Ready to save', saveRowsSkipped:'Will be skipped', saveDone:'Saved', saveReplacedCount:'Replaced an item already on the list', saveRowNo:'Row', saveIssue:'Problem', saveWillReplace:'Replaces an existing item', saveOkLabel:'Ready', saveWrongColumns:'That file does not have the expected columns. Please use the blank sheet.', cartonSourceGroup:'If a carton needs measurements', cartonSourceLabel:'Carton measurement', cartonSourceNone:'No carton changes needed', cartonSourceMissing:'Fix a carton with missing measurements', cartonSourceNew:'Add a brand new carton', cartonSourceMissingSelectLabel:'Which carton', cartonSourceMissingPrompt:'— Select a carton —', cartonSourceSaveMeasurements:'Save these measurements', cartonSourceNewId:'New Carton ID', cartonSourceNewName:'Carton name (optional)', cartonSourceSaveNew:'Save new carton', cartonSourceNeedId:'Please enter the new carton ID first.', cartonSourceNeedSize:'Please enter length, width and height first.', cartonSourceNeedSelect:'Please choose a carton from the list first.', cartonSourcePicked:'Carton selected. Its current measurements are shown below.',
           workflows:'Workflows', dashboard:'Dashboard', newProductNav:'New Product', fgLookup:'FG Lookup', cartonAudit:'Carton Audit', batchAudit:'Batch Audit', cartonLookup:'Carton Lookup', cancelTask:'Cancel', cancellingTask:'Cancelling safely…', processing:'Processing', loadingData:'Loading data', engineeringAssumptions:'Engineering assumptions', engineeringAdvisory:'Advisory output only. Confirm carton material, board grade, compression, regulatory, palletization, and physical samples before release.', fgMeasurementError:'FG measurement error (± mm)', cartonMeasurementError:'Carton measurement error (± mm)', wallThickness:'Wall thickness (mm / side)', foldDeduction:'Opening / fold deduction (mm)', openingAxis:'Opening axis', autoUnknown:'Auto / unknown (worst case)', minimumUtilization:'Minimum utilization (%)', clearance:'Packing clearance (mm)', roundingIncrement:'Proposal rounding (mm)', batchAuditNote:'Audit all eligible finished goods with the same conservative fit and recommendation rules.', runBatchAudit:'Run batch audit', exportCsv:'Export CSV', all:'All results', under85:'Under threshold', searchIncomplete:'Search incomplete', missingData:'Missing data', replacementAvailable:'Replacement available', newCartonRequired:'New carton required', bomConflict:'BOM conflict', lookupCarton:'Look up carton', auditAllUsingCarton:'Audit all FGs using this carton', sideBySideComparison:'Side-by-side packing comparison', currentBaseline:'Current / baseline', suggestedAlternative:'Suggested alternative', syncViews:'Sync views', ghost:'Ghost', buildingIndexes:'Building indexes', rowsIndexed:'rows indexed', missingFgDimensions:'Missing FG dimensions', missingTarget:'Missing target quantity', missingCartonAssignment:'Missing carton assignment', missingCartonDimensions:'Missing carton dimensions', openingAxisUnknownWarning:'Opening axis is unknown; the most conservative of all three opening-axis deductions is used.', invalidCartonDimensions:'Carton outside dimensions are missing or invalid.', deductionsExceedDimensions:'Wall, measurement, or fold deductions exceed carton dimensions.', extremeAspectRatio:'Extreme carton aspect ratio; engineering review required.', dataReady:'Data ready', dataNotReady:'Data not ready', eligibleFgs:'Eligible FGs', finishedGoods:'Finished goods', activeCartons:'Active cartons', bomRows:'BOM rows', phase:'Phase', status:'Status', warnings:'Warnings', bestExisting:'Best existing carton', bestNew:'Best new carton', utilizationPct:'Utilization %', searchComplete:'Search complete', cartonUsers:'Assigned finished goods', noResults:'No results', auditComplete:'Batch audit complete', batchCancelled:'Batch audit cancelled', cartonNotIndexed:'Carton was not found in the loaded data.', noCartonUsers:'No finished goods are assigned to this carton.', portfolioConsolidation:'Portfolio consolidation opportunities', dimensionModel:'Outside-to-inside dimension model', quickBatchAudit:'Quick Batch Audit', optimizedBatchSuggestions:'Optimized Batch Suggestions', cartonLineReduction:'Carton-Line Reduction', runQuickBatchAudit:'Run Quick Batch Audit', runOptimizedBatchSuggestions:'Run Optimized Batch Suggestions', runCartonLineReduction:'Run Carton-Line Reduction Analysis', quickBatchDescription:'Checks current BOM cartons and existing alternatives using exact active dimensions.', optimizedBatchDescription:'Screens existing cartons using Quick Mode, then applies 125 FG-ratio combinations at 0.05 steps to shortlisted candidates.', consolidationBatchDescription:'Recommends how existing FGs could share fewer existing master-carton IDs using greedy set-cover analysis.', consolidationAdvisory:'Potential consolidation candidate — production and engineering validation required.', noConsolidationResults:'No carton-line reduction results are available. Run the applicable Batch Audit mode first.', nominalFit:'NOMINAL_FIT', fgRatioEstimatedFit:'FG_RATIO_ESTIMATED_FIT', noFitLabel:'NO_FIT',
           fgLookupCartonOverride: 'Carton override:',
           fgLookupCartonOverridePlaceholder: 'Optional carton ID',
@@ -1841,7 +1880,7 @@
           fgLookupCartonOverrideSource: 'Source BOM carton'
         });
         Object.assign(this.text.vi, {
-          addDataNav:'Thêm dữ liệu', addDataTitle:'Thêm dữ liệu', addDataNote:'Thêm nhiều sản phẩm hoặc thùng cùng lúc. Dữ liệu bạn thêm sẽ được giữ lại và dùng cho lần mở sau.', kindProducts:'Sản phẩm (thành phẩm)', kindCartons:'Thùng', addStep1:'Tải mẫu trống bên dưới và điền vào.', addStep2:'Kéo tệp đã điền vào ô, hoặc dán trực tiếp các dòng.', addStep3:'Xem lại bảng, sau đó chọn Lưu.', downloadTemplate:'Tải mẫu trống', dropHere:'Kéo tệp vào đây', dropOrClick:'hoặc bấm để chọn tệp', pastePlaceholder:'Bạn cũng có thể dán các dòng vào đây', checkRows:'Kiểm tra các dòng', saveAll:'Lưu tất cả', startOver:'Làm lại', addDataFootnote:'Nếu mục đã có trong danh sách, số liệu mới sẽ thay cho số liệu cũ.', saveProduct:'Lưu sản phẩm này', savingOn:'Đang bật lưu', turnOffSaving:'Tắt', savedOk:'Đã lưu.', savedReplaced:'Đã lưu. Mục này đã có sẵn nên số liệu mới đã thay cho số liệu cũ.', saveNeedId:'Vui lòng nhập mã sản phẩm trước.', saveNeedSize:'Vui lòng nhập chiều dài, rộng và cao trước.', saveFailed:'Không lưu được. ', saveOffline:'Chức năng lưu chưa chạy nên chưa lưu được gì.', saveStopped:'Đã tắt lưu. Đóng và mở lại công cụ để bật lại.', saveNothingToCheck:'Hãy thêm tệp hoặc dán vài dòng trước.', saveNoValidRows:'Chưa dòng nào lưu được. Xem ghi chú trong bảng.', saveRowsReady:'Sẵn sàng lưu', saveRowsSkipped:'Sẽ bỏ qua', saveDone:'Đã lưu', saveReplacedCount:'Thay cho mục đã có sẵn', saveRowNo:'Dòng', saveIssue:'Vấn đề', saveWillReplace:'Thay cho mục đã có', saveOkLabel:'Sẵn sàng', saveWrongColumns:'Tệp này không có các cột cần thiết. Vui lòng dùng mẫu trống.',
+          addDataNav:'Thêm dữ liệu', addDataTitle:'Thêm dữ liệu', addDataNote:'Thêm nhiều sản phẩm hoặc thùng cùng lúc. Dữ liệu bạn thêm sẽ được giữ lại và dùng cho lần mở sau.', kindProducts:'Sản phẩm (thành phẩm)', kindCartons:'Thùng', addStep1:'Tải mẫu trống bên dưới và điền vào.', addStep2:'Kéo tệp đã điền vào ô, hoặc dán trực tiếp các dòng.', addStep3:'Xem lại bảng, sau đó chọn Lưu.', downloadTemplate:'Tải mẫu trống', dropHere:'Kéo tệp vào đây', dropOrClick:'hoặc bấm để chọn tệp', pastePlaceholder:'Bạn cũng có thể dán các dòng vào đây', checkRows:'Kiểm tra các dòng', saveAll:'Lưu tất cả', startOver:'Làm lại', addDataFootnote:'Nếu mục đã có trong danh sách, số liệu mới sẽ thay cho số liệu cũ.', saveProduct:'Lưu sản phẩm này', savingOn:'Đang bật lưu', turnOffSaving:'Tắt', savedOk:'Đã lưu.', savedReplaced:'Đã lưu. Mục này đã có sẵn nên số liệu mới đã thay cho số liệu cũ.', saveNeedId:'Vui lòng nhập mã sản phẩm trước.', saveNeedSize:'Vui lòng nhập chiều dài, rộng và cao trước.', saveFailed:'Không lưu được. ', saveOffline:'Chức năng lưu chưa chạy nên chưa lưu được gì.', saveStopped:'Đã tắt lưu. Đóng và mở lại công cụ để bật lại.', saveNothingToCheck:'Hãy thêm tệp hoặc dán vài dòng trước.', saveNoValidRows:'Chưa dòng nào lưu được. Xem ghi chú trong bảng.', saveRowsReady:'Sẵn sàng lưu', saveRowsSkipped:'Sẽ bỏ qua', saveDone:'Đã lưu', saveReplacedCount:'Thay cho mục đã có sẵn', saveRowNo:'Dòng', saveIssue:'Vấn đề', saveWillReplace:'Thay cho mục đã có', saveOkLabel:'Sẵn sàng', saveWrongColumns:'Tệp này không có các cột cần thiết. Vui lòng dùng mẫu trống.', cartonSourceGroup:'Nếu cần đo thùng', cartonSourceLabel:'Số đo thùng', cartonSourceNone:'Không cần thay đổi thùng', cartonSourceMissing:'Bổ sung số đo cho thùng còn thiếu', cartonSourceNew:'Thêm một loại thùng mới', cartonSourceMissingSelectLabel:'Chọn thùng nào', cartonSourceMissingPrompt:'— Chọn một thùng —', cartonSourceSaveMeasurements:'Lưu số đo này', cartonSourceNewId:'Mã thùng mới', cartonSourceNewName:'Tên thùng (không bắt buộc)', cartonSourceSaveNew:'Lưu thùng mới', cartonSourceNeedId:'Vui lòng nhập mã thùng mới trước.', cartonSourceNeedSize:'Vui lòng nhập chiều dài, rộng và cao trước.', cartonSourceNeedSelect:'Vui lòng chọn một thùng trong danh sách trước.', cartonSourcePicked:'Đã chọn thùng. Số đo hiện tại được hiển thị bên dưới.',
           workflows:'Quy trình', dashboard:'Bảng điều khiển', newProductNav:'Sản phẩm mới', fgLookup:'Tra cứu FG', cartonAudit:'Đánh giá thùng', batchAudit:'Đánh giá hàng loạt', cartonLookup:'Tra cứu thùng', cancelTask:'Hủy', cancellingTask:'Đang hủy an toàn…', processing:'Đang xử lý', loadingData:'Đang tải dữ liệu', engineeringAssumptions:'Giả định kỹ thuật', engineeringAdvisory:'Chỉ dùng để tư vấn. Xác nhận vật liệu thùng, định lượng giấy, độ nén, quy định, xếp pallet và mẫu thực tế trước khi phát hành.', fgMeasurementError:'Sai số đo FG (± mm)', cartonMeasurementError:'Sai số đo thùng (± mm)', wallThickness:'Độ dày thành (mm / mặt)', foldDeduction:'Khấu trừ miệng / nếp gấp (mm)', openingAxis:'Trục mở thùng', autoUnknown:'Tự động / chưa biết (xấu nhất)', minimumUtilization:'Mức sử dụng tối thiểu (%)', clearance:'Khoảng hở đóng gói (mm)', roundingIncrement:'Làm tròn đề xuất (mm)', batchAuditNote:'Đánh giá mọi FG đủ điều kiện bằng cùng quy tắc fit bảo thủ và đề xuất.', runBatchAudit:'Chạy đánh giá hàng loạt', exportCsv:'Xuất CSV', all:'Tất cả kết quả', under85:'Dưới ngưỡng', searchIncomplete:'Tìm kiếm chưa hoàn tất', missingData:'Thiếu dữ liệu', replacementAvailable:'Có thùng thay thế', newCartonRequired:'Cần thùng mới', bomConflict:'Xung đột BOM', lookupCarton:'Tra cứu thùng', auditAllUsingCarton:'Đánh giá mọi FG dùng thùng này', sideBySideComparison:'So sánh đóng gói song song', currentBaseline:'Hiện tại / cơ sở', suggestedAlternative:'Phương án đề xuất', syncViews:'Đồng bộ góc nhìn', ghost:'Khung mờ', buildingIndexes:'Đang tạo chỉ mục', rowsIndexed:'dòng đã lập chỉ mục', missingFgDimensions:'Thiếu kích thước FG', missingTarget:'Thiếu số lượng mục tiêu', missingCartonAssignment:'Thiếu gán thùng', missingCartonDimensions:'Thiếu kích thước thùng', openingAxisUnknownWarning:'Chưa biết trục mở; sử dụng khấu trừ bảo thủ nhất trong ba trục.', invalidCartonDimensions:'Kích thước ngoài của thùng bị thiếu hoặc không hợp lệ.', deductionsExceedDimensions:'Khấu trừ thành, sai số đo hoặc nếp gấp vượt kích thước thùng.', extremeAspectRatio:'Tỷ lệ kích thước thùng quá lớn; cần kỹ thuật xem xét.', dataReady:'Dữ liệu sẵn sàng', dataNotReady:'Dữ liệu chưa sẵn sàng', eligibleFgs:'FG đủ điều kiện', finishedGoods:'Thành phẩm', activeCartons:'Thùng đang hoạt động', bomRows:'Dòng BOM', phase:'Giai đoạn', status:'Trạng thái', warnings:'Cảnh báo', bestExisting:'Thùng hiện có tốt nhất', bestNew:'Thùng mới tốt nhất', utilizationPct:'Mức sử dụng %', searchComplete:'Tìm kiếm hoàn tất', cartonUsers:'FG được gán', noResults:'Không có kết quả', auditComplete:'Đánh giá hàng loạt hoàn tất', batchCancelled:'Đã hủy đánh giá hàng loạt', cartonNotIndexed:'Không tìm thấy thùng trong dữ liệu đã tải.', noCartonUsers:'Không có FG nào được gán cho thùng này.', portfolioConsolidation:'Cơ hội hợp nhất danh mục', dimensionModel:'Mô hình kích thước ngoài sang trong', quickBatchAudit:'Đánh giá nhanh hàng loạt', optimizedBatchSuggestions:'Đề xuất tối ưu hàng loạt', cartonLineReduction:'Giảm dòng thùng', runQuickBatchAudit:'Chạy đánh giá nhanh hàng loạt', runOptimizedBatchSuggestions:'Chạy đề xuất tối ưu hàng loạt', runCartonLineReduction:'Chạy phân tích giảm dòng thùng', quickBatchDescription:'Kiểm tra thùng BOM hiện tại và phương án thay thế bằng kích thước chính xác đang dùng.', optimizedBatchDescription:'Sàng lọc thùng hiện có bằng Chế độ nhanh, sau đó áp dụng 125 tổ hợp tỷ lệ FG với bước 0,05 cho các ứng viên.', consolidationBatchDescription:'Đề xuất cách các FG hiện có có thể dùng chung ít mã thùng hơn bằng phân tích set-cover tham lam.', consolidationAdvisory:'Ứng viên hợp nhất tiềm năng — cần xác nhận sản xuất và kỹ thuật.', noConsolidationResults:'Không có kết quả giảm dòng thùng nào. Hãy chạy chế độ Batch Audit phù hợp trước.', nominalFit:'VỪA DANH NGHĨA', fgRatioEstimatedFit:'VỪA THEO TỶ LỆ FG ƯỚC TÍNH', noFitLabel:'KHÔNG VỪA',
           fgLookupCartonOverride: 'Ghi đè mã thùng:',
           fgLookupCartonOverridePlaceholder: 'Mã thùng tùy chọn',
@@ -5792,6 +5831,176 @@
           say(box, t('saveOffline'), 'bad');
           SavedEntries.probe();
         } finally { button.disabled = false; }
+      });
+
+      /* ---- New Product tab: carton measurement (missing-data fix / new carton line) ---- */
+      const modeSelect = $$('#newProductCartonSourceMode');
+      const missingFieldsDiv = $$('#cartonSourceMissingFields');
+      const newFieldsDiv = $$('#cartonSourceNewFields');
+      const missingSelect = $$('#cartonSourceMissingSelect');
+      const msgBox = $$('#cartonSourceMessage');
+
+      const escapeHTML = (str) => String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+      const populateMissingCartonOptions = () => {
+        const cartons = toolUi?.data?.cartons || [];
+        const missing = cartons.filter(c => !CartonFitEngine.validCarton(c));
+        missing.sort((a, b) => a.carton_id.localeCompare(b.carton_id));
+        let html = `<option value="" disabled selected>${escapeHTML(t('cartonSourceMissingPrompt'))}</option>`;
+        missing.forEach(c => {
+          const idEsc = escapeHTML(c.carton_id);
+          const nameEsc = c.carton_name ? escapeHTML(c.carton_name) : '';
+          const label = nameEsc ? `${idEsc} (${nameEsc})` : idEsc;
+          html += `<option value="${idEsc}">${label}</option>`;
+        });
+        missingSelect.innerHTML = html;
+        missingSelect.disabled = missing.length === 0;
+      };
+
+      modeSelect.addEventListener('change', () => {
+        const mode = modeSelect.value;
+        missingFieldsDiv.hidden = mode !== 'missing';
+        newFieldsDiv.hidden = mode !== 'new';
+        msgBox.textContent = '';
+        if (mode === 'missing') {
+          populateMissingCartonOptions();
+          missingSelect.value = '';
+        }
+      });
+
+      const missingLengthInput = $$('#cartonSourceMissingLength');
+      const missingWidthInput = $$('#cartonSourceMissingWidth');
+      const missingHeightInput = $$('#cartonSourceMissingHeight');
+
+      missingSelect.addEventListener('change', () => {
+        const selectedId = missingSelect.value;
+        if (!selectedId) return;
+        const carton = (toolUi?.data?.cartons || []).find(c => normalizeId(c.carton_id) === normalizeId(selectedId));
+        if (carton) {
+          missingLengthInput.value = (Number.isFinite(carton.width) && carton.width > 0) ? carton.width.toString() : '';
+          missingWidthInput.value = (Number.isFinite(carton.depth) && carton.depth > 0) ? carton.depth.toString() : '';
+          missingHeightInput.value = (Number.isFinite(carton.height) && carton.height > 0) ? carton.height.toString() : '';
+        }
+      });
+
+      $$('#cartonSourceMissingSave').addEventListener('click', async () => {
+        const cartonId = missingSelect.value;
+        if (!cartonId) {
+          say(msgBox, t('cartonSourceNeedSelect'), 'bad');
+          return;
+        }
+        const length = parseFloat(missingLengthInput.value);
+        const width = parseFloat(missingWidthInput.value);
+        const height = parseFloat(missingHeightInput.value);
+        if (!(length > 0 && width > 0 && height > 0)) {
+          say(msgBox, t('cartonSourceNeedSize'), 'bad');
+          return;
+        }
+        const button = $$('#cartonSourceMissingSave');
+        button.disabled = true;
+        try {
+          const payload = { carton_id: cartonId, length_mm: length, width_mm: width, height_mm: height, dimension_source: 'MANUAL_MEASUREMENT' };
+          const res = await SavedEntries.save('carton-dimensions', payload);
+          if (res.ok && res.body && res.body.success) {
+            say(msgBox, res.body.replaced ? t('savedReplaced') : t('savedOk'), 'ok');
+            /* Same object reference lives in both data.cartons and data.cartonById, so
+               mutating it in place keeps both in sync without a full reload. */
+            const carton = (toolUi?.data?.cartons || []).find(c => normalizeId(c.carton_id) === normalizeId(cartonId));
+            if (carton) {
+              carton.width = length;
+              carton.depth = width;
+              carton.height = height;
+            }
+            populateMissingCartonOptions();
+          } else {
+            const detail = res.body && Array.isArray(res.body.details)
+              ? res.body.details.map(d => d.message).join(' ')
+              : (res.body && (res.body.detail || res.body.error)) || '';
+            say(msgBox, t('saveFailed') + detail, 'bad');
+          }
+        } catch (e) {
+          say(msgBox, t('saveOffline'), 'bad');
+          SavedEntries.probe();
+        } finally {
+          button.disabled = false;
+        }
+      });
+
+      const newIdInput = $$('#cartonSourceNewId');
+      const newNameInput = $$('#cartonSourceNewName');
+      const newLengthInput = $$('#cartonSourceNewLength');
+      const newWidthInput = $$('#cartonSourceNewWidth');
+      const newHeightInput = $$('#cartonSourceNewHeight');
+
+      $$('#cartonSourceNewSave').addEventListener('click', async () => {
+        const id = newIdInput.value.trim();
+        if (!id) {
+          say(msgBox, t('cartonSourceNeedId'), 'bad');
+          newIdInput.focus();
+          return;
+        }
+        const length = parseFloat(newLengthInput.value);
+        const width = parseFloat(newWidthInput.value);
+        const height = parseFloat(newHeightInput.value);
+        if (!(length > 0 && width > 0 && height > 0)) {
+          say(msgBox, t('cartonSourceNeedSize'), 'bad');
+          return;
+        }
+        const name = newNameInput.value.trim();
+        const button = $$('#cartonSourceNewSave');
+        button.disabled = true;
+        try {
+          const payload = { carton_id: id, length_mm: length, width_mm: width, height_mm: height, dimension_source: 'MANUAL_MEASUREMENT' };
+          const res = await SavedEntries.save('carton-dimensions', payload);
+          if (res.ok && res.body && res.body.success) {
+            say(msgBox, res.body.replaced ? t('savedReplaced') : t('savedOk'), 'ok');
+            const cartons = toolUi?.data?.cartons || [];
+            const existing = cartons.find(c => normalizeId(c.carton_id) === normalizeId(id));
+            if (existing) {
+              existing.width = length;
+              existing.depth = width;
+              existing.height = height;
+              existing.carton_name = name;
+            } else {
+              const newCarton = {
+                carton_id: id,
+                carton_name: name,
+                width: length,
+                depth: width,
+                height: height,
+                defaultQty: 12,
+                lifecycle: 'Active',
+                dimensionType: 'outside',
+                dimensionBasis: 'outside'
+              };
+              cartons.push(newCarton);
+              /* data.cartonById is a separate Map built once at load time - keep it in sync
+                 so anything that looks a carton up by id (instead of scanning the array)
+                 can find a brand-new one in this same session. */
+              if (toolUi?.data?.cartonById instanceof Map) {
+                toolUi.data.cartonById.set(idKey(id), newCarton);
+              }
+            }
+            newIdInput.value = '';
+            newNameInput.value = '';
+            newLengthInput.value = '';
+            newWidthInput.value = '';
+            newHeightInput.value = '';
+            if (modeSelect.value === 'missing') {
+              populateMissingCartonOptions();
+            }
+          } else {
+            const detail = res.body && Array.isArray(res.body.details)
+              ? res.body.details.map(d => d.message).join(' ')
+              : (res.body && (res.body.detail || res.body.error)) || '';
+            say(msgBox, t('saveFailed') + detail, 'bad');
+          }
+        } catch (e) {
+          say(msgBox, t('saveOffline'), 'bad');
+          SavedEntries.probe();
+        } finally {
+          button.disabled = false;
+        }
       });
 
       /* ---- Add Data tab ---- */
