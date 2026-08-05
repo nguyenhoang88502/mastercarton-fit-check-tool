@@ -1673,8 +1673,59 @@ if ($manifestsOnly) {
     catch { return $null }
   }
 
+  # Per-machine override, e.g. "always use Chrome on this laptop regardless of what Windows has
+  # set as default". Lives in config.local.ini, which is gitignored and never copied by
+  # tools\package.ps1 - it is specific to whoever's PC it sits on and never travels with the
+  # tool, so it cannot end up forcing a browser choice on someone else's machine.
+  function Get-BrowserPathByExeName {
+    param([string]$ExeName)
+    foreach ($root in @(
+      "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\$ExeName",
+      "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\$ExeName",
+      "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\$ExeName"
+    )) {
+      try {
+        if (Test-Path -LiteralPath $root) {
+          $path = (Get-ItemProperty -LiteralPath $root -ErrorAction Stop).'(default)'
+          if ($path -and (Test-Path -LiteralPath $path)) { return $path }
+        }
+      }
+      catch { }
+    }
+    return $null
+  }
+
+  function Get-PreferredBrowserOverride {
+    try {
+      $localConfigPath = Join-Path $systemDir 'config.local.ini'
+      if (-not (Test-Path -LiteralPath $localConfigPath)) { return $null }
+      $inSection = $false
+      foreach ($line in Get-Content -LiteralPath $localConfigPath -Encoding UTF8) {
+        $trimmed = $line.Trim()
+        if ($trimmed -match '^\[(.+)\]$') { $inSection = ($Matches[1] -eq 'Launcher'); continue }
+        if ($inSection -and $trimmed -match '^PreferredBrowser\s*=\s*(.+)$') {
+          $name = $Matches[1].Trim().ToLowerInvariant()
+          if ([string]::IsNullOrWhiteSpace($name)) { return $null }
+          if ($name -notmatch '\.exe$') { $name = "$name.exe" }
+          return $name
+        }
+      }
+      return $null
+    }
+    catch { return $null }
+  }
+
   $chromiumExeNames = @('chrome.exe', 'msedge.exe', 'brave.exe', 'opera.exe', 'vivaldi.exe', 'chromium.exe')
-  $defaultBrowser = Get-DefaultBrowserPath
+
+  $preferredExeName = Get-PreferredBrowserOverride
+  $defaultBrowser = $null
+  if ($preferredExeName) {
+    $defaultBrowser = Get-BrowserPathByExeName -ExeName $preferredExeName
+    if ($defaultBrowser) { Write-Log "Using the browser preference from config.local.ini: $preferredExeName" }
+    else { Write-Log "config.local.ini asks for $preferredExeName but it was not found installed; falling back to your default browser." }
+  }
+  if (-not $defaultBrowser) { $defaultBrowser = Get-DefaultBrowserPath }
+
   $defaultBrowserOk = $defaultBrowser -and (Test-Path -LiteralPath $defaultBrowser)
   $defaultIsChromium = $defaultBrowserOk -and ($chromiumExeNames -contains (Split-Path -Leaf $defaultBrowser).ToLowerInvariant())
 

@@ -28,3 +28,7 @@ system/tools/worker-output/*.raw.json
 
 # Build output - regenerate with tools\package.ps1
 dist/
+
+# Per-machine launcher preferences (e.g. PreferredBrowser) - specific to whoever's PC this
+# sits on, never shipped, never shared.
+system/config.local.ini
