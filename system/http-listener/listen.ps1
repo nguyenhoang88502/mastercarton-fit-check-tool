@@ -608,6 +608,111 @@ try {
                 continue
             }
 
+            # ---- excel write-back --------------------------------------------------------
+            if ($path -eq '/api/save-dimension') {
+                if ($method -ne 'POST') {
+                    Send-Json $res 405 ([ordered]@{ success = $false; status = 405; error = 'Method not allowed' })
+                    continue
+                }
+
+                $requestCount++
+
+                if ([string]::IsNullOrWhiteSpace($body)) {
+                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Request body is empty' })
+                    Write-Log ('[POST] {0} [400] empty body' -f $path)
+                    continue
+                }
+
+                try { $parsed = $body | ConvertFrom-Json }
+                catch {
+                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Invalid JSON'; detail = $_.Exception.Message })
+                    Write-Log ('[POST] {0} [400] malformed JSON' -f $path)
+                    continue
+                }
+
+                $dimErrors = New-Object System.Collections.ArrayList
+                $dimType = Resolve-Enum (Get-Field $parsed 'type') 'type' @('PRODUCT', 'CARTON') '' $dimErrors
+                $dimId = Resolve-IdField (Get-Field $parsed 'id') 'id' $dimErrors
+                $dimLength = Resolve-Dimension (Get-Field $parsed 'length_mm') 'length_mm' $dimErrors
+                $dimWidth = Resolve-Dimension (Get-Field $parsed 'width_mm') 'width_mm' $dimErrors
+                $dimHeight = Resolve-Dimension (Get-Field $parsed 'height_mm') 'height_mm' $dimErrors
+
+                $dimNameRaw = Get-Field $parsed 'name'
+                $dimName = ''
+                if (-not (Test-Blank $dimNameRaw)) {
+                    $dimName = ([string]$dimNameRaw).Trim()
+                    if ($dimName.Length -gt 100) { $dimName = $dimName.Substring(0, 100) }
+                }
+
+                if ($dimErrors.Count -gt 0) {
+                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Validation failed'; details = @($dimErrors) })
+                    Write-Log ('[POST] {0} [400] validation failed' -f $path)
+                    continue
+                }
+
+                $writerType = $dimType.ToLowerInvariant()
+                $writerScript = Join-Path (Split-Path -Parent $ScriptRoot) 'tools\update_dimension_excel.ps1'
+                if (-not (Test-Path -LiteralPath $writerScript)) {
+                    Send-Json $res 500 ([ordered]@{ success = $false; status = 500; error = 'Excel writer script is missing.' })
+                    Write-Log ('[POST] {0} [500] writer script missing' -f $path)
+                    continue
+                }
+
+                # Array elements passed straight through to the process, not a joined command
+                # line, so a space anywhere in this project's own path never needs quoting here.
+                $writerArgs = @(
+                    '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $writerScript,
+                    '-Type', $writerType, '-Id', $dimId, '-LengthMm', $dimLength, '-WidthMm', $dimWidth, '-HeightMm', $dimHeight
+                )
+                if ($dimName) { $writerArgs += @('-Name', $dimName) }
+
+                $writerOutput = & powershell.exe @writerArgs 2>&1
+                $jsonLine = ($writerOutput | Where-Object { $_ -match '^\{.*\}$' } | Select-Object -Last 1)
+
+                if (-not $jsonLine) {
+                    Send-Json $res 502 ([ordered]@{
+                            success = $false; status = 502
+                            error   = 'The Excel writer did not return a result.'
+                            detail  = (($writerOutput | Select-Object -Last 5) -join ' | ')
+                        })
+                    Write-Log ('[POST] {0} [502] writer produced no JSON output' -f $path)
+                    continue
+                }
+
+                try { $writerResult = $jsonLine | ConvertFrom-Json }
+                catch {
+                    Send-Json $res 502 ([ordered]@{ success = $false; status = 502; error = 'Could not parse the Excel writer result.'; detail = $jsonLine })
+                    Write-Log ('[POST] {0} [502] writer output not valid JSON' -f $path)
+                    continue
+                }
+
+                if ($writerResult.ok) {
+                    Send-Json $res 200 ([ordered]@{
+                            success               = $true
+                            status                = 'success'
+                            message               = 'Saved to Excel and cache updated'
+                            row                   = $writerResult.row
+                            is_new                = $writerResult.is_new
+                            sheet                 = $writerResult.sheet
+                            backup_path           = $writerResult.backup_path
+                            cache_rebuild_started = $writerResult.cache_rebuild_started
+                        })
+                    Write-Log ('[POST] {0} [200] {1} {2} saved to Excel (row {3})' -f $path, $writerType, $dimId, $writerResult.row)
+                }
+                else {
+                    $lockStatus = 502
+                    if ($writerResult.error -match 'already open elsewhere|locked') { $lockStatus = 503 }
+                    Send-Json $res $lockStatus ([ordered]@{
+                            success     = $false
+                            status      = $lockStatus
+                            error       = [string]$writerResult.error
+                            backup_path = $writerResult.backup_path
+                        })
+                    Write-Log ('[POST] {0} [{1}] excel write failed: {2}' -f $path, $lockStatus, $writerResult.error)
+                }
+                continue
+            }
+
             # ---- data ------------------------------------------------------------------
             if ($path -like '/api/data/*') {
                 $dataset = $path.Substring('/api/data/'.Length)
