@@ -31,6 +31,12 @@ if ($copied.Count -lt 5) { throw "Prepared data did not copy: only $($copied.Cou
 New-Item -ItemType Directory -Path (Join-Path $stage 'system\http-listener\system\generated'), (Join-Path $stage 'system\http-listener\system\logs') -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $repo 'system\http-listener\listen.ps1') -Destination (Join-Path $stage 'system\http-listener')
 
+# listen.ps1 shells out to this at runtime to write Save Product/Save Carton into the source
+# Excel workbook, so unlike the rest of system\tools (DeepSeek prompts, build harness) this one
+# script is a real runtime dependency and has to ship even though its neighbors do not.
+New-Item -ItemType Directory -Path (Join-Path $stage 'system\tools') -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $repo 'system\tools\update_dimension_excel.ps1') -Destination (Join-Path $stage 'system\tools')
+
 # Keep the empty folders in the zip so nothing has to be created by hand.
 foreach ($keep in @('system\logs', 'system\http-listener\system\generated', 'system\http-listener\system\logs')) {
     Set-Content -LiteralPath (Join-Path $stage "$keep\.keep") -Value '' -Encoding ASCII
