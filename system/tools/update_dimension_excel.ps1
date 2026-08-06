@@ -153,6 +153,8 @@ catch {
 $excel = $null
 $wb = $null
 $row = 0
+$caRow = 0
+$plRow = 0
 $isNew = $false
 $sheetName = $null
 try {
@@ -219,20 +221,42 @@ try {
             if ($rowId -eq $Id.Trim() -and $rowUnit -eq 'EA') { $row = 2 + $i; break }
         }
 
-        if ($row -eq 0) {
-            $isNew = $true
-            if ($table) { $row = ($table.ListRows.Add()).Range.Row } else { $row = $lastDataRow + 1 }
-        }
-
         # Plain default-property assignment, not .Value2 - alternating string/double writes
         # through .Value2 on a late-bound COM Range hits a known PowerShell binder quirk that
         # mis-casts the second type ("Unable to cast ... Double ... to ... String"), confirmed
         # against this exact workbook. The default indexer does not have that problem.
-        $ws.Cells.Item($row, $idCol) = $Id
-        $ws.Cells.Item($row, $unitCol) = 'EA'
-        $ws.Cells.Item($row, $widthCol) = [Math]::Round($WidthMm / 10.0, 3)
-        $ws.Cells.Item($row, $depthCol) = [Math]::Round($LengthMm / 10.0, 3)
-        $ws.Cells.Item($row, $heightCol) = [Math]::Round($HeightMm / 10.0, 3)
+        if ($row -eq 0) {
+            # New FG: every existing item on this sheet is a 3-row CA/EA/PL block, so a new one
+            # gets the same shape - appended after the last data row since 'Dimension' has no
+            # ListObject table to extend. CA and PL are placeholders; only EA carries real data.
+            $isNew = $true
+            $caRow = $lastDataRow + 1
+            $row = $lastDataRow + 2
+            $plRow = $lastDataRow + 3
+
+            $ws.Cells.Item($caRow, $idCol) = $Id
+            $ws.Cells.Item($caRow, $unitCol) = 'CA'
+            # Width/Depth/Height left blank on the CA row - placeholders for a later manual update.
+
+            $ws.Cells.Item($row, $idCol) = $Id
+            $ws.Cells.Item($row, $unitCol) = 'EA'
+            $ws.Cells.Item($row, $widthCol) = [Math]::Round($WidthMm / 10.0, 3)
+            $ws.Cells.Item($row, $depthCol) = [Math]::Round($LengthMm / 10.0, 3)
+            $ws.Cells.Item($row, $heightCol) = [Math]::Round($HeightMm / 10.0, 3)
+
+            $ws.Cells.Item($plRow, $idCol) = $Id
+            $ws.Cells.Item($plRow, $unitCol) = 'PL'
+            $ws.Cells.Item($plRow, $widthCol) = 120
+            $ws.Cells.Item($plRow, $depthCol) = 100
+            # Height left blank on the PL row - the task's default only covers width and depth.
+        }
+        else {
+            # FG already has an EA row: update its dimensions in place only. Its CA and PL rows,
+            # wherever they sit, are never touched.
+            $ws.Cells.Item($row, $widthCol) = [Math]::Round($WidthMm / 10.0, 3)
+            $ws.Cells.Item($row, $depthCol) = [Math]::Round($LengthMm / 10.0, 3)
+            $ws.Cells.Item($row, $heightCol) = [Math]::Round($HeightMm / 10.0, 3)
+        }
     }
     else {
         $idCol = Resolve-Col 'carton_id'
@@ -321,6 +345,8 @@ Send-Result -Ok $true -Fields @{
     type                   = $Type
     id                     = $Id
     row                    = $row
+    ca_row                 = $caRow
+    pl_row                 = $plRow
     is_new                 = $isNew
     sheet                  = $sheetName
     backup_path            = $backupPath
