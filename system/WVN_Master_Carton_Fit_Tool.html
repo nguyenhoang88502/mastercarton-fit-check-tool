@@ -1247,10 +1247,23 @@
     html[data-theme="dark"] .save-msg.bad{background:#3a2523;color:#f19d97}
     html[data-theme="dark"] .save-msg.warn{background:#3a3423;color:#e8c26a}
     @media(max-width:620px){.save-status{margin-left:0}}
+    #toastQueueContainer{position:fixed;right:16px;bottom:16px;z-index:9999;display:flex;flex-direction:column-reverse;gap:8px;max-width:360px;pointer-events:none}
+    .toast{pointer-events:auto;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.15);padding:10px 32px 10px 12px;position:relative;animation:toast-in .18s ease-out}
+    .toast.toast-ok{border-left-color:var(--good)}
+    .toast.toast-error{border-left-color:var(--bad)}
+    .toast.toast-warn{border-left-color:var(--warn)}
+    .toast-title{font-weight:800;font-size:13px;color:var(--ink);margin-bottom:2px}
+    .toast-message{font-size:12px;color:var(--muted);line-height:1.5}
+    .toast-track{font-size:11px;color:var(--muted);margin-top:4px;font-family:ui-monospace,Consolas,monospace}
+    .toast-close{position:absolute;top:6px;right:8px;border:none;background:none;color:var(--muted);font-size:16px;line-height:1;cursor:pointer;padding:4px}
+    .toast-close:hover{color:var(--ink)}
+    @keyframes toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    @media(max-width:620px){#toastQueueContainer{left:16px;right:16px;max-width:none}}
   </style>
 </head>
 
 <body>
+  <div id="toastQueueContainer" aria-live="polite"></div>
   <main class="app">
     <div id="loaderOverlay" class="loader-overlay">
       <div class="loader-spinner"></div>
@@ -5658,6 +5671,41 @@
       message(text, type = '') { this.msg.innerHTML = text ? `<div class="${type === 'error' ? 'error' : 'footnote'}">${escapeHtml(text)}</div>` : '' }
     }
     /* ==========================================================================================
+       TOAST NOTIFICATION QUEUE
+       ------------------------------------------------------------------------------------------
+       Floating bottom-right stack, independent of the inline save-status messages already shown
+       next to each form. Used for the Excel write-back's own completion/failure signal, which
+       carries a track_id worth surfacing separately from the CSV-save status line.
+       ========================================================================================== */
+    const ToastNotificationQueue = (() => {
+      const container = document.getElementById('toastQueueContainer');
+      const DEFAULT_DURATION = { ok: 4000, warn: 6000, error: 0 };
+
+      function show({ type = 'ok', title = '', message = '', trackId = '', duration } = {}) {
+        if (!container) return;
+        const el = document.createElement('div');
+        el.className = `toast toast-${type}`;
+        el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+        el.innerHTML = [
+          title ? `<div class="toast-title">${escapeHtml(title)}</div>` : '',
+          message ? `<div class="toast-message">${escapeHtml(message)}</div>` : '',
+          trackId ? `<div class="toast-track">Track ID: ${escapeHtml(trackId)}</div>` : '',
+          '<button type="button" class="toast-close" aria-label="Dismiss">&times;</button>'
+        ].join('');
+
+        const dismiss = () => { el.remove() };
+        el.querySelector('.toast-close').addEventListener('click', dismiss);
+        container.appendChild(el);
+
+        const effectiveDuration = duration ?? DEFAULT_DURATION[type] ?? 4000;
+        if (effectiveDuration > 0) setTimeout(dismiss, effectiveDuration);
+        return { dismiss };
+      }
+
+      return { show };
+    })();
+
+    /* ==========================================================================================
        SAVING DATA
        ------------------------------------------------------------------------------------------
        A small local helper program writes what you enter to a file on this PC. If it is not
@@ -5853,16 +5901,19 @@
                 if (box.dataset.saveGen !== gen) return;
                 if (excelRes.ok && excelRes.body && excelRes.body.success) {
                   say(box, savedLine + ' ' + t('excelSaveOk'), 'ok');
+                  ToastNotificationQueue.show({ type: 'ok', title: t('excelSaveOk'), message: id });
                 } else {
                   const excelDetail = (excelRes.body && excelRes.body.status === 503)
                     ? t('excelSaveLocked')
                     : t('excelSaveFailed') + ((excelRes.body && excelRes.body.error) || '');
                   say(box, savedLine + ' ' + excelDetail, 'ok');
+                  ToastNotificationQueue.show({ type: 'error', title: excelDetail, message: id, trackId: excelRes.body && excelRes.body.track_id });
                 }
               })
               .catch(() => {
                 if (box.dataset.saveGen !== gen) return;
                 say(box, savedLine + ' ' + t('excelSaveFailed'), 'ok');
+                ToastNotificationQueue.show({ type: 'error', title: t('excelSaveFailed'), message: id });
               });
           } else {
             const detail = res.body && Array.isArray(res.body.details)
@@ -5905,16 +5956,19 @@
                 if (box.dataset.saveGen !== gen) return;
                 if (excelRes.ok && excelRes.body && excelRes.body.success) {
                   say(box, savedLine + ' ' + t('excelSaveOk'), 'ok');
+                  ToastNotificationQueue.show({ type: 'ok', title: t('excelSaveOk'), message: cartonId });
                 } else {
                   const excelDetail = (excelRes.body && excelRes.body.status === 503)
                     ? t('excelSaveLocked')
                     : t('excelSaveFailed') + ((excelRes.body && excelRes.body.error) || '');
                   say(box, savedLine + ' ' + excelDetail, 'ok');
+                  ToastNotificationQueue.show({ type: 'error', title: excelDetail, message: cartonId, trackId: excelRes.body && excelRes.body.track_id });
                 }
               })
               .catch(() => {
                 if (box.dataset.saveGen !== gen) return;
                 say(box, savedLine + ' ' + t('excelSaveFailed'), 'ok');
+                ToastNotificationQueue.show({ type: 'error', title: t('excelSaveFailed'), message: cartonId });
               });
             /* Same object reference lives in both data.cartons and data.cartonById, so
                mutating it in place keeps both in sync without a full reload. */

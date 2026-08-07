@@ -610,23 +610,28 @@ try {
 
             # ---- excel write-back --------------------------------------------------------
             if ($path -eq '/api/save-dimension') {
+                # Minted once per request and threaded through to the writer via -TrackId, so
+                # the writer's own log lines use the SAME id rather than minting a second one -
+                # one id traces a failure across the UI toast, this log, and excel_writeback.log.
+                $trackId = 'TRK-' + [Guid]::NewGuid().ToString().Substring(0, 8).ToUpperInvariant()
+
                 if ($method -ne 'POST') {
-                    Send-Json $res 405 ([ordered]@{ success = $false; status = 405; error = 'Method not allowed' })
+                    Send-Json $res 405 ([ordered]@{ success = $false; status = 405; error = 'Method not allowed'; track_id = $trackId })
                     continue
                 }
 
                 $requestCount++
 
                 if ([string]::IsNullOrWhiteSpace($body)) {
-                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Request body is empty' })
-                    Write-Log ('[POST] {0} [400] empty body' -f $path)
+                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Request body is empty'; track_id = $trackId })
+                    Write-Log ('[POST] {0} [400] [{1}] empty body' -f $path, $trackId)
                     continue
                 }
 
                 try { $parsed = $body | ConvertFrom-Json }
                 catch {
-                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Invalid JSON'; detail = $_.Exception.Message })
-                    Write-Log ('[POST] {0} [400] malformed JSON' -f $path)
+                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Invalid JSON'; detail = $_.Exception.Message; track_id = $trackId })
+                    Write-Log ('[POST] {0} [400] [{1}] malformed JSON' -f $path, $trackId)
                     continue
                 }
 
@@ -645,16 +650,16 @@ try {
                 }
 
                 if ($dimErrors.Count -gt 0) {
-                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Validation failed'; details = @($dimErrors) })
-                    Write-Log ('[POST] {0} [400] validation failed' -f $path)
+                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Validation failed'; details = @($dimErrors); track_id = $trackId })
+                    Write-Log ('[POST] {0} [400] [{1}] validation failed' -f $path, $trackId)
                     continue
                 }
 
                 $writerType = $dimType.ToLowerInvariant()
                 $writerScript = Join-Path (Split-Path -Parent $ScriptRoot) 'tools\update_dimension_excel.ps1'
                 if (-not (Test-Path -LiteralPath $writerScript)) {
-                    Send-Json $res 500 ([ordered]@{ success = $false; status = 500; error = 'Excel writer script is missing.' })
-                    Write-Log ('[POST] {0} [500] writer script missing' -f $path)
+                    Send-Json $res 500 ([ordered]@{ success = $false; status = 500; error = 'Excel writer script is missing.'; track_id = $trackId })
+                    Write-Log ('[POST] {0} [500] [{1}] writer script missing' -f $path, $trackId)
                     continue
                 }
 
@@ -662,7 +667,8 @@ try {
                 # line, so a space anywhere in this project's own path never needs quoting here.
                 $writerArgs = @(
                     '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $writerScript,
-                    '-Type', $writerType, '-Id', $dimId, '-LengthMm', $dimLength, '-WidthMm', $dimWidth, '-HeightMm', $dimHeight
+                    '-Type', $writerType, '-Id', $dimId, '-LengthMm', $dimLength, '-WidthMm', $dimWidth, '-HeightMm', $dimHeight,
+                    '-TrackId', $trackId
                 )
                 if ($dimName) { $writerArgs += @('-Name', $dimName) }
 
@@ -674,15 +680,16 @@ try {
                             success = $false; status = 502
                             error   = 'The Excel writer did not return a result.'
                             detail  = (($writerOutput | Select-Object -Last 5) -join ' | ')
+                            track_id = $trackId
                         })
-                    Write-Log ('[POST] {0} [502] writer produced no JSON output' -f $path)
+                    Write-Log ('[POST] {0} [502] [{1}] writer produced no JSON output' -f $path, $trackId)
                     continue
                 }
 
                 try { $writerResult = $jsonLine | ConvertFrom-Json }
                 catch {
-                    Send-Json $res 502 ([ordered]@{ success = $false; status = 502; error = 'Could not parse the Excel writer result.'; detail = $jsonLine })
-                    Write-Log ('[POST] {0} [502] writer output not valid JSON' -f $path)
+                    Send-Json $res 502 ([ordered]@{ success = $false; status = 502; error = 'Could not parse the Excel writer result.'; detail = $jsonLine; track_id = $trackId })
+                    Write-Log ('[POST] {0} [502] [{1}] writer output not valid JSON' -f $path, $trackId)
                     continue
                 }
 
@@ -696,8 +703,10 @@ try {
                             sheet                 = $writerResult.sheet
                             backup_path           = $writerResult.backup_path
                             cache_rebuild_started = $writerResult.cache_rebuild_started
+                            write_ms              = $writerResult.write_ms
+                            track_id              = $trackId
                         })
-                    Write-Log ('[POST] {0} [200] {1} {2} saved to Excel (row {3})' -f $path, $writerType, $dimId, $writerResult.row)
+                    Write-Log ('[POST] {0} [200] [{1}] {2} {3} saved to Excel (row {4}, {5}ms)' -f $path, $trackId, $writerType, $dimId, $writerResult.row, $writerResult.write_ms)
                 }
                 else {
                     $lockStatus = 502
@@ -707,8 +716,9 @@ try {
                             status      = $lockStatus
                             error       = [string]$writerResult.error
                             backup_path = $writerResult.backup_path
+                            track_id    = $trackId
                         })
-                    Write-Log ('[POST] {0} [{1}] excel write failed: {2}' -f $path, $lockStatus, $writerResult.error)
+                    Write-Log ('[POST] {0} [{1}] [{2}] excel write failed: {3}' -f $path, $lockStatus, $trackId, $writerResult.error)
                 }
                 continue
             }

@@ -1225,6 +1225,7 @@
 "CA row has invalid dimensions","EA","3031793","Zero, negative, or invalid dimension value in workbook row 2194","L=NaN, W=NaN, H=NaN"
 "CA measurement has no BOM carton assignment","FG","3031665","CA row for FG 3031665 has no BOM carton assignment","Workbook row 2196"
 "CA row has invalid dimensions","EA","3031665","Zero, negative, or invalid dimension value in workbook row 2197","L=NaN, W=NaN, H=NaN"
+"CA row has invalid dimensions","CA","3333333","Zero, negative, or invalid dimension value in workbook row 2211","L=NaN, W=NaN, H=NaN"
 "Conflicting FG dimensions","FG","1002962","Multiple EA rows have different dimensions","2 measurements"
 "Conflicting FG dimensions","FG","3031363","Multiple EA rows have different dimensions","2 measurements"
 "Conflicting FG dimensions","FG","1009202","Multiple EA rows have different dimensions","2 measurements"
