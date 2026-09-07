@@ -3675,16 +3675,22 @@
         for (const face of faces) out += `<polygon points="${face.points.map(p => P(...p)).join(' ')}" fill="${face.ghost ? 'none' : face.fill}" fill-opacity="${face.ghost ? 0 : .9}" stroke="${face.ghost ? '#9dafbd' : '#126ca9'}" stroke-width="${face.ghost ? '.65' : '.8'}" ${face.ghost ? 'stroke-dasharray="3 2"' : ''}/>`;
         out += '</g>'; const edge = dark ? '#d9e6ef' : '#233e53';
         out += `<g fill="none" stroke="${edge}" stroke-width="1.6">`; for (const [a, b] of [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]]) { const A = q(corners[a]), B = q(corners[b]); out += `<line x1="${A[0].toFixed(1)}" y1="${A[1].toFixed(1)}" x2="${B[0].toFixed(1)}" y2="${B[1].toFixed(1)}"/>` } out += '</g>';
+        // Opening seam: a taped-carton look-alike — a brown line down the center of the length on both the top and bottom faces, like the real box's flap seam.
+        const tapeColor = dark ? '#c98f52' : '#8a5a2e', topTapeA = q([0, W / 2, H]), topTapeB = q([L, W / 2, H]), bottomTapeA = q([0, W / 2, 0]), bottomTapeB = q([L, W / 2, 0]);
+        out += `<g stroke="${tapeColor}" stroke-width="3" stroke-linecap="round" opacity=".92">`;
+        out += `<line x1="${topTapeA[0].toFixed(1)}" y1="${topTapeA[1].toFixed(1)}" x2="${topTapeB[0].toFixed(1)}" y2="${topTapeB[1].toFixed(1)}"/>`;
+        out += `<line x1="${bottomTapeA[0].toFixed(1)}" y1="${bottomTapeA[1].toFixed(1)}" x2="${bottomTapeB[0].toFixed(1)}" y2="${bottomTapeB[1].toFixed(1)}"/>`;
+        out += '</g>';
         // Dimension labels: rotate with the model, anchored to the three edges from the near-origin corner.
         const dimLabelFill = dark ? '#eef4f9' : '#152736', dimLabelHalo = dark ? '#0d1720' : '#ffffff';
         const dimText = (x, y, text, size = 11, anchor = 'middle') => `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="${size}" text-anchor="${anchor}" fill="${dimLabelFill}" stroke="${dimLabelHalo}" stroke-width="3" paint-order="stroke" style="font-weight:600">${escapeHtml(text)}</text>`;
         const center2D = q([cx, cy, cz]), pushOut = (pt, factor = 0.35) => [pt[0] + (pt[0] - center2D[0]) * factor, pt[1] + (pt[1] - center2D[1]) * factor];
-        const lengthPt = pushOut(q([L / 2, 0, 0])), widthPt = pushOut(q([0, W / 2, 0])), heightPt = pushOut(q([0, 0, H / 2]));
+        const lengthPt = pushOut(q([L / 2, 0, 0])), widthPt = pushOut(q([0, W / 2, 0])), heightPt = pushOut(q([0, 0, H / 2])), tapeLabelPt = pushOut(q([L / 2, W / 2, H]), 0.2);
         out += '<g class="dimension-labels">';
         out += dimText(lengthPt[0], lengthPt[1], `${I18n.t('length')}: ${fmt(L)} mm`);
         out += dimText(widthPt[0], widthPt[1], `${I18n.t('width')}: ${fmt(W)} mm`);
-        out += dimText(heightPt[0], heightPt[1] - 8, `${I18n.t('height')}: ${fmt(H)} mm`);
-        out += dimText(heightPt[0], heightPt[1] + 9, `⇕ ${I18n.t('openingTopBottom')}`, 10);
+        out += dimText(heightPt[0], heightPt[1], `${I18n.t('height')}: ${fmt(H)} mm`);
+        out += dimText(tapeLabelPt[0], tapeLabelPt[1], I18n.t('openingTopBottom'), 10);
         out += '</g>';
         // Static screen-space legend (does not rotate) so carton and FG dimensions stay legible at any orientation.
         out += `<g class="dimension-legend">${dimText(8, 15, `${I18n.t('visualizerCartonDimLabel')}: ${dims({ width: L, depth: W, height: H })}`, 11, 'start')}${dimText(8, 30, `${I18n.t('visualizerFgDimLabel')}: ${dims(fg)}`, 11, 'start')}</g>`;
