@@ -744,7 +744,7 @@ if ($dimensionFile) { $dimHash = (Get-FileHash -LiteralPath $dimensionFile.FullN
 if ($bomFile) { $bomHash = (Get-FileHash -LiteralPath $bomFile.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
 
 $CacheSchemaVersion = "2.0"
-$PreprocessingVersion = "BOM_LINKED_CA_AVERAGE_V1"
+$PreprocessingVersion = "BOM_LINKED_CA_AVERAGE_V2_MAXDIM"
 
 $RequiredGeneratedFiles = @(
   (Join-Path $generatedDir 'fg_dimensions.csv'),
