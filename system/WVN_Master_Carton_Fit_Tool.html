@@ -669,6 +669,20 @@
       cursor: grabbing
     }
 
+    #palletSvg {
+      width: 100%;
+      height: 300px;
+      border-radius: 5px;
+      background: linear-gradient(160deg, var(--canvas1), var(--canvas2));
+      cursor: grab;
+      touch-action: none;
+      user-select: none
+    }
+
+    #palletSvg.dragging {
+      cursor: grabbing
+    }
+
     .visual-summary {
       font-size: 12px
     }
@@ -1652,7 +1666,8 @@
         <svg id="palletSvg" viewBox="0 0 400 300" role="img" aria-label="Pallet stacking visualization"></svg>
         <div id="palletVisualSummary" class="visual-summary"></div>
       </div>
-      <div id="palletVisualControls" class="visual-controls" hidden><button id="palletRotateLeft" type="button" data-i18n="rotateLeft">↶ Rotate</button><button id="palletRotateRight" type="button" data-i18n="rotateRight">Rotate ↷</button><button id="palletResetView" type="button" data-i18n="resetView">Reset view</button></div>
+      <div id="palletVisualControls" class="visual-controls" hidden><button id="palletRotateLeft" type="button" data-i18n="rotateLeft">↶ Rotate</button><button id="palletRotateRight" type="button" data-i18n="rotateRight">Rotate ↷</button><button id="palletResetView" type="button" data-i18n="resetView">Reset view</button><button id="palletTopViewButton" type="button" data-i18n="palletTopView">Top-down view</button><span class="source-note" data-i18n="palletDragHint">Drag to rotate</span></div>
+      <div id="palletLayerControls" class="visual-controls" hidden><label style="display:inline-flex;align-items:center;gap:6px;font-weight:normal;"><span data-i18n="palletLayerControlLabel">Show layers up to</span><input id="palletLayerSlider" type="range" min="1" value="1" step="1"><span id="palletLayerSliderValue"></span></label><button id="palletLayerAllButton" type="button" data-i18n="palletLayerAll">Show all</button></div>
       <div id="palletSopSteps" class="pallet-sop" hidden></div>
 
       <div class="section-heading" style="margin-top:16px;"><h3 data-i18n="palletBatchTitle">Batch SOP export</h3><span class="source-note" data-i18n="palletBatchNote">Paste multiple FG IDs or Carton IDs (one per line, or comma-separated) to export pallet stacking instructions for all of them at once.</span></div>
@@ -1989,7 +2004,9 @@
         palletOrientationStraight:'carton length runs along the pallet length',
         palletLayerPatternLabel:'Layer pattern', palletLayerPatternInterlocked:'Interlocked (brick) — alternates {a} and {b} each layer',
         palletLayerPatternUniform:'Uniform every layer — {a}',
-        palletInterlockTip:'Cartons alternate direction 90° each layer (brick pattern) for horizontal stability in transit. If a layer does not fill the pallet, the cartons are centered with even margins on all sides — a square, symmetric block that is easier to strap, wrap, and safe to handle when the empty pallet is later flipped by a pallet inverter.',
+        palletInterlockTip:'Cartons alternate direction 90° each layer (brick pattern) for horizontal stability in transit. If a layer does not fill the pallet, cartons stay flush with the pallet edge and any leftover space is spread as even gaps between them, so the outer face of the stack stays flat — square and ready to wrap, and safe to handle when the empty pallet is later flipped by a pallet inverter.',
+        palletLayerControlLabel:'Show layers up to', palletLayerAll:'Show all', palletTopView:'Top-down view', palletDragHint:'Drag to rotate',
+        palletLayerShownNote:'Showing layers 1–{shown} of {total} — use the layer slider to reveal the rest.',
         palletSopTitle:'Pallet Packing Standard (SC-WI-WH-01)',
         palletSopStepATitle:'Step A — Stacking cartons', palletSopStepAText:'Stack cartons neatly; nothing may protrude beyond the pallet footprint. Arrows point up and product/battery labels face outward. Max stack height: 1.6 m air freight, 2.2 m truck/container, unless a special height is notified.',
         palletSopStepBTitle:'Step B — Corner boards', palletSopStepBText:'Reinforce all 4 vertical edges with corner boards, minimum 40 cm long, positioned where straps will be tightened. Air freight or LCL shipments also need corner boards along the 4 top edges.',
@@ -2014,7 +2031,9 @@
         palletOrientationStraight:'chiều dài thùng chạy theo chiều dài pallet',
         palletLayerPatternLabel:'Kiểu xếp lớp', palletLayerPatternInterlocked:'Xen kẽ (kiểu gạch xây) — luân phiên {a} và {b} mỗi lớp',
         palletLayerPatternUniform:'Giống nhau mọi lớp — {a}',
-        palletInterlockTip:'Các thùng luân phiên xoay 90° mỗi lớp (kiểu xếp gạch) để tăng ổn định ngang khi vận chuyển. Nếu một lớp không lấp đầy pallet, các thùng được canh giữa với khoảng cách đều hai bên — tạo thành khối vuông vắn, đối xứng, dễ đai và quấn màng, đồng thời an toàn khi pallet rỗng sau này được lật bằng máy lật pallet.',
+        palletInterlockTip:'Các thùng luân phiên xoay 90° mỗi lớp (kiểu xếp gạch) để tăng ổn định ngang khi vận chuyển. Nếu một lớp không lấp đầy pallet, các thùng vẫn áp sát mép pallet và khoảng trống còn lại được chia đều thành khe hở giữa các thùng, giữ cho mặt ngoài khối hàng phẳng — vuông vắn, sẵn sàng quấn màng, và an toàn khi pallet rỗng sau này được lật bằng máy lật pallet.',
+        palletLayerControlLabel:'Hiện lớp đến', palletLayerAll:'Hiện tất cả', palletTopView:'Xem từ trên xuống', palletDragHint:'Rê chuột để xoay',
+        palletLayerShownNote:'Đang hiện lớp 1–{shown} trên tổng {total} — dùng thanh trượt lớp để xem thêm.',
         palletSopTitle:'Tiêu chuẩn đóng gói Pallet (SC-WI-WH-01)',
         palletSopStepATitle:'Bước A — Xếp chồng thùng', palletSopStepAText:'Xếp thùng gọn gàng; không được nhô ra ngoài diện tích pallet. Mũi tên hướng lên trên, nhãn sản phẩm/pin hướng ra ngoài. Chiều cao tối đa: 1,6 m đường hàng không, 2,2 m xe tải/container, trừ khi có thông báo chiều cao đặc biệt.',
         palletSopStepBTitle:'Bước B — Lắp thanh góc', palletSopStepBText:'Gia cố cả 4 cạnh đứng bằng thanh góc, dài tối thiểu 40 cm, đặt tại vị trí sẽ siết đai. Hàng không hoặc LCL cần thêm thanh góc dọc 4 cạnh trên cùng của pallet.',
@@ -3734,7 +3753,10 @@
     function computePalletLayout(carton, palletLengthMm, palletWidthMm, maxHeightMm) {
       const cl = Number(carton?.width), cw = Number(carton?.depth), ch = Number(carton?.height);
       if (![cl, cw, ch].every(n => Number.isFinite(n) && n > 0)) return null;
-      const makePattern = rotate => { const uL = rotate ? cw : cl, uW = rotate ? cl : cw, perLength = Math.floor(palletLengthMm / uL), perWidth = Math.floor(palletWidthMm / uW), cartonsPerLayer = perLength * perWidth; return { rotate, uL, uW, perLength, perWidth, cartonsPerLayer, marginL: (palletLengthMm - perLength * uL) / 2, marginW: (palletWidthMm - perWidth * uW) / 2 } };
+      // Flush to the pallet edge on the outside; any leftover space becomes even gaps BETWEEN cartons (not a margin around the block),
+      // so the outer silhouette of each layer stays a flat rectangle - a single row/column centers instead, since it has no "between" to use.
+      const axisLayout = (paletteDim, unitDim, count) => count <= 1 ? { start: (paletteDim - count * unitDim) / 2, step: unitDim } : { start: 0, step: unitDim + Math.max(0, (paletteDim - count * unitDim) / (count - 1)) };
+      const makePattern = rotate => { const uL = rotate ? cw : cl, uW = rotate ? cl : cw, perLength = Math.floor(palletLengthMm / uL), perWidth = Math.floor(palletWidthMm / uW), cartonsPerLayer = perLength * perWidth, lengthAxis = axisLayout(palletLengthMm, uL, perLength), widthAxis = axisLayout(palletWidthMm, uW, perWidth); return { rotate, uL, uW, perLength, perWidth, cartonsPerLayer, startL: lengthAxis.start, stepL: lengthAxis.step, startW: widthAxis.start, stepW: widthAxis.step } };
       const straight = makePattern(false), rotated = makePattern(true);
       // Interlocked (brick) stacking: alternate each layer's carton direction 90° for horizontal stability in transit.
       // The higher-capacity orientation anchors the odd layers (1st, 3rd, ...); the other orientation alternates in on even layers.
@@ -3744,14 +3766,21 @@
       return { cartonLengthMm: cl, cartonWidthMm: cw, cartonHeightMm: ch, primary, secondary, interlocked: primary.cartonsPerLayer !== secondary.cartonsPerLayer || primary.rotate !== secondary.rotate, layers, totalPerPallet, stackHeightMm: layers * ch, rotate: primary.rotate, perLength: primary.perLength, perWidth: primary.perWidth, cartonsPerLayer: primary.cartonsPerLayer };
     }
     class PalletVisualizer {
-      constructor(svg, summary) { this.svg = svg; this.summary = summary; this.state = null; this.rotation = 0; this.pitch = 0 }
-      set(data) { this.state = data; this.render() }
+      constructor(svg, summary) { this.svg = svg; this.summary = summary; this.state = null; this.rotation = 0; this.pitch = 0; this.visibleLayers = null; this.topView = false; this.drag = null; this.bindDrag() }
+      bindDrag() {
+        this.svg.addEventListener('pointerdown', e => { if (!this.state) return; this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, rotation: this.rotation, pitch: this.pitch }; this.topView = false; this.svg.classList.add('dragging'); this.svg.setPointerCapture?.(e.pointerId); e.preventDefault() });
+        this.svg.addEventListener('pointermove', e => { if (!this.drag || e.pointerId !== this.drag.id) return; this.rotation = this.drag.rotation - (e.clientX - this.drag.x) / 15; this.pitch = Math.max(-15, Math.min(65, this.drag.pitch + (e.clientY - this.drag.y) * .25)); this.render(); e.preventDefault() });
+        const end = e => { if (!this.drag || e.pointerId !== this.drag.id) return; try { if (this.svg.hasPointerCapture?.(e.pointerId)) this.svg.releasePointerCapture(e.pointerId) } catch (_) {/* Capture may already be released. */ } this.drag = null; this.svg.classList.remove('dragging') };
+        this.svg.addEventListener('pointerup', end); this.svg.addEventListener('pointercancel', end); this.svg.addEventListener('lostpointercapture', end);
+      }
+      set(data) { this.state = data; this.visibleLayers = data?.layout?.layers ?? null; this.render() }
       empty(message) { this.state = null; this.svg.innerHTML = ''; if (this.summary) this.summary.innerHTML = message ? `<div class="empty">${escapeHtml(message)}</div>` : '' }
+      setTopView() { this.topView = true; this.pitch = 65; this.rotation = -3; this.render() }
       render() {
         const s = this.state; if (!s) { this.empty(''); return }
         const { palletLengthMm: PL, palletWidthMm: PW, layout, maxHeightMm } = s;
         if (!layout || !layout.layers || !layout.cartonsPerLayer) { this.empty(I18n.t('palletInvalidCartonDims')); return }
-        const PH = 150, { cartonHeightMm: ch, layers } = layout;
+        const PH = 150, { cartonHeightMm: ch, layers } = layout, shownLayers = Math.max(1, Math.min(layers, this.visibleLayers ?? layers));
         const L = PL, W = PW, H = PH + layers * ch, cx = L / 2, cy = W / 2, cz = H / 2, theta = (45 + this.rotation * 15) * Math.PI / 180, elevation = (25 + this.pitch) * Math.PI / 180, ux = Math.cos(theta), uy = Math.sin(theta), sinE = Math.sin(elevation), cosE = Math.cos(elevation);
         const raw = (x, y, z) => { x -= cx; y -= cy; z -= cz; return [ux * x - uy * y, sinE * (uy * x + ux * y) - cosE * z] };
         const viewDepth = (x, y, z) => { x -= cx; y -= cy; z -= cz; return cosE * (uy * x + ux * y) + sinE * z };
@@ -3760,14 +3789,15 @@
         const project = (x, y, z) => { const p = raw(x, y, z); return [200 + p[0] * scale, 150 + p[1] * scale] }, P = (x, y, z) => project(x, y, z).map(n => n.toFixed(1)).join(','), q = p => project(...p);
         const palletFaceDefs = [[[0, 2, 6, 4], '#8a5a2e'], [[1, 5, 7, 3], '#6e4523'], [[0, 1, 5, 4], '#a97438'], [[2, 6, 7, 3], '#7a4f28'], [[0, 1, 3, 2], '#8a5a2e'], [[4, 5, 7, 6], '#c98f52']];
         const cartonFaceDefs = [[[0, 2, 6, 4], '#287fb0'], [[1, 5, 7, 3], '#17648f'], [[0, 1, 5, 4], '#4ea3d8'], [[2, 6, 7, 3], '#388dbb'], [[0, 1, 3, 2], '#1d6f9d'], [[4, 5, 7, 6], '#9bd2ef']];
-        const faces = [], addBox = (x0, y0, z0, x1, y1, z1, defs) => { const vertices = [[x0, y0, z0], [x1, y0, z0], [x0, y1, z0], [x1, y1, z0], [x0, y0, z1], [x1, y0, z1], [x0, y1, z1], [x1, y1, z1]]; for (const [indices, fill] of defs) { const points = indices.map(i => vertices[i]); faces.push({ points, fill, depth: points.reduce((sum, v) => sum + viewDepth(...v), 0) / points.length }) } };
-        addBox(0, 0, 0, PL, PW, PH, palletFaceDefs);
-        for (let layer = 0; layer < layers; layer++) { const pattern = layer % 2 === 0 ? layout.primary : layout.secondary, z0 = PH + layer * ch, z1 = z0 + ch; for (let ix = 0; ix < pattern.perLength; ix++)for (let iy = 0; iy < pattern.perWidth; iy++) { const x0 = pattern.marginL + ix * pattern.uL, y0 = pattern.marginW + iy * pattern.uW; addBox(x0, y0, z0, x0 + pattern.uL, y0 + pattern.uW, z1, cartonFaceDefs) } }
+        const palletEdge = { color: '#3a2513', width: .8, opacity: .9 }, cartonEdge = { color: '#12314a', width: .5, opacity: .3 };
+        const faces = [], addBox = (x0, y0, z0, x1, y1, z1, defs, edge) => { const vertices = [[x0, y0, z0], [x1, y0, z0], [x0, y1, z0], [x1, y1, z0], [x0, y0, z1], [x1, y0, z1], [x0, y1, z1], [x1, y1, z1]]; for (const [indices, fill] of defs) { const points = indices.map(i => vertices[i]); faces.push({ points, fill, edge, depth: points.reduce((sum, v) => sum + viewDepth(...v), 0) / points.length }) } };
+        addBox(0, 0, 0, PL, PW, PH, palletFaceDefs, palletEdge);
+        for (let layer = 0; layer < shownLayers; layer++) { const pattern = layer % 2 === 0 ? layout.primary : layout.secondary, z0 = PH + layer * ch, z1 = z0 + ch; for (let ix = 0; ix < pattern.perLength; ix++)for (let iy = 0; iy < pattern.perWidth; iy++) { const x0 = pattern.startL + ix * pattern.stepL, y0 = pattern.startW + iy * pattern.stepW; addBox(x0, y0, z0, x0 + pattern.uL, y0 + pattern.uW, z1, cartonFaceDefs, cartonEdge) } }
         faces.sort((a, b) => a.depth - b.depth);
-        let out = ''; for (const face of faces) out += `<polygon points="${face.points.map(p => P(...p)).join(' ')}" fill="${face.fill}" fill-opacity=".92" stroke="#20303d" stroke-width=".6"/>`;
+        let out = ''; for (const face of faces) out += `<polygon points="${face.points.map(p => P(...p)).join(' ')}" fill="${face.fill}" fill-opacity=".92" stroke="${face.edge.color}" stroke-width="${face.edge.width}" stroke-opacity="${face.edge.opacity}"/>`;
         if (Number.isFinite(maxHeightMm)) { const guideZ = PH + maxHeightMm; if (guideZ <= H + ch) { const pts = [[0, 0, guideZ], [L, 0, guideZ], [L, W, guideZ], [0, W, guideZ]].map(q); out += `<polygon points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="#c0392b" stroke-width="1.4" stroke-dasharray="5 3"/>` } }
         this.svg.innerHTML = out;
-        if (this.summary) this.summary.innerHTML = s.summaryHtml || '';
+        if (this.summary) this.summary.innerHTML = (s.summaryHtml || '') + (shownLayers < layers ? `<div class="notice">${escapeHtml(I18n.t('palletLayerShownNote', { shown: shownLayers, total: layers }))}</div>` : '');
       }
     }
     function mean(v) { return v.reduce((a, b) => a + b, 0) / v.length }
@@ -4169,7 +4199,10 @@
         document.querySelector('#palletLookupForm')?.addEventListener('submit', e => this.runPalletLookup(e));
         document.querySelector('#palletRotateLeft')?.addEventListener('click', () => { this.palletVisual.rotation = (this.palletVisual.rotation + 1) % 24; this.palletVisual.render() });
         document.querySelector('#palletRotateRight')?.addEventListener('click', () => { this.palletVisual.rotation = (this.palletVisual.rotation - 1) % 24; this.palletVisual.render() });
-        document.querySelector('#palletResetView')?.addEventListener('click', () => { this.palletVisual.rotation = 0; this.palletVisual.pitch = 0; this.palletVisual.render() });
+        document.querySelector('#palletResetView')?.addEventListener('click', () => { this.palletVisual.rotation = 0; this.palletVisual.pitch = 0; this.palletVisual.topView = false; this.palletVisual.render() });
+        document.querySelector('#palletTopViewButton')?.addEventListener('click', () => this.palletVisual.setTopView());
+        document.querySelector('#palletLayerSlider')?.addEventListener('input', e => { const value = Number(e.target.value); this.palletVisual.visibleLayers = value; document.querySelector('#palletLayerSliderValue').textContent = `${value} / ${e.target.max}`; this.palletVisual.render() });
+        document.querySelector('#palletLayerAllButton')?.addEventListener('click', () => { const slider = document.querySelector('#palletLayerSlider'); slider.value = slider.max; this.palletVisual.visibleLayers = Number(slider.max); document.querySelector('#palletLayerSliderValue').textContent = `${slider.max} / ${slider.max}`; this.palletVisual.render() });
         document.querySelector('#palletBatchRunButton')?.addEventListener('click', () => this.runPalletBatch());
         document.querySelector('#palletBatchExportButton')?.addEventListener('click', () => this.exportPalletBatch());
         document.querySelector('#ghostToggle').addEventListener('click', () => { this.visual.ghosts = !this.visual.ghosts; this.updateControlText(); this.visual.render() });
@@ -4493,12 +4526,15 @@
         if (ctx.error) { this.renderPalletError(ctx.error); return }
         this.renderPalletResult(ctx);
       }
-      renderPalletError(message) { document.querySelector('#palletSummary').innerHTML = `<span class="audit-warning">${escapeHtml(message)}</span>`; document.querySelector('#palletVisualBody').hidden = true; document.querySelector('#palletVisualControls').hidden = true; document.querySelector('#palletSopSteps').hidden = true; this.palletVisual?.empty('') }
+      renderPalletError(message) { document.querySelector('#palletSummary').innerHTML = `<span class="audit-warning">${escapeHtml(message)}</span>`; document.querySelector('#palletVisualBody').hidden = true; document.querySelector('#palletVisualControls').hidden = true; document.querySelector('#palletLayerControls').hidden = true; document.querySelector('#palletSopSteps').hidden = true; this.palletVisual?.empty('') }
       renderPalletResult(ctx) {
         document.querySelector('#palletSummary').innerHTML = ctx.type === 'fg' ? `<div class="notice">${escapeHtml(this.t('palletResolvedFg', { id: ctx.fg.fg_id, cartonId: ctx.carton.carton_id }))}</div>` : `<div class="notice">${escapeHtml(this.t('palletResolvedCarton', { id: ctx.carton.carton_id }))}</div>`;
         document.querySelector('#palletVisualBody').hidden = false; document.querySelector('#palletVisualControls').hidden = false;
-        this.palletVisual.rotation = 0; this.palletVisual.pitch = 0;
+        this.palletVisual.rotation = 0; this.palletVisual.pitch = 0; this.palletVisual.topView = false;
         this.palletVisual.set({ palletLengthMm: Number(document.querySelector('#palletLengthMm').value) || 1200, palletWidthMm: Number(document.querySelector('#palletWidthMm').value) || 1000, layout: ctx.layout, maxHeightMm: ctx.maxHeightMm, summaryHtml: buildPalletSummaryHtml(ctx) });
+        const slider = document.querySelector('#palletLayerSlider'); slider.min = 1; slider.max = ctx.layout.layers; slider.value = ctx.layout.layers;
+        document.querySelector('#palletLayerSliderValue').textContent = `${ctx.layout.layers} / ${ctx.layout.layers}`;
+        document.querySelector('#palletLayerControls').hidden = false;
         const sop = document.querySelector('#palletSopSteps'); sop.hidden = false; sop.innerHTML = buildPalletSopHtml(ctx.method);
       }
       runPalletBatch() {
