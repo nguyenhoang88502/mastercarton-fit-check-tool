@@ -671,7 +671,9 @@
 
     #palletSvg {
       width: 100%;
-      height: 300px;
+      height: 100%;
+      min-height: 220px;
+      align-self: stretch;
       border-radius: 5px;
       background: linear-gradient(160deg, var(--canvas1), var(--canvas2));
       cursor: grab;
@@ -2056,7 +2058,11 @@
         palletLayerPatternUniform:'Uniform every layer — {a}',
         palletLayerControlLabel:'Show layers up to', palletLayerAll:'Show all', palletTopView:'Top-down view', palletDragHint:'Drag to rotate',
         palletLayerShownNote:'Showing layers 1–{shown} of {total} — use the layer slider to reveal the rest.',
-        palletSelectLabel:'Or choose from list', palletSelectPrompt:'— Select FG or Carton —', palletExportPdf:'Export SOP as PDF', palletLayerPrintTitle:'Layer {layer} of {total}',
+        palletSelectLabel:'Or choose from list', palletSelectPrompt:'— Select FG or Carton —', palletExportPdf:'Export SOP as PDF',
+        palletPatternTitle:'Layer pattern {label}', palletPatternOddLabel:'A (odd layers)', palletPatternEvenLabel:'B (even layers)', palletPatternUniformLabel:'All layers',
+        palletPatternAppliesTo:'Applies to layers: {list}',
+        palletPatternRepeatInterlocked:'Repeat: stack Pattern A, then Pattern B, alternating, until the pallet reaches {total} layers.',
+        palletPatternRepeatUniform:'Repeat this same layer pattern for all {total} layers.',
         palletSopTitle:'Pallet Packing Standard (SC-WI-WH-01)',
         palletSopStepATitle:'Step A — Stacking cartons', palletSopStepAText:'Stack cartons neatly; nothing may protrude beyond the pallet footprint. Arrows point up and product/battery labels face outward. Max stack height: 1.6 m air freight, 2.2 m truck/container, unless a special height is notified.',
         palletSopStepBTitle:'Step B — Corner boards', palletSopStepBText:'Reinforce all 4 vertical edges with corner boards, minimum 40 cm long, positioned where straps will be tightened. Air freight or LCL shipments also need corner boards along the 4 top edges.',
@@ -2081,10 +2087,13 @@
         palletOrientationStraight:'chiều dài thùng chạy theo chiều dài pallet',
         palletLayerPatternLabel:'Kiểu xếp lớp', palletLayerPatternInterlocked:'Xen kẽ (kiểu gạch xây) — luân phiên {a} và {b} mỗi lớp',
         palletLayerPatternUniform:'Giống nhau mọi lớp — {a}',
-        palletInterlockTip:'Các thùng luân phiên xoay 90° mỗi lớp (kiểu xếp gạch) để tăng ổn định ngang khi vận chuyển. Nếu một lớp không lấp đầy pallet, các thùng vẫn áp sát mép pallet và khoảng trống còn lại được chia đều thành khe hở giữa các thùng, giữ cho mặt ngoài khối hàng phẳng — vuông vắn, sẵn sàng quấn màng, và an toàn khi pallet rỗng sau này được lật bằng máy lật pallet.',
         palletLayerControlLabel:'Hiện lớp đến', palletLayerAll:'Hiện tất cả', palletTopView:'Xem từ trên xuống', palletDragHint:'Rê chuột để xoay',
         palletLayerShownNote:'Đang hiện lớp 1–{shown} trên tổng {total} — dùng thanh trượt lớp để xem thêm.',
-        palletSelectLabel:'Hoặc chọn từ danh sách', palletSelectPrompt:'— Chọn FG hoặc Thùng —', palletExportPdf:'Xuất SOP dạng PDF', palletLayerPrintTitle:'Lớp {layer} / {total}',
+        palletSelectLabel:'Hoặc chọn từ danh sách', palletSelectPrompt:'— Chọn FG hoặc Thùng —', palletExportPdf:'Xuất SOP dạng PDF',
+        palletPatternTitle:'Kiểu xếp lớp {label}', palletPatternOddLabel:'A (các lớp lẻ)', palletPatternEvenLabel:'B (các lớp chẵn)', palletPatternUniformLabel:'Tất cả các lớp',
+        palletPatternAppliesTo:'Áp dụng cho lớp: {list}',
+        palletPatternRepeatInterlocked:'Lặp lại: xếp Kiểu A, rồi đến Kiểu B, xen kẽ liên tục cho đến khi đủ {total} lớp.',
+        palletPatternRepeatUniform:'Lặp lại đúng một kiểu xếp này cho cả {total} lớp.',
         palletSopTitle:'Tiêu chuẩn đóng gói Pallet (SC-WI-WH-01)',
         palletSopStepATitle:'Bước A — Xếp chồng thùng', palletSopStepAText:'Xếp thùng gọn gàng; không được nhô ra ngoài diện tích pallet. Mũi tên hướng lên trên, nhãn sản phẩm/pin hướng ra ngoài. Chiều cao tối đa: 1,6 m đường hàng không, 2,2 m xe tải/container, trừ khi có thông báo chiều cao đặc biệt.',
         palletSopStepBTitle:'Bước B — Lắp thanh góc', palletSopStepBText:'Gia cố cả 4 cạnh đứng bằng thanh góc, dài tối thiểu 40 cm, đặt tại vị trí sẽ siết đai. Hàng không hoặc LCL cần thêm thanh góc dọc 4 cạnh trên cùng của pallet.',
@@ -3956,7 +3965,9 @@
         const corners = [[0, 0, 0], [L, 0, 0], [L, W, 0], [0, W, 0], [0, 0, H], [L, 0, H], [L, W, H], [0, W, H]], rawCorners = corners.map(p => raw(...p)), xs = rawCorners.map(p => p[0]), ys = rawCorners.map(p => p[1]), spanX = Math.max(...xs) - Math.min(...xs), spanY = Math.max(...ys) - Math.min(...ys); let scale = Math.min(320 / Math.max(spanX, 1), 220 / Math.max(spanY, 1)); if (!Number.isFinite(scale) || scale <= 0) scale = 1;
         const project = (x, y, z) => { const p = raw(x, y, z); return [200 + p[0] * scale, 150 + p[1] * scale] }, P = (x, y, z) => project(x, y, z).map(n => n.toFixed(1)).join(','), q = p => project(...p);
         const hull = points => { const sorted = points.map(p => [Number(p[0].toFixed(4)), Number(p[1].toFixed(4))]).sort((a, b) => a[0] - b[0] || a[1] - b[1]), cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); if (sorted.length < 3) return sorted; const lower = [], upper = []; for (const p of sorted) { while (lower.length > 1 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop(); lower.push(p) } for (let i = sorted.length - 1; i >= 0; i--) { const p = sorted[i]; while (upper.length > 1 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop(); upper.push(p) } return lower.slice(0, -1).concat(upper.slice(0, -1)) };
-        const cartonHull = hull(corners.map(q)).map(p => p.join(',')).join(' '), actualCount = Math.min(fit.capacity, fg.target), placements = [];
+        const hullPts = hull(corners.map(q)), hullCx = hullPts.reduce((sum, p) => sum + p[0], 0) / hullPts.length, hullCy = hullPts.reduce((sum, p) => sum + p[1], 0) / hullPts.length;
+        // Outset the clip silhouette slightly so sub-pixel rounding differences between this hull (built from unrounded points) and the box faces below (rounded via P()) never shave a real face off at the carton's edge.
+        const cartonHull = hullPts.map(p => `${(hullCx + (p[0] - hullCx) * 1.04).toFixed(2)},${(hullCy + (p[1] - hullCy) * 1.04).toFixed(2)}`).join(' '), actualCount = Math.min(fit.capacity, fg.target), placements = [];
         if (fit.packingMode === 'mixed' && Array.isArray(fit.placements)) fit.placements.slice(0, actualCount).forEach(p => placements.push({ ...p, ghost: false }));
         else { let i = 0; for (let z = 0; z < fit.qtyHeight; z++)for (let y = 0; y < fit.qtyWidth; y++)for (let x = 0; x < fit.qtyLength; x++, i++) { const ghost = i >= actualCount; if (ghost && !this.ghosts) continue; placements.push({ x: x * fit.length, y: y * fit.width, z: z * fit.height, length: fit.length, width: fit.width, height: fit.height, orientation_id: fit.orientation_id, ghost }) } }
         const faceDefs = [[[0, 2, 6, 4], '#287fb0'], [[1, 5, 7, 3], '#17648f'], [[0, 1, 5, 4], '#4ea3d8'], [[2, 6, 7, 3], '#388dbb'], [[0, 1, 3, 2], '#1d6f9d'], [[4, 5, 7, 6], '#9bd2ef']], faces = [];
@@ -4561,15 +4572,23 @@
         if (cartons.length) { const g = document.createElement('optgroup'); g.label = this.t('cartons'); cartons.forEach(c => { const o = document.createElement('option'); o.value = c.carton_id; o.textContent = `${c.carton_id} — ${c.carton_name || ''}`; g.append(o) }); select.append(g) }
       }
       exportPalletSopPdf() {
-        const state = this.palletVisual?.state; if (!state?.layout?.layers) return;
-        const layout = state.layout, palletLengthMm = state.palletLengthMm, palletWidthMm = state.palletWidthMm;
-        let pages = '';
-        for (let layer = 1; layer <= layout.layers; layer++) {
-          const pattern = layer % 2 === 1 ? layout.primary : layout.secondary;
-          pages += `<div class="print-layer-page"><h2>${escapeHtml(this.t('palletLayerPrintTitle', { layer, total: layout.layers }))}</h2><div class="print-layer-meta">${escapeHtml(this.t('palletCartonsPerLayer'))}: ${pattern.cartonsPerLayer} (${pattern.perLength} × ${pattern.perWidth}${pattern.rotate ? ', ' + escapeHtml(this.t('palletOrientationRotated')) : ''})</div>${buildLayerTopViewSvg(pattern, palletLengthMm, palletWidthMm)}</div>`;
+        const ctx = this.lastPalletCtx, layout = ctx?.layout; if (!layout?.layers) return;
+        const palletLengthMm = Number(document.querySelector('#palletLengthMm').value) || 1200, palletWidthMm = Number(document.querySelector('#palletWidthMm').value) || 1000;
+        const prevLang = I18n.language;
+        I18n.language = 'vi';
+        try {
+          const summaryHtml = buildPalletSummaryHtml(ctx), sopHtml = buildPalletSopHtml(ctx.method);
+          const oddLayers = [], evenLayers = [];
+          for (let layer = 1; layer <= layout.layers; layer++) (layer % 2 === 1 ? oddLayers : evenLayers).push(layer);
+          const patternPage = (pattern, layerNumbers, label) => `<div class="print-layer-page"><h2>${escapeHtml(I18n.t('palletPatternTitle', { label }))}</h2><div class="print-layer-meta">${escapeHtml(I18n.t('palletCartonsPerLayer'))}: ${pattern.cartonsPerLayer} (${pattern.perLength} × ${pattern.perWidth}${pattern.rotate ? ', ' + escapeHtml(I18n.t('palletOrientationRotated')) : ''})<br>${escapeHtml(I18n.t('palletPatternAppliesTo', { list: layerNumbers.join(', ') }))}</div>${buildLayerTopViewSvg(pattern, palletLengthMm, palletWidthMm)}</div>`;
+          const pages = layout.interlocked
+            ? patternPage(layout.primary, oddLayers, I18n.t('palletPatternOddLabel')) + patternPage(layout.secondary, evenLayers, I18n.t('palletPatternEvenLabel')) + `<div class="print-layer-page"><p>${escapeHtml(I18n.t('palletPatternRepeatInterlocked', { total: layout.layers }))}</p></div>`
+            : patternPage(layout.primary, oddLayers.concat(evenLayers), I18n.t('palletPatternUniformLabel')) + `<div class="print-layer-page"><p>${escapeHtml(I18n.t('palletPatternRepeatUniform', { total: layout.layers }))}</p></div>`;
+          const sheet = document.querySelector('#palletPrintSheet');
+          sheet.innerHTML = `<div class="print-summary">${summaryHtml}</div><div class="print-sop">${sopHtml}</div>${pages}`;
+        } finally {
+          I18n.language = prevLang;
         }
-        const sheet = document.querySelector('#palletPrintSheet');
-        sheet.innerHTML = `<div class="print-summary">${document.querySelector('#palletVisualSummary').innerHTML}</div><div class="print-sop">${document.querySelector('#palletSopSteps').innerHTML}</div>${pages}`;
         document.body.classList.add('printing-pallet');
         window.print();
       }
@@ -4613,8 +4632,9 @@
         if (ctx.error) { this.renderPalletError(ctx.error); return }
         this.renderPalletResult(ctx);
       }
-      renderPalletError(message) { document.querySelector('#palletSummary').innerHTML = `<span class="audit-warning">${escapeHtml(message)}</span>`; document.querySelector('#palletVisualBody').hidden = true; document.querySelector('#palletVisualControls').hidden = true; document.querySelector('#palletLayerControls').hidden = true; document.querySelector('#palletSopSteps').hidden = true; this.palletVisual?.empty('') }
+      renderPalletError(message) { this.lastPalletCtx = null; document.querySelector('#palletSummary').innerHTML = `<span class="audit-warning">${escapeHtml(message)}</span>`; document.querySelector('#palletVisualBody').hidden = true; document.querySelector('#palletVisualControls').hidden = true; document.querySelector('#palletLayerControls').hidden = true; document.querySelector('#palletSopSteps').hidden = true; this.palletVisual?.empty('') }
       renderPalletResult(ctx) {
+        this.lastPalletCtx = ctx;
         document.querySelector('#palletSummary').innerHTML = ctx.type === 'fg' ? `<div class="notice">${escapeHtml(this.t('palletResolvedFg', { id: ctx.fg.fg_id, cartonId: ctx.carton.carton_id }))}</div>` : `<div class="notice">${escapeHtml(this.t('palletResolvedCarton', { id: ctx.carton.carton_id }))}</div>`;
         document.querySelector('#palletVisualBody').hidden = false; document.querySelector('#palletVisualControls').hidden = false;
         this.palletVisual.rotation = 0; this.palletVisual.pitch = 0; this.palletVisual.topView = false;
