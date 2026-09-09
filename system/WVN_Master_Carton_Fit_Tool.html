@@ -1766,6 +1766,7 @@
       <div class="comparison-grid"><div class="comparison-pane"><h3 data-i18n="currentBaseline">Current / Baseline</h3><div class="visual-body"><svg id="comparisonCurrentSvg" viewBox="0 0 400 300"></svg><div id="comparisonCurrentSummary" class="visual-summary"><div class="empty">—</div></div></div></div><div id="auditSuggestedDropZone" class="comparison-pane audit-drop-zone"><h3 data-i18n="suggestedAlternative">Suggested / Alternative</h3><div class="visual-body"><svg id="comparisonSuggestedSvg" viewBox="0 0 400 300"></svg><div id="comparisonSuggestedSummary" class="visual-summary"><div class="empty" data-i18n="dragAlternativeHere">Drag an alternative or proposal here, or select View 3D.</div></div></div></div></div>
     </section>
   </main>
+  <script src="./vendor/binpackingjs/binpackingjs.js"></script>
   <script>
     'use strict';
 
@@ -2096,10 +2097,12 @@
         palletPatternAppliesTo:'Applies to layers: {list}',
         palletPatternRepeatInterlocked:'Repeat: stack Pattern A, then Pattern B, alternating, until the pallet reaches {total} layers.',
         palletPatternRepeatUniform:'Repeat this same layer pattern for all {total} layers.',
+        palletPatternKindBlock:'Block', palletPatternKindRow:'Row (alternating 90°)', palletPatternKindBrick:'Brick (running bond)',
+        palletPatternKindSplitRow:'Split row', palletPatternKindPinwheel:'Pinwheel', palletPatternKindHybridPinwheel:'Hybrid pinwheel',
         palletSopTitle:'Pallet Packing Standard (SC-WI-WH-01)',
         palletSopStepATitle:'Step A — Stacking cartons', palletSopStepAText:'Stack cartons neatly; nothing may protrude beyond the pallet footprint. Arrows point up and product/battery labels face outward. Max stack height: 1.6 m air freight, 2.2 m truck/container, unless a special height is notified.',
         palletSopStepBTitle:'Step B — Corner boards', palletSopStepBText:'Reinforce all 4 vertical edges with corner boards, minimum 40 cm long, positioned where straps will be tightened. Air freight or LCL shipments also need corner boards along the 4 top edges.',
-        palletSopStepCTitle:'Step C — Stretch film', palletSopStepCText:'Wrap the entire load and corner boards with nylon stretch film into one solid block, from the top layer down to the pallet base, so the film also covers the top surface for moisture protection.',
+        palletSopStepCTitle:'Step C — Stretch film', palletSopStepCText:'Apply 5+ layers of nylon stretch film, pulling tightly as you wrap from the pallet base up to the top layer, binding the load and corner boards into one solid, uniform block; the film also covers the top surface for moisture protection. Place a flat slip sheet (or cardboard) between major layer groups as you build the stack — it adds friction and helps stop the layers above from sliding.',
         palletSopStepDTitle:'Step D — Strapping (air / LCL only)', palletSopStepDText:'2 horizontal + 2 vertical plastic straps, not twisted (add 1 extra horizontal strap at mid-height for special cases). Corner boards must sit under every strap contact point. Tension with a strap tool, crimp with pliers, then hand-test before cutting.',
         palletSopStepDTextTruck:'Not required for standard truck/container shipments — proceed straight to stretch film (Step C) after stacking.',
         palletSopStepETitle:'Step E — Incomplete top layer', palletSopStepEText:'Strap the full lower layers first, then stretch-film the partial top layer to bind it to the stack. If the partial layer fills a full width or length, run the 2 straps over the top layer along that direction.',
@@ -2130,10 +2133,12 @@
         palletPatternAppliesTo:'Áp dụng cho lớp: {list}',
         palletPatternRepeatInterlocked:'Lặp lại: xếp Kiểu A, rồi đến Kiểu B, xen kẽ liên tục cho đến khi đủ {total} lớp.',
         palletPatternRepeatUniform:'Lặp lại đúng một kiểu xếp này cho cả {total} lớp.',
+        palletPatternKindBlock:'Khối', palletPatternKindRow:'Hàng (xoay xen kẽ 90°)', palletPatternKindBrick:'Xây gạch (so le)',
+        palletPatternKindSplitRow:'Hàng chia đôi', palletPatternKindPinwheel:'Cối xay gió', palletPatternKindHybridPinwheel:'Cối xay gió kết hợp',
         palletSopTitle:'Tiêu chuẩn đóng gói Pallet (SC-WI-WH-01)',
         palletSopStepATitle:'Bước A — Xếp chồng thùng', palletSopStepAText:'Xếp thùng gọn gàng; không được nhô ra ngoài diện tích pallet. Mũi tên hướng lên trên, nhãn sản phẩm/pin hướng ra ngoài. Chiều cao tối đa: 1,6 m đường hàng không, 2,2 m xe tải/container, trừ khi có thông báo chiều cao đặc biệt.',
         palletSopStepBTitle:'Bước B — Lắp thanh góc', palletSopStepBText:'Gia cố cả 4 cạnh đứng bằng thanh góc, dài tối thiểu 40 cm, đặt tại vị trí sẽ siết đai. Hàng không hoặc LCL cần thêm thanh góc dọc 4 cạnh trên cùng của pallet.',
-        palletSopStepCTitle:'Bước C — Quấn màng co giãn', palletSopStepCText:'Quấn toàn bộ khối hàng và thanh góc bằng màng nylon co giãn thành một khối vững chắc, từ lớp trên cùng xuống đến đế pallet, màng cũng phủ mặt trên cùng để chống ẩm.',
+        palletSopStepCTitle:'Bước C — Quấn màng co giãn', palletSopStepCText:'Quấn tối thiểu 5 lớp màng nylon co giãn, kéo căng tay khi quấn từ đế pallet lên đến lớp trên cùng, gộp khối hàng và thanh góc thành một khối vững chắc, đồng nhất; màng cũng phủ mặt trên cùng để chống ẩm. Đặt một tấm lót phẳng (hoặc bìa carton) giữa các nhóm lớp chính khi xếp — giúp tăng ma sát và hạn chế các lớp phía trên bị trượt.',
         palletSopStepDTitle:'Bước D — Đai hàng (chỉ hàng không / LCL)', palletSopStepDText:'2 đai ngang + 2 đai dọc bằng nhựa, không bị xoắn (thêm 1 đai ngang giữa khối hàng cho trường hợp đặc biệt). Mỗi điểm tiếp xúc đai phải có thanh góc. Siết bằng dụng cụ căng đai, bấm khóa đai bằng kìm chuyên dụng, sau đó kéo thử bằng tay trước khi cắt.',
         palletSopStepDTextTruck:'Không bắt buộc với lô hàng xe tải/container tiêu chuẩn — sau khi xếp chồng, chuyển thẳng sang quấn màng (Bước C).',
         palletSopStepETitle:'Bước E — Lớp trên cùng không đầy', palletSopStepEText:'Đai chặt các lớp dưới đã đầy trước, sau đó quấn màng lớp trên cùng dở dang vào khối hàng. Nếu lớp dở dang lấp đầy trọn chiều rộng hoặc chiều dài, cho 2 đai chạy qua lớp trên cùng theo chiều đó.',
@@ -3845,34 +3850,120 @@
       }
       static palletBatchRows(rows){
         const header=['Input_ID','Resolved_Type','FG_ID','Carton_ID','Carton_Name','Carton_Dimensions_mm','Layer_Pattern','Odd_Layer_Cartons','Even_Layer_Cartons','Layers','Total_Cartons_Per_Pallet','Shipment_Method','Max_Stack_Height_mm','Actual_Stack_Height_mm','Units_Per_Carton','Target_Quantity','Cartons_Needed','Pallets_Needed','Notes'];
-        return [header,...(rows||[]).map(r=>[r.inputId,r.type||'',r.fg?.fg_id||'',r.carton?.carton_id||'',r.carton?.carton_name||'',r.carton?dims(r.carton):'',r.layout?(r.layout.interlocked?'Interlocked':'Uniform'):'',r.layout?`${r.layout.primary.cartonsPerLayer} (${r.layout.primary.perLength}×${r.layout.primary.perWidth}${r.layout.primary.rotate?' rotated':''})`:'',r.layout?`${r.layout.secondary.cartonsPerLayer} (${r.layout.secondary.perLength}×${r.layout.secondary.perWidth}${r.layout.secondary.rotate?' rotated':''}${r.layout.secondary.offsetAxis?' offset':''})`:'',r.layout?.layers??'',r.layout?.totalPerPallet??'',r.method||'',r.maxHeightMm??'',r.layout?.stackHeightMm??'',r.qtyPerCarton??'',r.targetQty??'',r.cartonsNeeded??'',r.palletsNeeded??'',r.error||r.partialInfo||''])];
+        const describe=p=>p?`${p.kind} ${p.cartonsPerLayer} (${p.regions.map(r=>`${r.perLength}x${r.perWidth}`).join('+')}${p.offsetAxis?' offset':''})`:'';
+        return [header,...(rows||[]).map(r=>[r.inputId,r.type||'',r.fg?.fg_id||'',r.carton?.carton_id||'',r.carton?.carton_name||'',r.carton?dims(r.carton):'',r.layout?(r.layout.interlocked?'Interlocked':'Uniform'):'',r.layout?describe(r.layout.primary):'',r.layout?describe(r.layout.secondary):'',r.layout?.layers??'',r.layout?.totalPerPallet??'',r.method||'',r.maxHeightMm??'',r.layout?.stackHeightMm??'',r.qtyPerCarton??'',r.targetQty??'',r.cartonsNeeded??'',r.palletsNeeded??'',r.error||r.partialInfo||''])];
       }
     }
+    // A "pattern" is { kind, regions: [{uL,uW,startL,stepL,startW,stepW,perLength,perWidth}, ...], cartonsPerLayer, rotate?, offsetAxis? }.
+    // Every region is its own flush sub-grid (used for the perimeter strips + interior block of a pinwheel, the
+    // two bands of a split row, or just one region for a plain block/brick/row layer); expandPatternCells()
+    // flattens whichever shape a pattern has into a plain list of placed cartons for rendering/export.
+    function expandPatternCells(pattern) {
+      const out = [];
+      for (const r of pattern?.regions || []) { if (!r) continue; for (let i = 0; i < r.perLength; i++) for (let j = 0; j < r.perWidth; j++) out.push({ x: r.startL + i * r.stepL, y: r.startW + j * r.stepW, uL: r.uL, uW: r.uW }) }
+      return out;
+    }
+    function patternKindLabel(p) { return I18n.t(p.kind === 'pinwheel' && p.regions.length > 4 ? 'palletPatternKindHybridPinwheel' : `palletPatternKind${p.kind[0].toUpperCase()}${p.kind.slice(1)}`) }
     function computePalletLayout(carton, palletLengthMm, palletWidthMm, maxHeightMm) {
       const cl = Number(carton?.width), cw = Number(carton?.depth), ch = Number(carton?.height);
       if (![cl, cw, ch].every(n => Number.isFinite(n) && n > 0)) return null;
+      const PL = palletLengthMm, PW = palletWidthMm;
       // Flush to the pallet edge on the outside; any leftover space becomes even gaps BETWEEN cartons (not a margin around the block),
-      // so the outer silhouette of each layer stays a flat rectangle - a single row/column centers instead, since it has no "between" to use.
-      const axisLayout = (paletteDim, unitDim, count) => count <= 1 ? { start: (paletteDim - count * unitDim) / 2, step: unitDim } : { start: 0, step: unitDim + Math.max(0, (paletteDim - count * unitDim) / (count - 1)) };
-      const makePattern = rotate => { const uL = rotate ? cw : cl, uW = rotate ? cl : cw, perLength = Math.floor(palletLengthMm / uL), perWidth = Math.floor(palletWidthMm / uW), cartonsPerLayer = perLength * perWidth, lengthAxis = axisLayout(palletLengthMm, uL, perLength), widthAxis = axisLayout(palletWidthMm, uW, perWidth); return { rotate, uL, uW, perLength, perWidth, cartonsPerLayer, startL: lengthAxis.start, stepL: lengthAxis.step, startW: widthAxis.start, stepW: widthAxis.step } };
-      const straight = makePattern(false), rotated = makePattern(true);
-      const primary = rotated.cartonsPerLayer > straight.cartonsPerLayer ? rotated : straight;
-      // Running-bond interlock: shift every other layer by half a carton along whichever grid axis has more
-      // positions, dropping the one column/row that would overhang the pallet. Every carton in the shifted
-      // layer then rests with its footprint split across two cartons directly below it, instead of possibly
-      // floating over a gap the way rotating the whole layer 90° could when the two orientations' grids don't
-      // happen to line up. If the layer is too sparse for that split to still cover most of the carton
-      // underneath, skip interlocking rather than ship an unsafe stack — a bit of underutilization is fine.
-      const axis = primary.perLength >= primary.perWidth ? 'length' : 'width';
-      const axisCount = axis === 'length' ? primary.perLength : primary.perWidth, axisStep = axis === 'length' ? primary.stepL : primary.stepW, axisUnit = axis === 'length' ? primary.uL : primary.uW;
-      const gapFraction = axisUnit > 0 ? (axisStep - axisUnit) / axisUnit : 1;
-      const canOffset = axisCount > 1 && gapFraction <= 0.2;
-      const secondary = !canOffset ? primary : axis === 'length'
-        ? { ...primary, perLength: primary.perLength - 1, startL: primary.startL + primary.stepL / 2, cartonsPerLayer: (primary.perLength - 1) * primary.perWidth, offsetAxis: 'length' }
-        : { ...primary, perWidth: primary.perWidth - 1, startW: primary.startW + primary.stepW / 2, cartonsPerLayer: primary.perLength * (primary.perWidth - 1), offsetAxis: 'width' };
+      // so the outer silhouette of a region stays a flat rectangle - a single row/column centers instead, since it has no "between" to use.
+      const axisLayout = (dim, unit, count) => count <= 1 ? { start: (dim - count * unit) / 2, step: unit } : { start: 0, step: unit + Math.max(0, (dim - count * unit) / (count - 1)) };
+      const region = (uL, uW, spanL, spanW, offsetL = 0, offsetW = 0) => { const perLength = Math.floor(spanL / uL), perWidth = Math.floor(spanW / uW); if (perLength <= 0 || perWidth <= 0) return null; const la = axisLayout(spanL, uL, perLength), wa = axisLayout(spanW, uW, perWidth); return { uL, uW, perLength, perWidth, startL: offsetL + la.start, stepL: la.step, startW: offsetW + wa.start, stepW: wa.step } };
+      const count = r => r ? r.perLength * r.perWidth : 0;
+      const cellsOf = r => { const out = []; if (!r) return out; for (let i = 0; i < r.perLength; i++) for (let j = 0; j < r.perWidth; j++) out.push([r.startL + i * r.stepL, r.startW + j * r.stepW, r.uL, r.uW]); return out };
+      const overlap1D = (a0, a1, b0, b1) => Math.max(0, Math.min(a1, b1) - Math.max(a0, b0));
+      const cellOverlap = (c1, c2) => overlap1D(c1[0], c1[0] + c1[2], c2[0], c2[0] + c2[2]) * overlap1D(c1[1], c1[1] + c1[3], c2[1], c2[1] + c2[3]);
+      // Minimum, over every carton in either layer, of the fraction of its footprint resting on (or rested on by) the other layer's cartons.
+      const supportFraction = (cellsA, cellsB) => { if (!cellsA.length || !cellsB.length) return 0; let minFrac = 1; for (const c of cellsA) { const area = c[2] * c[3]; let sup = 0; for (const d of cellsB) sup += cellOverlap(c, d); minFrac = Math.min(minFrac, area > 0 ? sup / area : 1) } for (const c of cellsB) { const area = c[2] * c[3]; let sup = 0; for (const d of cellsA) sup += cellOverlap(c, d); minFrac = Math.min(minFrac, area > 0 ? sup / area : 1) } return minFrac };
+
+      const candidates = [];
+
+      // Block: one orientation, identical every layer. Simplest, always fully supported.
+      for (const rotate of [false, true]) {
+        const uL = rotate ? cw : cl, uW = rotate ? cl : cw, r = region(uL, uW, PL, PW);
+        if (!r) continue;
+        const primary = { kind: 'block', rotate, regions: [r], cartonsPerLayer: count(r) };
+        candidates.push({ primary, secondary: primary, score: primary.cartonsPerLayer, safety: 1 });
+      }
+
+      // Row: alternate the whole layer's orientation 90° every layer. Only offered when the two orientations'
+      // grids still support each other well (roughly square cartons) - otherwise a column can float over a gap.
+      { const gA = region(cl, cw, PL, PW), gB = region(cw, cl, PL, PW);
+        if (gA && gB) { const support = supportFraction(cellsOf(gA), cellsOf(gB));
+          if (support >= 0.5) { const primary = { kind: 'row', rotate: false, regions: [gA], cartonsPerLayer: count(gA) }, secondary = { kind: 'row', rotate: true, regions: [gB], cartonsPerLayer: count(gB) };
+            candidates.push({ primary, secondary, score: (primary.cartonsPerLayer + secondary.cartonsPerLayer) / 2, safety: support }) } } }
+
+      // Brick (running bond): shift alternating layers by half a step along the denser axis, dropping the
+      // one column/row that would overhang, so every shifted carton rests split across two cartons below it.
+      for (const rotate of [false, true]) {
+        const uL = rotate ? cw : cl, uW = rotate ? cl : cw, primaryRegion = region(uL, uW, PL, PW);
+        if (!primaryRegion) continue;
+        const axis = primaryRegion.perLength >= primaryRegion.perWidth ? 'length' : 'width', axisCount = axis === 'length' ? primaryRegion.perLength : primaryRegion.perWidth;
+        if (axisCount <= 1) continue;
+        const secondaryRegion = axis === 'length'
+          ? { ...primaryRegion, perLength: primaryRegion.perLength - 1, startL: primaryRegion.startL + primaryRegion.stepL / 2, offsetAxis: 'length' }
+          : { ...primaryRegion, perWidth: primaryRegion.perWidth - 1, startW: primaryRegion.startW + primaryRegion.stepW / 2, offsetAxis: 'width' };
+        const support = supportFraction(cellsOf(primaryRegion), cellsOf(secondaryRegion));
+        if (support < 0.35) continue;
+        const primary = { kind: 'brick', rotate, regions: [primaryRegion], cartonsPerLayer: count(primaryRegion) }, secondary = { kind: 'brick', rotate, regions: [secondaryRegion], cartonsPerLayer: count(secondaryRegion), offsetAxis: secondaryRegion.offsetAxis };
+        candidates.push({ primary, secondary, score: (primary.cartonsPerLayer + secondary.cartonsPerLayer) / 2, safety: support });
+      }
+
+      // Split row: fill as much of the layer as possible with one orientation, then use the leftover strip
+      // along one edge for a row of the rotated orientation, instead of wasting it as a gap.
+      for (const [uL1, uW1, uL2, uW2] of [[cl, cw, cw, cl], [cw, cl, cl, cw]]) {
+        for (const axis of ['width', 'length']) {
+          const primarySpan = axis === 'width' ? PW : PL, perPrimary = Math.floor(primarySpan / (axis === 'width' ? uW1 : uL1));
+          if (perPrimary <= 0) continue;
+          const usedSpan = perPrimary * (axis === 'width' ? uW1 : uL1), leftover = primarySpan - usedSpan;
+          let band1, band2;
+          if (axis === 'width') { band1 = region(uL1, uW1, PL, usedSpan, 0, 0); band2 = leftover >= uW2 ? region(uL2, uW2, PL, leftover, 0, usedSpan) : null }
+          else { band1 = region(uL1, uW1, usedSpan, PW, 0, 0); band2 = leftover >= uL2 ? region(uL2, uW2, leftover, PW, usedSpan, 0) : null }
+          if (!band1) continue;
+          const regions = [band1, band2].filter(Boolean), total = regions.reduce((s, r) => s + count(r), 0);
+          const primary = { kind: 'splitRow', regions, cartonsPerLayer: total };
+          candidates.push({ primary, secondary: primary, score: total, safety: 1 });
+        }
+      }
+
+      // Pinwheel / hybrid pinwheel: a flush ring of cartons around all 4 edges (each edge's cartons run
+      // lengthwise along that edge) keeps the outer wall perfectly flat on every layer regardless of the
+      // interior, plus a filled interior (block, or brick-interlocked between layers for extra strength).
+      // An empty interior is a plain pinwheel; a dense filled one is the "hybrid" version.
+      for (const [A, B] of [[cl, cw], [cw, cl]]) {
+        if (2 * B >= PL || 2 * B >= PW) continue;
+        const top = region(A, B, PL, B, 0, 0), bottom = region(A, B, PL, B, 0, PW - B), midH = PW - 2 * B;
+        const left = midH > 0 ? region(B, A, B, midH, 0, B) : null, right = midH > 0 ? region(B, A, B, midH, PL - B, B) : null;
+        const frame = [top, bottom, left, right].filter(Boolean);
+        if (!frame.length) continue;
+        const innerL = PL - 2 * B, innerW = PW - 2 * B;
+        let interior = null;
+        if (innerL > 0 && innerW > 0) { const iStraight = region(cl, cw, innerL, innerW, B, B), iRotated = region(cw, cl, innerL, innerW, B, B); interior = count(iRotated) > count(iStraight) ? iRotated : iStraight }
+        const frameCount = frame.reduce((s, r) => s + count(r), 0), primaryRegions = interior ? [...frame, interior] : frame;
+        const primary = { kind: 'pinwheel', regions: primaryRegions, cartonsPerLayer: frameCount + count(interior) };
+        let secondary = primary, safety = 1;
+        if (interior) {
+          const axis = interior.perLength >= interior.perWidth ? 'length' : 'width', axisCount = axis === 'length' ? interior.perLength : interior.perWidth;
+          if (axisCount > 1) {
+            const interiorSecondary = axis === 'length'
+              ? { ...interior, perLength: interior.perLength - 1, startL: interior.startL + interior.stepL / 2 }
+              : { ...interior, perWidth: interior.perWidth - 1, startW: interior.startW + interior.stepW / 2 };
+            const support = supportFraction(cellsOf(interior), cellsOf(interiorSecondary));
+            if (support >= 0.35) { secondary = { kind: 'pinwheel', regions: [...frame, interiorSecondary], cartonsPerLayer: frameCount + count(interiorSecondary) }; safety = support }
+          }
+        }
+        candidates.push({ primary, secondary, score: (primary.cartonsPerLayer + secondary.cartonsPerLayer) / 2, safety });
+      }
+
+      if (!candidates.length) return null;
+      candidates.sort((a, b) => b.score - a.score || b.safety - a.safety);
+      const { primary, secondary } = candidates[0];
       const layers = ch > 0 ? Math.floor(maxHeightMm / ch) : 0, oddLayers = Math.ceil(layers / 2), evenLayers = Math.floor(layers / 2);
       const totalPerPallet = oddLayers * primary.cartonsPerLayer + evenLayers * secondary.cartonsPerLayer;
-      return { cartonLengthMm: cl, cartonWidthMm: cw, cartonHeightMm: ch, primary, secondary, interlocked: secondary !== primary, layers, totalPerPallet, stackHeightMm: layers * ch, rotate: primary.rotate, perLength: primary.perLength, perWidth: primary.perWidth, cartonsPerLayer: primary.cartonsPerLayer };
+      return { cartonLengthMm: cl, cartonWidthMm: cw, cartonHeightMm: ch, primary, secondary, interlocked: secondary !== primary, layers, totalPerPallet, stackHeightMm: layers * ch, cartonsPerLayer: primary.cartonsPerLayer };
     }
     class PalletVisualizer {
       constructor(svg, summary) { this.svg = svg; this.summary = summary; this.state = null; this.rotation = 0; this.pitch = 0; this.visibleLayers = null; this.topView = false; this.drag = null; this.bindDrag() }
@@ -3901,7 +3992,7 @@
         const palletEdge = { color: '#3a2513', width: .8, opacity: .9 }, cartonEdge = { color: '#12314a', width: .5, opacity: .3 };
         const faces = [], addBox = (x0, y0, z0, x1, y1, z1, defs, edge) => { const vertices = [[x0, y0, z0], [x1, y0, z0], [x0, y1, z0], [x1, y1, z0], [x0, y0, z1], [x1, y0, z1], [x0, y1, z1], [x1, y1, z1]]; for (const [indices, fill] of defs) { const points = indices.map(i => vertices[i]); faces.push({ points, fill, edge, depth: points.reduce((sum, v) => sum + viewDepth(...v), 0) / points.length }) } };
         addBox(0, 0, 0, PL, PW, PH, palletFaceDefs, palletEdge);
-        for (let layer = 0; layer < shownLayers; layer++) { const pattern = layer % 2 === 0 ? layout.primary : layout.secondary, z0 = PH + layer * ch, z1 = z0 + ch; for (let ix = 0; ix < pattern.perLength; ix++)for (let iy = 0; iy < pattern.perWidth; iy++) { const x0 = pattern.startL + ix * pattern.stepL, y0 = pattern.startW + iy * pattern.stepW; addBox(x0, y0, z0, x0 + pattern.uL, y0 + pattern.uW, z1, cartonFaceDefs, cartonEdge) } }
+        for (let layer = 0; layer < shownLayers; layer++) { const pattern = layer % 2 === 0 ? layout.primary : layout.secondary, z0 = PH + layer * ch, z1 = z0 + ch; for (const cell of expandPatternCells(pattern)) addBox(cell.x, cell.y, z0, cell.x + cell.uL, cell.y + cell.uW, z1, cartonFaceDefs, cartonEdge) }
         faces.sort((a, b) => a.depth - b.depth);
         let out = ''; for (const face of faces) out += `<polygon points="${face.points.map(p => P(...p)).join(' ')}" fill="${face.fill}" fill-opacity=".92" stroke="${face.edge.color}" stroke-width="${face.edge.width}" stroke-opacity="${face.edge.opacity}"/>`;
         if (Number.isFinite(maxHeightMm)) { const guideZ = PH + maxHeightMm; if (guideZ <= H + ch) { const pts = [[0, 0, guideZ], [L, 0, guideZ], [L, W, guideZ], [0, W, guideZ]].map(q); out += `<polygon points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="#c0392b" stroke-width="1.4" stroke-dasharray="5 3"/>` } }
@@ -3933,7 +4024,7 @@
     function fitFailureNote() { return I18n.t('orthogonalPreview') }
     function buildPalletSummaryHtml(ctx) {
       const { carton, layout, method, maxHeightMm, qtyPerCarton, cartonsNeeded, palletsNeeded, targetQty, targetSource, partialInfo } = ctx;
-      const describe = p => `${fmt(p.cartonsPerLayer)} (${p.perLength} × ${p.perWidth}${p.rotate ? ', ' + I18n.t('palletOrientationRotated') : ''}${p.offsetAxis ? ', ' + I18n.t('palletOrientationOffset') : ''})`;
+      const describe = p => `${fmt(p.cartonsPerLayer)} — ${patternKindLabel(p)} (${p.regions.map(r => `${r.perLength}×${r.perWidth}`).join(' + ')}${p.offsetAxis ? ', ' + I18n.t('palletOrientationOffset') : ''})`;
       const rows = [
         [I18n.t('palletCartonId'), escapeHtml(carton.carton_id || I18n.t('manualCartonLabel'))],
         [I18n.t('palletCartonDims'), escapeHtml(dims(carton))],
@@ -3967,10 +4058,7 @@
       const pad = 20, vbW = palletLengthMm + pad * 2, vbH = palletWidthMm + pad * 2;
       let out = `<svg viewBox="0 0 ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:520px;height:auto;">`;
       out += `<rect x="${pad}" y="${pad}" width="${palletLengthMm}" height="${palletWidthMm}" fill="#f3e6d4" stroke="#8a5a2e" stroke-width="4"/>`;
-      for (let ix = 0; ix < pattern.perLength; ix++) for (let iy = 0; iy < pattern.perWidth; iy++) {
-        const x = pad + pattern.startL + ix * pattern.stepL, y = pad + pattern.startW + iy * pattern.stepW;
-        out += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${pattern.uL}" height="${pattern.uW}" fill="#9bd2ef" stroke="#17648f" stroke-width="2"/>`;
-      }
+      for (const cell of expandPatternCells(pattern)) out += `<rect x="${(pad + cell.x).toFixed(1)}" y="${(pad + cell.y).toFixed(1)}" width="${cell.uL}" height="${cell.uW}" fill="#9bd2ef" stroke="#17648f" stroke-width="2"/>`;
       out += '</svg>';
       return out;
     }
@@ -4636,7 +4724,7 @@
         const summaryHtml = buildPalletSummaryHtml(ctx), sopHtml = buildPalletSopHtml(ctx.method);
         const oddLayers = [], evenLayers = [];
         for (let layer = 1; layer <= layout.layers; layer++) (layer % 2 === 1 ? oddLayers : evenLayers).push(layer);
-        const patternPage = (pattern, layerNumbers, label) => `<div class="print-layer-page"><h2>${escapeHtml(I18n.t('palletPatternTitle', { label }))}</h2><div class="print-layer-meta">${escapeHtml(I18n.t('palletCartonsPerLayer'))}: ${pattern.cartonsPerLayer} (${pattern.perLength} × ${pattern.perWidth}${pattern.rotate ? ', ' + escapeHtml(I18n.t('palletOrientationRotated')) : ''})<br>${escapeHtml(I18n.t('palletPatternAppliesTo', { list: layerNumbers.join(', ') }))}</div>${buildLayerTopViewSvg(pattern, palletLengthMm, palletWidthMm)}</div>`;
+        const patternPage = (pattern, layerNumbers, label) => `<div class="print-layer-page"><h2>${escapeHtml(I18n.t('palletPatternTitle', { label }))}</h2><div class="print-layer-meta">${escapeHtml(patternKindLabel(pattern))} — ${escapeHtml(I18n.t('palletCartonsPerLayer'))}: ${pattern.cartonsPerLayer} (${pattern.regions.map(r => `${r.perLength}×${r.perWidth}`).join(' + ')})<br>${escapeHtml(I18n.t('palletPatternAppliesTo', { list: layerNumbers.join(', ') }))}</div>${buildLayerTopViewSvg(pattern, palletLengthMm, palletWidthMm)}</div>`;
         const pages = layout.interlocked
           ? patternPage(layout.primary, oddLayers, I18n.t('palletPatternOddLabel')) + patternPage(layout.secondary, evenLayers, I18n.t('palletPatternEvenLabel')) + `<div class="print-layer-page"><p>${escapeHtml(I18n.t('palletPatternRepeatInterlocked', { total: layout.layers }))}</p></div>`
           : patternPage(layout.primary, oddLayers.concat(evenLayers), I18n.t('palletPatternUniformLabel')) + `<div class="print-layer-page"><p>${escapeHtml(I18n.t('palletPatternRepeatUniform', { total: layout.layers }))}</p></div>`;
@@ -4717,7 +4805,7 @@
         const rows = ids.map(id => this.computePalletContext(id, { method, palletLengthMm, palletWidthMm, qtyOverride: NaN }));
         this.palletBatchRows = rows; status.textContent = `${rows.filter(r => !r.error).length} / ${rows.length}`;
         const wrap = document.querySelector('#palletBatchTable');
-        const describePattern = p => p ? `${fmt(p.cartonsPerLayer)} (${p.perLength}×${p.perWidth}${p.rotate ? ' ↻' : ''}${p.offsetAxis ? ' ⇔' : ''})` : '—';
+        const describePattern = p => p ? `${fmt(p.cartonsPerLayer)} ${p.kind}${p.offsetAxis ? ' ⇔' : ''} (${p.regions.map(r => `${r.perLength}×${r.perWidth}`).join('+')})` : '—';
         wrap.innerHTML = rows.length ? `<table><thead><tr><th>ID</th><th>Type</th><th>Carton</th><th>Dims</th><th>${this.t('palletLayerPatternLabel')}</th><th>${this.t('palletLayers')}</th><th>${this.t('palletTotalPerPallet')}</th><th>${this.t('palletCartonsNeeded')}</th><th>${this.t('palletPalletsNeeded')}</th><th>Notes</th></tr></thead><tbody>${rows.map(r => `<tr class="${r.error ? 'audit-warning' : ''}"><td><strong>${escapeHtml(r.inputId)}</strong></td><td>${escapeHtml(r.type || '—')}</td><td>${escapeHtml(r.carton?.carton_id || '—')}</td><td>${r.carton ? escapeHtml(dims(r.carton)) : '—'}</td><td>${r.layout ? escapeHtml(r.layout.interlocked ? `${describePattern(r.layout.primary)} / ${describePattern(r.layout.secondary)}` : describePattern(r.layout.primary)) : '—'}</td><td>${r.layout ? fmt(r.layout.layers) : '—'}</td><td>${r.layout ? fmt(r.layout.totalPerPallet) : '—'}</td><td>${Number.isFinite(r.cartonsNeeded) ? fmt(r.cartonsNeeded) : '—'}</td><td>${Number.isFinite(r.palletsNeeded) ? fmt(r.palletsNeeded) : '—'}</td><td>${escapeHtml(r.error || r.partialInfo || '')}</td></tr>`).join('')}</tbody></table>` : `<div class="empty">${escapeHtml(this.t('noResults'))}</div>`;
         document.querySelector('#palletBatchExportButton').disabled = !rows.length;
       }

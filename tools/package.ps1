@@ -23,6 +23,10 @@ Copy-Item -Path (Join-Path $repo 'system\generated\*') -Destination (Join-Path $
 $copied = @(Get-ChildItem (Join-Path $stage 'system\generated') -File)
 if ($copied.Count -lt 5) { throw "Prepared data did not copy: only $($copied.Count) file(s) in system\generated." }
 
+# Vendored library the HTML loads at runtime via <script src="./vendor/...">, so it has to ship.
+New-Item -ItemType Directory -Path (Join-Path $stage 'system\vendor\binpackingjs') -Force | Out-Null
+Copy-Item -Path (Join-Path $repo 'system\vendor\binpackingjs\*') -Destination (Join-Path $stage 'system\vendor\binpackingjs') -Force
+
 # --- the saving helper ----------------------------------------------------------------------
 # Lives under system\ so it stays out of the way: the only thing anyone opening the folder
 # should see is the .cmd and the two text files. Only listen.ps1 ships. The README, the data
