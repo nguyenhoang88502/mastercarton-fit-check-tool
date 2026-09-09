@@ -583,13 +583,15 @@
       max-width: 780px
     }
 
-    #fgSelect option[data-data-complete="true"] {
+    #fgSelect option[data-data-complete="true"],
+    #palletLookupSelect option[data-data-complete="true"] {
       color: #176b3a;
       background: #e8f7ee;
       font-weight: 700
     }
 
-    html[data-theme="dark"] #fgSelect option[data-data-complete="true"] {
+    html[data-theme="dark"] #fgSelect option[data-data-complete="true"],
+    html[data-theme="dark"] #palletLookupSelect option[data-data-complete="true"] {
       color: #7ce5a0;
       background: #193f2a
     }
@@ -669,7 +671,8 @@
       cursor: grabbing
     }
 
-    #palletSvg {
+    #palletSvg,
+    #manualPalletSvg {
       width: 100%;
       height: 100%;
       min-height: 220px;
@@ -681,7 +684,8 @@
       user-select: none
     }
 
-    #palletSvg.dragging {
+    #palletSvg.dragging,
+    #manualPalletSvg.dragging {
       cursor: grabbing
     }
 
@@ -1126,6 +1130,11 @@
         display: none !important;
       }
 
+      /* The manual pallet layout tab reuses this same print sheet, so force the (possibly hidden, inactive-tab) panel visible during print. */
+      body.printing-pallet #palletVisualizerPanel {
+        display: block !important;
+      }
+
       body.printing-pallet #palletVisualizerPanel>*:not(#palletPrintSheet) {
         display: none !important;
       }
@@ -1366,6 +1375,7 @@
       <button type="button" class="workflow-nav-btn" data-workflow="batch-audit" data-i18n="batchAudit">Batch Audit</button>
       <button type="button" class="workflow-nav-btn" data-workflow="carton-lookup" data-i18n="cartonLookup">Carton Lookup</button>
       <button type="button" class="workflow-nav-btn" data-workflow="pallet-visualizer" data-i18n="palletVisualizerNav">Pallet Visualizer</button>
+      <button type="button" class="workflow-nav-btn" data-workflow="manual-pallet-layout" data-i18n="manualPalletLayoutNav">Manual Pallet Layout</button>
       <button type="button" class="workflow-nav-btn save-feature" data-workflow="add-data" data-i18n="addDataNav" role="tab" aria-selected="false">Add Data</button>
     </nav>
     <section id="taskProgressPanel" class="task-panel" role="status" aria-live="polite" hidden>
@@ -1728,6 +1738,28 @@
       <div id="palletBatchStatus" class="status"></div>
       <div id="palletBatchTable" class="batch-table"></div>
     </section>
+    <section id="manualPalletLayoutPanel" class="section workflow-panel" data-workflow-panel="manual-pallet-layout" hidden>
+      <div class="section-heading"><h2 data-i18n="manualPalletLayoutNav">Manual Pallet Layout</h2><span class="source-note" data-i18n="manualPalletLayoutNote">Enter carton dimensions by hand to build a pallet layout and SOP — for a carton that is not yet in the workbook.</span></div>
+      <form id="manualPalletForm" class="workflow-form">
+        <label><span data-i18n="length">Length</span><input id="manualPalletCartonLength" type="number" min="1" step="1" placeholder="mm" required></label>
+        <label><span data-i18n="width">Width</span><input id="manualPalletCartonWidth" type="number" min="1" step="1" placeholder="mm" required></label>
+        <label><span data-i18n="height">Height</span><input id="manualPalletCartonHeight" type="number" min="1" step="1" placeholder="mm" required></label>
+        <label><span data-i18n="palletShipMethodLabel">Shipment method</span><select id="manualPalletShipMethod">
+            <option value="air" data-i18n="palletShipAir">Air freight (max 1.6 m)</option>
+            <option value="truck" data-i18n="palletShipTruck" selected>Truck / container (max 2.2 m)</option>
+          </select></label>
+        <label><span data-i18n="palletSizeLabel">Pallet size L × W (mm)</span><span class="dimension-row"><input id="manualPalletLengthMm" type="number" min="100" step="10" value="1200"><input id="manualPalletWidthMm" type="number" min="100" step="10" value="1000"></span></label>
+        <div class="workflow-actions"><button id="manualPalletLayoutButton" class="primary" type="submit" data-i18n="palletCalculate">Calculate pallet layout</button></div>
+      </form>
+      <div id="manualPalletSummary"></div>
+      <div id="manualPalletVisualBody" class="visual-body" hidden>
+        <svg id="manualPalletSvg" viewBox="0 0 400 300" role="img" aria-label="Manual pallet stacking visualization"></svg>
+        <div id="manualPalletVisualSummary" class="visual-summary"></div>
+      </div>
+      <div id="manualPalletVisualControls" class="visual-controls" hidden><button id="manualPalletRotateLeft" type="button" data-i18n="rotateLeft">↶ Rotate</button><button id="manualPalletRotateRight" type="button" data-i18n="rotateRight">Rotate ↷</button><button id="manualPalletResetView" type="button" data-i18n="resetView">Reset view</button><button id="manualPalletTopViewButton" type="button" data-i18n="palletTopView">Top-down view</button><span class="source-note" data-i18n="palletDragHint">Drag to rotate</span></div>
+      <div id="manualPalletLayerControls" class="visual-controls" hidden><label style="display:inline-flex;align-items:center;gap:6px;font-weight:normal;"><span data-i18n="palletLayerControlLabel">Show layers up to</span><input id="manualPalletLayerSlider" type="range" min="1" value="1" step="1"><span id="manualPalletLayerSliderValue"></span></label><button id="manualPalletLayerAllButton" type="button" data-i18n="palletLayerAll">Show all</button><button id="manualPalletExportPdfButton" type="button" data-i18n="palletExportPdf">Export SOP as PDF</button></div>
+      <div id="manualPalletSopSteps" class="pallet-sop" hidden></div>
+    </section>
     <section id="comparisonPanel" class="section workflow-panel" data-workflow-panel="new-product fg-lookup carton-audit" hidden>
       <div class="section-heading"><h2 data-i18n="sideBySideComparison">Side-by-side 3D comparison</h2></div>
       <div class="comparison-controls"><button id="compareRotateLeft" type="button" data-i18n="rotateLeft">Rotate left</button><button id="compareRotateRight" type="button" data-i18n="rotateRight">Rotate right</button><button id="compareReset" type="button" data-i18n="resetView">Reset view</button><button id="compareGhost" type="button">Ghost: On</button><button id="compareSync" type="button">Sync rotation: On</button></div>
@@ -2071,6 +2103,8 @@
         palletSopStepDTitle:'Step D — Strapping (air / LCL only)', palletSopStepDText:'2 horizontal + 2 vertical plastic straps, not twisted (add 1 extra horizontal strap at mid-height for special cases). Corner boards must sit under every strap contact point. Tension with a strap tool, crimp with pliers, then hand-test before cutting.',
         palletSopStepDTextTruck:'Not required for standard truck/container shipments — proceed straight to stretch film (Step C) after stacking.',
         palletSopStepETitle:'Step E — Incomplete top layer', palletSopStepEText:'Strap the full lower layers first, then stretch-film the partial top layer to bind it to the stack. If the partial layer fills a full width or length, run the 2 straps over the top layer along that direction.',
+        manualPalletLayoutNav:'Manual Pallet Layout', manualPalletLayoutNote:'Enter carton dimensions by hand to build a pallet layout and SOP — for a carton that is not yet in the workbook.',
+        manualCartonLabel:'Manual entry',
       }); Object.assign(this.text.vi,{
         palletVisualizerNote:'Nhập một mã FG hoặc mã thùng để xem cách xếp lên pallet tiêu chuẩn, theo SC-WI-WH-01.',
         palletLookupIdLabel:'Mã FG hoặc mã thùng', palletShipMethodLabel:'Phương thức vận chuyển', palletShipAir:'Đường hàng không (tối đa 1,6 m)', palletShipTruck:'Xe tải / container (tối đa 2,2 m)',
@@ -2103,6 +2137,8 @@
         palletSopStepDTitle:'Bước D — Đai hàng (chỉ hàng không / LCL)', palletSopStepDText:'2 đai ngang + 2 đai dọc bằng nhựa, không bị xoắn (thêm 1 đai ngang giữa khối hàng cho trường hợp đặc biệt). Mỗi điểm tiếp xúc đai phải có thanh góc. Siết bằng dụng cụ căng đai, bấm khóa đai bằng kìm chuyên dụng, sau đó kéo thử bằng tay trước khi cắt.',
         palletSopStepDTextTruck:'Không bắt buộc với lô hàng xe tải/container tiêu chuẩn — sau khi xếp chồng, chuyển thẳng sang quấn màng (Bước C).',
         palletSopStepETitle:'Bước E — Lớp trên cùng không đầy', palletSopStepEText:'Đai chặt các lớp dưới đã đầy trước, sau đó quấn màng lớp trên cùng dở dang vào khối hàng. Nếu lớp dở dang lấp đầy trọn chiều rộng hoặc chiều dài, cho 2 đai chạy qua lớp trên cùng theo chiều đó.',
+        manualPalletLayoutNav:'Xếp Pallet Thủ công', manualPalletLayoutNote:'Nhập kích thước thùng bằng tay để dựng cách xếp pallet và SOP — dùng cho thùng chưa có trong workbook.',
+        manualCartonLabel:'Nhập thủ công',
       }) }
       static t(key, vars = {}) { let s = this.text[this.language][key] ?? this.text.en[key] ?? key; for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, v); return s }
     }
@@ -3899,7 +3935,7 @@
       const { carton, layout, method, maxHeightMm, qtyPerCarton, cartonsNeeded, palletsNeeded, targetQty, targetSource, partialInfo } = ctx;
       const describe = p => `${fmt(p.cartonsPerLayer)} (${p.perLength} × ${p.perWidth}${p.rotate ? ', ' + I18n.t('palletOrientationRotated') : ''}${p.offsetAxis ? ', ' + I18n.t('palletOrientationOffset') : ''})`;
       const rows = [
-        [I18n.t('palletCartonId'), escapeHtml(carton.carton_id || '—')],
+        [I18n.t('palletCartonId'), escapeHtml(carton.carton_id || I18n.t('manualCartonLabel'))],
         [I18n.t('palletCartonDims'), escapeHtml(dims(carton))],
         [I18n.t('palletLayerPatternLabel'), layout.interlocked ? escapeHtml(I18n.t('palletLayerPatternInterlocked', { a: describe(layout.primary), b: describe(layout.secondary) })) : escapeHtml(I18n.t('palletLayerPatternUniform', { a: describe(layout.primary) }))],
         [I18n.t('palletLayers'), fmt(layout.layers)],
@@ -4059,7 +4095,7 @@
         fgLookup: { cartonId: '', index: 0 },
         cartonLookup: { cartonId: '', index: 0 }
       };
-      constructor() { this.file = document.querySelector('#fileInput'); this.drop = document.querySelector('#dropZone'); this.select = document.querySelector('#fgSelect'); this.target = document.querySelector('#targetQty'); this.targetLabel = document.querySelector('#targetLabel'); this.fgInfo = document.querySelector('#fgInfo'); this.msg = document.querySelector('#message'); this.existing = document.querySelector('#existingTable'); this.existingStatus = document.querySelector('#existingStatus'); this.proposals = document.querySelector('#proposalPanel'); this.proposalTable = document.querySelector('#proposalTable'); this.proposalStatus = document.querySelector('#proposalStatus'); this.temporaryId = document.querySelector('#temporaryId'); this.dataTools = document.querySelector('#dataTools'); this.linkagePanel = document.querySelector('#linkagePanel'); this.linkageOverall = document.querySelector('#linkageOverall'); this.linkageFlow = document.querySelector('#linkageFlow'); this.linkageCards = document.querySelector('#linkageCards'); this.loaderOverlay = document.querySelector('#loaderOverlay'); this.loaderText = document.querySelector('#loaderText'); this.visual = new PackingVisualizer3D(document.querySelector('#packingSvg'), document.querySelector('#visualSummary')); this.palletVisual = new PalletVisualizer(document.querySelector('#palletSvg'), document.querySelector('#palletVisualSummary')); this.progress = new TaskProgressManager(document.querySelector('#taskProgressPanel')); this.store = new AppDataStore(); this.comparisonCurrent = new PackingVisualizer3D(document.querySelector('#comparisonCurrentSvg'), document.querySelector('#comparisonCurrentSummary')); this.comparisonSuggested = new PackingVisualizer3D(document.querySelector('#comparisonSuggestedSvg'), document.querySelector('#comparisonSuggestedSummary')); this.comparisonSync = true; this.auditComparisonItems=new Map();this.auditComparisonContext=null; this.batchResult = null; this.batchPage = 1; this.batchPageSize = 50; this.activeWorkflow = ''; this.workflowPanelState = new Map(); this.data = null; this.current = null; this.activeContext = 'fit'; this.manualMode = false; this.tempCartonId = ''; this.theme = 'light'; this.weeklyBomState = 'loading'; this._fgSearchTimer = null; this._dimensionSourceName = ''; this.sources = { workbook: { href: '', name: '', manual: false }, bom: { href: '', name: '', manual: false } }; this.auditMcUserEdited = false; this.lastAuditAutoFilledFgId = ''; this.lastAuditAutoFilledCartonId = ''; this.auditAutoFillTimer = null; this.auditModuleBound = false; this.fgLookupCartonOverrideByFg = new Map(); loadCalculationMode(); this.bind(); this.applyLanguage(); this.initToleranceControls(); this.syncDimensionSettings(); updateCalculationModeUi(); this.activateWorkflow('new-product'); }
+      constructor() { this.file = document.querySelector('#fileInput'); this.drop = document.querySelector('#dropZone'); this.select = document.querySelector('#fgSelect'); this.target = document.querySelector('#targetQty'); this.targetLabel = document.querySelector('#targetLabel'); this.fgInfo = document.querySelector('#fgInfo'); this.msg = document.querySelector('#message'); this.existing = document.querySelector('#existingTable'); this.existingStatus = document.querySelector('#existingStatus'); this.proposals = document.querySelector('#proposalPanel'); this.proposalTable = document.querySelector('#proposalTable'); this.proposalStatus = document.querySelector('#proposalStatus'); this.temporaryId = document.querySelector('#temporaryId'); this.dataTools = document.querySelector('#dataTools'); this.linkagePanel = document.querySelector('#linkagePanel'); this.linkageOverall = document.querySelector('#linkageOverall'); this.linkageFlow = document.querySelector('#linkageFlow'); this.linkageCards = document.querySelector('#linkageCards'); this.loaderOverlay = document.querySelector('#loaderOverlay'); this.loaderText = document.querySelector('#loaderText'); this.visual = new PackingVisualizer3D(document.querySelector('#packingSvg'), document.querySelector('#visualSummary')); this.palletVisual = new PalletVisualizer(document.querySelector('#palletSvg'), document.querySelector('#palletVisualSummary')); this.manualPalletVisual = new PalletVisualizer(document.querySelector('#manualPalletSvg'), document.querySelector('#manualPalletVisualSummary')); this.progress = new TaskProgressManager(document.querySelector('#taskProgressPanel')); this.store = new AppDataStore(); this.comparisonCurrent = new PackingVisualizer3D(document.querySelector('#comparisonCurrentSvg'), document.querySelector('#comparisonCurrentSummary')); this.comparisonSuggested = new PackingVisualizer3D(document.querySelector('#comparisonSuggestedSvg'), document.querySelector('#comparisonSuggestedSummary')); this.comparisonSync = true; this.auditComparisonItems=new Map();this.auditComparisonContext=null; this.batchResult = null; this.batchPage = 1; this.batchPageSize = 50; this.activeWorkflow = ''; this.workflowPanelState = new Map(); this.data = null; this.current = null; this.activeContext = 'fit'; this.manualMode = false; this.tempCartonId = ''; this.theme = 'light'; this.weeklyBomState = 'loading'; this._fgSearchTimer = null; this._dimensionSourceName = ''; this.sources = { workbook: { href: '', name: '', manual: false }, bom: { href: '', name: '', manual: false } }; this.auditMcUserEdited = false; this.lastAuditAutoFilledFgId = ''; this.lastAuditAutoFilledCartonId = ''; this.auditAutoFillTimer = null; this.auditModuleBound = false; this.fgLookupCartonOverrideByFg = new Map(); loadCalculationMode(); this.bind(); this.applyLanguage(); this.initToleranceControls(); this.syncDimensionSettings(); updateCalculationModeUi(); this.activateWorkflow('new-product'); }
       showLoader(text = 'Loading data…') { this.loaderText.textContent = text; if (this.progress?.state.active) { const phase=/weekly bom/i.test(text)?'PARSING_WEEKLY_BOM':/reading|opening/i.test(text)?'PARSING_DIMENSION_WORKBOOK':this.progress.state.phase; this.progress.updateTask({ detail:text, phase, indeterminate:true }) } else this.loaderOverlay.classList.add('active') }
       hideLoader() { this.loaderOverlay.classList.remove('active') }
       getSourceFgLookupCartonId(fg) { if (!fg || this.manualMode) return ''; return String(this.weeklyBom ? fg.assignedCartonId || '' : fg.mvpAssignedCartonId || '').trim(); }
@@ -4294,6 +4330,14 @@
         document.querySelector('#palletLayerAllButton')?.addEventListener('click', () => { const slider = document.querySelector('#palletLayerSlider'); slider.value = slider.max; this.palletVisual.visibleLayers = Number(slider.max); document.querySelector('#palletLayerSliderValue').textContent = `${slider.max} / ${slider.max}`; this.palletVisual.render() });
         document.querySelector('#palletBatchRunButton')?.addEventListener('click', () => this.runPalletBatch());
         document.querySelector('#palletBatchExportButton')?.addEventListener('click', () => this.exportPalletBatch());
+        document.querySelector('#manualPalletForm')?.addEventListener('submit', e => this.runManualPalletLayout(e));
+        document.querySelector('#manualPalletExportPdfButton')?.addEventListener('click', () => this.exportManualPalletSopPdf());
+        document.querySelector('#manualPalletRotateLeft')?.addEventListener('click', () => { this.manualPalletVisual.rotation = (this.manualPalletVisual.rotation + 1) % 24; this.manualPalletVisual.render() });
+        document.querySelector('#manualPalletRotateRight')?.addEventListener('click', () => { this.manualPalletVisual.rotation = (this.manualPalletVisual.rotation - 1) % 24; this.manualPalletVisual.render() });
+        document.querySelector('#manualPalletResetView')?.addEventListener('click', () => { this.manualPalletVisual.rotation = 0; this.manualPalletVisual.pitch = 0; this.manualPalletVisual.topView = false; this.manualPalletVisual.render() });
+        document.querySelector('#manualPalletTopViewButton')?.addEventListener('click', () => this.manualPalletVisual.setTopView());
+        document.querySelector('#manualPalletLayerSlider')?.addEventListener('input', e => { const value = Number(e.target.value); this.manualPalletVisual.visibleLayers = value; document.querySelector('#manualPalletLayerSliderValue').textContent = `${value} / ${e.target.max}`; this.manualPalletVisual.render() });
+        document.querySelector('#manualPalletLayerAllButton')?.addEventListener('click', () => { const slider = document.querySelector('#manualPalletLayerSlider'); slider.value = slider.max; this.manualPalletVisual.visibleLayers = Number(slider.max); document.querySelector('#manualPalletLayerSliderValue').textContent = `${slider.max} / ${slider.max}`; this.manualPalletVisual.render() });
         document.querySelector('#ghostToggle').addEventListener('click', () => { this.visual.ghosts = !this.visual.ghosts; this.updateControlText(); this.visual.render() });
         this.bindAuditModule();
 
@@ -4345,7 +4389,7 @@
         }
         this.activeWorkflow = name || 'new-product';
         const saved = this.workflowPanelState.get(this.activeWorkflow) || null;
-        const primary = new Set(['newProductPanel','auditSection','fgLookupPanel','fgResultsGrid','batchAuditPanel','cartonLookupPanel','addDataPanel','palletVisualizerPanel']);
+        const primary = new Set(['newProductPanel','auditSection','fgLookupPanel','fgResultsGrid','batchAuditPanel','cartonLookupPanel','addDataPanel','palletVisualizerPanel','manualPalletLayoutPanel']);
         document.querySelectorAll('.workflow-nav [data-workflow]').forEach(button => { const active = button.dataset.workflow === this.activeWorkflow; button.classList.toggle('active', active); button.setAttribute('aria-selected', String(active)); button.setAttribute('role', 'tab') });
         panels.forEach(panel => {
           const matches = String(panel.dataset.workflowPanel || '').split(/\s+/).includes(this.activeWorkflow);
@@ -4575,35 +4619,43 @@
       async reloadDimensionFile(file){if(!file)return;const taskId=this.progress.startTask({title:this.t('loadingData'),phase:'READING_DIMENSIONS',detail:file.name,cancellable:false,indeterminate:true});try{SharedDecisionEngine.clearCache();this.remeasuredByFg.clear();await this.load(file);if(this.weeklyBom)await this.reconcileBomTruthAsync(taskId);await this.rebuildStore(taskId);this.renderDashboard();this.progress.completeTask(this.t('dataReady'),taskId)}catch(e){this.progress.failTask(e,taskId)}}
       async reloadBomFile(file){if(!file)return;const taskId=this.progress.startTask({title:this.t('weeklyBomLoading'),phase:'READING_WEEKLY_BOM',detail:file.name,cancellable:false,indeterminate:true});try{await this.loadWeeklyBomFile(file);await this.rebuildStore(taskId);this.renderDashboard();this.progress.completeTask(this.t('dataReady'),taskId)}catch(e){this.progress.failTask(e,taskId)}}
       async rebuildStore(taskId = '') { if (!this.data) return; const ownTask = !this.progress.state.active, id = ownTask ? this.progress.startTask({title:this.t('buildingIndexes'),phase:'BUILDING_INDEXES',indeterminate:true,cancellable:true}) : taskId || this.progress.state.taskId; await this.store.build(this.data, this.weeklyBom, this.progress, id); this.store.ensureIndexes(); this.populatePalletLookupSelect(); if (ownTask) this.progress.completeTask(this.t('dataReady'), id) }
+      palletFgReady(fg) { const cartonId = this.store.assignedCartonByFg.get(normalizeId(fg.fg_id)) || ''; const carton = cartonId ? this.store.cartonById.get(idKey(cartonId)) : null; return !!(carton && CartonFitEngine.validCarton(carton)) }
       populatePalletLookupSelect(query = '') {
         const select = document.querySelector('#palletLookupSelect'); if (!select) return;
         if (!this.store.ready) { select.disabled = true; return }
         select.disabled = false; const q = idKey(query);
         select.innerHTML = `<option value="">${escapeHtml(this.t('palletSelectPrompt'))}</option>`;
-        const fgs = this.store.finishedGoods.filter(fg => !q || idKey(fg.fg_id).includes(q)), cartons = this.store.cartons.filter(c => !q || idKey(c.carton_id).includes(q));
-        if (fgs.length) { const g = document.createElement('optgroup'); g.label = this.t('finishedGoods'); fgs.forEach(fg => { const o = document.createElement('option'); o.value = fg.fg_id; o.textContent = `${fg.fg_id} — ${fg.fg_name || this.t('unnamedFg')}`; g.append(o) }); select.append(g) }
-        if (cartons.length) { const g = document.createElement('optgroup'); g.label = this.t('cartons'); cartons.forEach(c => { const o = document.createElement('option'); o.value = c.carton_id; o.textContent = `${c.carton_id} — ${c.carton_name || ''}`; g.append(o) }); select.append(g) }
+        const byIdAsc = (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+        const fgs = this.store.finishedGoods.filter(fg => !q || idKey(fg.fg_id).includes(q)).map(fg => ({ fg, ready: this.palletFgReady(fg) })).sort((a, b) => Number(b.ready) - Number(a.ready) || byIdAsc(a.fg.fg_id, b.fg.fg_id));
+        const cartons = this.store.cartons.filter(c => !q || idKey(c.carton_id).includes(q)).map(c => ({ c, ready: CartonFitEngine.validCarton(c) })).sort((a, b) => Number(b.ready) - Number(a.ready) || byIdAsc(a.c.carton_id, b.c.carton_id));
+        if (fgs.length) { const g = document.createElement('optgroup'); g.label = this.t('finishedGoods'); fgs.forEach(({ fg, ready }) => { const o = document.createElement('option'); o.value = fg.fg_id; o.textContent = `${fg.fg_id} — ${fg.fg_name || this.t('unnamedFg')}`; o.dataset.dataComplete = String(ready); g.append(o) }); select.append(g) }
+        if (cartons.length) { const g = document.createElement('optgroup'); g.label = this.t('cartons'); cartons.forEach(({ c, ready }) => { const o = document.createElement('option'); o.value = c.carton_id; o.textContent = `${c.carton_id} — ${c.carton_name || ''}`; o.dataset.dataComplete = String(ready); g.append(o) }); select.append(g) }
       }
-      exportPalletSopPdf() {
-        const ctx = this.lastPalletCtx, layout = ctx?.layout; if (!layout?.layers) return;
-        const palletLengthMm = Number(document.querySelector('#palletLengthMm').value) || 1200, palletWidthMm = Number(document.querySelector('#palletWidthMm').value) || 1000;
+      buildPalletPrintSheetHtml(ctx, palletLengthMm, palletWidthMm) {
+        const layout = ctx.layout;
+        const summaryHtml = buildPalletSummaryHtml(ctx), sopHtml = buildPalletSopHtml(ctx.method);
+        const oddLayers = [], evenLayers = [];
+        for (let layer = 1; layer <= layout.layers; layer++) (layer % 2 === 1 ? oddLayers : evenLayers).push(layer);
+        const patternPage = (pattern, layerNumbers, label) => `<div class="print-layer-page"><h2>${escapeHtml(I18n.t('palletPatternTitle', { label }))}</h2><div class="print-layer-meta">${escapeHtml(I18n.t('palletCartonsPerLayer'))}: ${pattern.cartonsPerLayer} (${pattern.perLength} × ${pattern.perWidth}${pattern.rotate ? ', ' + escapeHtml(I18n.t('palletOrientationRotated')) : ''})<br>${escapeHtml(I18n.t('palletPatternAppliesTo', { list: layerNumbers.join(', ') }))}</div>${buildLayerTopViewSvg(pattern, palletLengthMm, palletWidthMm)}</div>`;
+        const pages = layout.interlocked
+          ? patternPage(layout.primary, oddLayers, I18n.t('palletPatternOddLabel')) + patternPage(layout.secondary, evenLayers, I18n.t('palletPatternEvenLabel')) + `<div class="print-layer-page"><p>${escapeHtml(I18n.t('palletPatternRepeatInterlocked', { total: layout.layers }))}</p></div>`
+          : patternPage(layout.primary, oddLayers.concat(evenLayers), I18n.t('palletPatternUniformLabel')) + `<div class="print-layer-page"><p>${escapeHtml(I18n.t('palletPatternRepeatUniform', { total: layout.layers }))}</p></div>`;
+        return `<div class="print-summary">${summaryHtml}</div><div class="print-sop">${sopHtml}</div>${pages}`;
+      }
+      printPalletSopPdf(ctx, palletLengthMm, palletWidthMm) {
+        if (!ctx?.layout?.layers) return;
         const prevLang = I18n.language;
         I18n.language = 'vi';
         try {
-          const summaryHtml = buildPalletSummaryHtml(ctx), sopHtml = buildPalletSopHtml(ctx.method);
-          const oddLayers = [], evenLayers = [];
-          for (let layer = 1; layer <= layout.layers; layer++) (layer % 2 === 1 ? oddLayers : evenLayers).push(layer);
-          const patternPage = (pattern, layerNumbers, label) => `<div class="print-layer-page"><h2>${escapeHtml(I18n.t('palletPatternTitle', { label }))}</h2><div class="print-layer-meta">${escapeHtml(I18n.t('palletCartonsPerLayer'))}: ${pattern.cartonsPerLayer} (${pattern.perLength} × ${pattern.perWidth}${pattern.rotate ? ', ' + escapeHtml(I18n.t('palletOrientationRotated')) : ''})<br>${escapeHtml(I18n.t('palletPatternAppliesTo', { list: layerNumbers.join(', ') }))}</div>${buildLayerTopViewSvg(pattern, palletLengthMm, palletWidthMm)}</div>`;
-          const pages = layout.interlocked
-            ? patternPage(layout.primary, oddLayers, I18n.t('palletPatternOddLabel')) + patternPage(layout.secondary, evenLayers, I18n.t('palletPatternEvenLabel')) + `<div class="print-layer-page"><p>${escapeHtml(I18n.t('palletPatternRepeatInterlocked', { total: layout.layers }))}</p></div>`
-            : patternPage(layout.primary, oddLayers.concat(evenLayers), I18n.t('palletPatternUniformLabel')) + `<div class="print-layer-page"><p>${escapeHtml(I18n.t('palletPatternRepeatUniform', { total: layout.layers }))}</p></div>`;
-          const sheet = document.querySelector('#palletPrintSheet');
-          sheet.innerHTML = `<div class="print-summary">${summaryHtml}</div><div class="print-sop">${sopHtml}</div>${pages}`;
+          document.querySelector('#palletPrintSheet').innerHTML = this.buildPalletPrintSheetHtml(ctx, palletLengthMm, palletWidthMm);
         } finally {
           I18n.language = prevLang;
         }
         document.body.classList.add('printing-pallet');
         window.print();
+      }
+      exportPalletSopPdf() {
+        this.printPalletSopPdf(this.lastPalletCtx, Number(document.querySelector('#palletLengthMm').value) || 1200, Number(document.querySelector('#palletWidthMm').value) || 1000);
       }
       renderDashboard() { const root=document.querySelector('#dashboardKpis'),ready=document.querySelector('#dataReadyStatus');if(!root||!ready)return;const fgs=this.store.finishedGoods||this.data?.fgs||[],cartons=this.store.cartons||this.data?.cartons||[],bom=this.store.bomRows||this.weeklyBom?.rows||[],eligible=fgs.filter(f=>CartonFitEngine.validFG(f)&&!!(f.assignedCartonId||f.mvpAssignedCartonId)).length,active=cartons.filter(c=>CartonScorer.active(c.lifecycle)).length;root.innerHTML=[[this.t('finishedGoods'),fgs.length],[this.t('eligibleFgs'),eligible],[this.t('cartons'),cartons.length],[this.t('activeCartons'),active],[this.t('bomRows'),bom.length]].map(([label,value])=>`<div class="kpi"><span>${escapeHtml(label)}</span><strong>${Number(value).toLocaleString()}</strong></div>`).join('');ready.textContent=this.store.ready?`✓ ${this.t('dataReady')}`:this.t('dataNotReady');ready.className=`data-ready-pill ${this.store.ready?'good':'bad'}`}
       async runBatchAudit(customStore = null) { if(!this.store.ready){this.message(this.t('loadNeeded'),'error');return}const missingMode=document.querySelector('#batchFilter')?.value==='missing',batchMode=this.getBatchRunMode(),batchOrientation=document.querySelector('#batchOrientation')?.value||null,modeLabels={quick:this.t('quickBatchAudit'),optimized:this.t('optimizedBatchSuggestions'),consolidation:this.t('cartonLineReduction')},modeLabel=modeLabels[batchMode]||this.t('quickBatchAudit'),taskId=this.progress.startTask({title:modeLabel,phase:'STARTING',detail:missingMode?'Checking missing dimension data…':this.t(batchMode==='optimized'?'optimizedBatchDescription':batchMode==='consolidation'?'consolidationBatchDescription':'quickBatchDescription'),cancellable:true,indeterminate:true});document.querySelector('#batchStatus').textContent=modeLabel;document.querySelector('#batchRunButton').disabled=true;try{this.batchResult=missingMode?await MissingDimensionQuery.run(customStore||this.store,this.progress,taskId):await BatchAuditEngine.run(customStore||this.store,DimensionSettings.current,this.progress,taskId,this.remeasuredByFg,batchMode,batchOrientation);this.batchResult.calculationMode=AppState.calculationMode;this.batchPage=1;this.renderBatchResults();if(batchMode==='consolidation'&&this.batchResult.consolidation?.length)this.renderConsolidationResults();else this.renderBatchPortfolio();const message=missingMode?`${this.t('missingDimensionQueryComplete')} — ${this.batchResult.rows.length} records found. ${this.t('noFitCalculations')}`:`${this.t('auditComplete')} · ${modeLabel}`;this.progress.completeTask(message,taskId);document.querySelector('#batchExportButton').disabled=false}catch(e){if(e instanceof TaskCancelledError||this.progress.state.cancelled){try{this.progress.completeTask(this.t('batchCancelled'),taskId)}catch(_){}if(this.batchResult?.rows?.length){this.batchPage=1;this.renderBatchResults()}document.querySelector('#batchExportButton').disabled=!(this.batchResult?.rows?.length)}else this.progress.failTask(e,taskId)}finally{document.querySelector('#batchRunButton').disabled=false} }
@@ -4670,6 +4722,36 @@
         document.querySelector('#palletBatchExportButton').disabled = !rows.length;
       }
       exportPalletBatch() { if (!this.palletBatchRows?.length) return; CsvExporter.download(`WVN_Pallet_SOP_Export_${new Date().toISOString().slice(0, 10)}.csv`, CsvExporter.palletBatchRows(this.palletBatchRows)) }
+      renderManualPalletError(message) {
+        this.lastManualPalletCtx = null;
+        document.querySelector('#manualPalletSummary').innerHTML = `<span class="audit-warning">${escapeHtml(message)}</span>`;
+        document.querySelector('#manualPalletVisualBody').hidden = true; document.querySelector('#manualPalletVisualControls').hidden = true; document.querySelector('#manualPalletLayerControls').hidden = true; document.querySelector('#manualPalletSopSteps').hidden = true;
+        this.manualPalletVisual?.empty('');
+      }
+      renderManualPalletResult(ctx) {
+        this.lastManualPalletCtx = ctx;
+        document.querySelector('#manualPalletSummary').innerHTML = '';
+        document.querySelector('#manualPalletVisualBody').hidden = false; document.querySelector('#manualPalletVisualControls').hidden = false;
+        this.manualPalletVisual.rotation = 0; this.manualPalletVisual.pitch = 0; this.manualPalletVisual.topView = false;
+        this.manualPalletVisual.set({ palletLengthMm: Number(document.querySelector('#manualPalletLengthMm').value) || 1200, palletWidthMm: Number(document.querySelector('#manualPalletWidthMm').value) || 1000, layout: ctx.layout, maxHeightMm: ctx.maxHeightMm, summaryHtml: buildPalletSummaryHtml(ctx) });
+        const slider = document.querySelector('#manualPalletLayerSlider'); slider.min = 1; slider.max = ctx.layout.layers; slider.value = ctx.layout.layers;
+        document.querySelector('#manualPalletLayerSliderValue').textContent = `${ctx.layout.layers} / ${ctx.layout.layers}`;
+        document.querySelector('#manualPalletLayerControls').hidden = false;
+        const sop = document.querySelector('#manualPalletSopSteps'); sop.hidden = false; sop.innerHTML = buildPalletSopHtml(ctx.method);
+      }
+      runManualPalletLayout(event) {
+        if (event) event.preventDefault();
+        const length = Number(document.querySelector('#manualPalletCartonLength').value), width = Number(document.querySelector('#manualPalletCartonWidth').value), height = Number(document.querySelector('#manualPalletCartonHeight').value);
+        if (![length, width, height].every(n => Number.isFinite(n) && n > 0)) { this.renderManualPalletError(this.t('palletInvalidCartonDims')); return }
+        const method = document.querySelector('#manualPalletShipMethod').value, palletLengthMm = Number(document.querySelector('#manualPalletLengthMm').value) || 1200, palletWidthMm = Number(document.querySelector('#manualPalletWidthMm').value) || 1000, maxHeightMm = method === 'air' ? 1600 : 2200;
+        const carton = { carton_id: '', width: length, depth: width, height };
+        const layout = computePalletLayout(carton, palletLengthMm, palletWidthMm, maxHeightMm);
+        if (!layout || !layout.cartonsPerLayer || !layout.layers) { this.renderManualPalletError(this.t('palletInvalidCartonDims')); return }
+        this.renderManualPalletResult({ type: 'manual', carton, layout, method, maxHeightMm });
+      }
+      exportManualPalletSopPdf() {
+        this.printPalletSopPdf(this.lastManualPalletCtx, Number(document.querySelector('#manualPalletLengthMm').value) || 1200, Number(document.querySelector('#manualPalletWidthMm').value) || 1000);
+      }
       setComparison(fg,currentCarton,currentFit,suggestedCarton,suggestedFit){const panel=document.querySelector('#comparisonPanel'),suggestedId=normalizeId(suggestedCarton?.carton_id),existingSuggested=suggestedId?this.data?.cartons?.find(carton=>normalizeId(carton.carton_id)===suggestedId):null;if(!fg||!currentCarton||!existingSuggested){panel.hidden=true;return}panel.hidden=false;this.comparisonCurrent.set({fg,carton:currentCarton,fit:currentFit,kind:'existing'});this.comparisonSuggested.set({fg,carton:existingSuggested,fit:suggestedFit,kind:'existing'})}
       clearAuditSuggestedComparison(showPanel=false){this.comparisonSuggested.empty(this.t('dragAlternativeHere'));const panel=document.querySelector('#comparisonPanel');if(panel)panel.hidden=!(showPanel&&this.auditComparisonContext)}
       prepareAuditComparison(result,proposals){this.auditComparisonItems.clear();const fg={...result.fg,target:result.targetQty},mode=AppState.calculationMode;this.auditComparisonContext={fg,currentCarton:result.currentCarton,currentFit:result.currentFit.raw,mode};for(const candidate of result.topAlternatives||[]){if(!candidate?.fit?.raw||!candidate.fit.pass)continue;this.auditComparisonItems.set(`existing:${normalizeId(candidate.carton.carton_id)}`,{type:'existing',id:String(candidate.carton.carton_id),fg,carton:candidate.carton,fit:candidate.fit.raw,mode})}for(const proposal of proposals||[]){if(!proposal?.selectedFit?.passes)continue;const id=String(proposal.carton.proposalId);this.auditComparisonItems.set(`proposal:${id}`,{type:'proposal',id,fg,carton:proposal.carton,fit:proposal.selectedFit,mode})}document.querySelector('#comparisonPanel').hidden=false;this.comparisonCurrent.set({fg,carton:result.currentCarton,fit:result.currentFit.raw,kind:'existing'});this.clearAuditSuggestedComparison(true)}
