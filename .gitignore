@@ -27,6 +27,9 @@ system/http-listener/tests/_run/
 system/http-listener/tools/worker-output/*.raw.json
 system/tools/worker-output/*.raw.json
 
+# Sample work-instruction workbooks dropped in for reference (large, with photos and names) - never committed or shipped
+/PROD-WI-*.xlsx
+
 # Build output - regenerate with tools\package.ps1
 dist/
 

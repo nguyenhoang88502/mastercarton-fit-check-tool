@@ -598,6 +598,18 @@
       background: #193f2a
     }
 
+    /* Cartons with a saved pallet layout: blue (declared after the green "data complete" rule so it wins). */
+    #cartonLookupSelect option[data-saved-layout="true"] {
+      color: #0b4fc4;
+      background: #e6effd;
+      font-weight: 700
+    }
+
+    html[data-theme="dark"] #cartonLookupSelect option[data-saved-layout="true"] {
+      color: #9cc2ff;
+      background: #15305c
+    }
+
     .bom-row {
       background: #fff8e8
     }
@@ -1138,26 +1150,56 @@
       display: none;
     }
 
-    .print-layer-page {
-      text-align: center;
-    }
-
-    .print-layer-page h2 {
-      margin: 4px 0;
-    }
-
-    .print-layer-meta {
-      margin-bottom: 10px;
-      font-size: 13px;
-    }
+    /* ---- Pallet SOP in the plant's Work Instruction layout (A4 landscape). Built by buildPalletWiHtml(). ---- */
+    .wi-page, .wi-signoff { box-sizing: border-box; width: 100%; border: 1px solid #000; background: #fff; color: #000; font-family: Arial, Helvetica, sans-serif }
+    .wi-page { break-after: page; page-break-after: always }
+    .wi-page.wi-last { break-after: auto; page-break-after: auto }
+    .wi-row { display: flex; border-bottom: 1px solid #000 }
+    .wi-row > div { display: flex; align-items: center; justify-content: center; text-align: center; box-sizing: border-box; min-width: 0; padding: 0.8mm 1.5mm; border-right: 1px solid #000; font-size: 8pt; line-height: 1.15 }
+    .wi-row > div:last-child { border-right: 0 }
+    .wi-row.wi-r1 { height: 13mm } .wi-row.wi-r2, .wi-row.wi-r3 { height: 8mm } .wi-row.wi-r4 { height: 10mm }
+    .wi-row.wi-r4 > div { font-size: 7pt }
+    .wi-logo img { max-height: 10.5mm; max-width: 100% }
+    .wi-banner { font: 700 23pt "Times New Roman", Times, serif !important }
+    .wi-pageno { font: 700 19pt Arial, Helvetica, sans-serif !important }
+    .wi-title { background: #ffff99; color: #ff0000; font: 700 17pt "Times New Roman", Times, serif !important; letter-spacing: .3px }
+    .wi-blue { color: #0033cc; font-weight: 700; font-size: 11pt !important }
+    .wi-blue.wi-small { font-size: 8.5pt !important }
+    .wi-dark { background: #3a3a3a; -webkit-print-color-adjust: exact; print-color-adjust: exact }
+    .wi-title, .wi-num { -webkit-print-color-adjust: exact; print-color-adjust: exact }
+    .wi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 75mm }
+    .wi-step { display: grid; grid-template-columns: 8mm minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; border-right: 1px solid #000; border-bottom: 1px solid #000; min-width: 0; min-height: 0 }
+    .wi-step:nth-child(3n) { border-right: 0 }
+    .wi-grid .wi-step:nth-last-child(-n+3) { border-bottom: 0 }
+    .wi-num { background: #3a3a3a; color: #fff; font: 700 13pt Arial, Helvetica, sans-serif; display: flex; align-items: center; justify-content: center }
+    .wi-pic { display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 0; padding: 1.5mm; overflow: hidden }
+    .wi-pic svg { display: block; width: 100% !important; height: 100% !important; max-width: none !important }
+    .wi-words { align-self: stretch; width: 100%; padding: 0 1.5mm; box-sizing: border-box; font-size: 10pt; line-height: 1.32; text-align: left; display: flex; flex-direction: column; justify-content: center; gap: 2mm }
+    .wi-words strong { display: block }
+    .wi-words.wi-small { font-size: 8.8pt; line-height: 1.25; gap: 1.5mm }
+    .wi-sts { border-top: 1px solid #000; border-right: 1px solid #000; padding: 1mm 0; font-size: 6.5pt; text-align: center }
+    .wi-txt { border-top: 1px solid #000; min-height: 11mm; box-sizing: border-box; padding: 1mm 2mm; font-size: 10pt; line-height: 1.22; text-align: left; display: flex; flex-direction: column; justify-content: center }
+    .wi-txt.wi-heading { font-weight: 700; font-size: 10.5pt; padding-bottom: 1.4mm }
+    .wi-pn { color: #0070c0; font-style: italic; font-weight: 700 }
+    .wi-note { color: #ff0000 }
+    .wi-note u { font-weight: 700 }
+    .wi-signoff { border-top: 0; break-inside: avoid; page-break-inside: avoid }
+    .wi-signoff table { width: 100%; border-collapse: collapse; table-layout: fixed }
+    .wi-signoff th, .wi-signoff td { background: #fff; color: #000; border: 1px solid #000; height: 5.2mm; padding: 0 1mm; font: 700 8pt "Times New Roman", Times, serif; text-align: center }
+    .wi-signoff tr > :first-child { border-left: 0 } .wi-signoff tr > :last-child { border-right: 0 } .wi-signoff thead th { border-top: 0 }
+    .wi-foot { display: flex; border-top: 0 }
+    .wi-foot > div { flex: 1 1 0; min-width: 0; border-right: 1px solid #000; text-align: center }
+    .wi-foot > div:last-child { border-right: 0; display: flex; align-items: center; justify-content: center; flex: 0 0 15%; font: 700 15pt Arial, Helvetica, sans-serif }
+    .wi-foot span { display: block; padding: 0.6mm 1mm; font-size: 7.5pt; color: #666; border-bottom: 1px solid #000 }
+    .wi-foot b { display: block; min-height: 6mm; padding: 0.8mm 1mm; font-size: 10pt; font-weight: 400 }
 
     @media print {
       @page {
         size: A4 landscape;
-        margin: 12mm;
+        margin: 8mm;
       }
 
-      /* One print sheet for both pallet exports (FG Lookup and Manual Pallet Layout): everything else is hidden while printing. */
+      /* One print sheet for every pallet SOP export: everything else is hidden while printing. */
       body.printing-pallet main.app>*:not(#palletPrintSheet) {
         display: none !important;
       }
@@ -1166,14 +1208,11 @@
         display: block !important;
       }
 
-      body.printing-pallet .print-summary,
-      body.printing-pallet .print-sop,
-      body.printing-pallet .print-layer-page {
-        page-break-after: always;
-      }
-
-      body.printing-pallet .print-layer-page:last-child {
-        page-break-after: auto;
+      body.printing-pallet, body.printing-pallet main.app {
+        background: #fff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: none !important;
       }
     }
 
@@ -1461,6 +1500,9 @@
     #settingsPanel .settings-grid label { display: flex; flex-direction: column; gap: 4px; margin: 0; font-weight: 700 }
     #settingsPanel .settings-note { margin: 10px 0 0; font-size: 13px; font-weight: 600; color: var(--muted) }
     #settingsPanel .settings-assumptions { margin-top: 16px }
+    #addDataPanel { display: none; margin-top: 14px }
+    body.saving-available #addDataPanel { display: block }
+    #addDataPanel .save-drop { min-height: 90px }
     #settingsPanel .settings-assumptions h3 { margin: 0 0 6px; font-size: 14px }
     #settingsPanel .settings-assumptions p { margin: 4px 0; font-size: 13px }
 
@@ -1502,7 +1544,6 @@
       <button type="button" class="workflow-nav-btn" data-workflow="batch-audit" data-i18n="batchAudit">Batch Audit</button>
       <button type="button" class="workflow-nav-btn" data-workflow="carton-lookup" data-i18n="cartonLookup">Carton Lookup</button>
       <button type="button" class="workflow-nav-btn" data-workflow="manual-pallet-layout" data-i18n="manualPalletLayoutNav">Manual Pallet Layout</button>
-      <button type="button" class="workflow-nav-btn save-feature" data-workflow="add-data" data-i18n="addDataNav" role="tab" aria-selected="false">Add Data</button>
       <button type="button" class="workflow-nav-btn" data-workflow="settings" data-i18n="settingsNav" role="tab" aria-selected="false">Settings</button>
     </nav>
     <section id="taskProgressPanel" class="task-panel" role="status" aria-live="polite" hidden>
@@ -1592,50 +1633,6 @@
             type="button" data-i18n="saveCarton">Save Carton</button></div>
         <div id="saveProductMessage" class="save-msg" role="status" aria-live="polite"></div>
       </form>
-    </section>
-    <section id="addDataPanel" class="section workflow-card workflow-panel" data-workflow-panel="add-data" hidden>
-      <div class="section-heading">
-        <h2 data-i18n="addDataTitle">Add Data</h2><span class="source-note" data-i18n="addDataNote">Add several products
-          or cartons at once. Anything you add is kept and used the next time you open the tool.</span>
-      </div>
-
-      <div class="save-kind">
-        <label><input type="radio" name="saveKind" value="fg-dimensions" checked><span data-i18n="kindProducts">Products
-            (finished goods)</span></label>
-        <label><input type="radio" name="saveKind" value="carton-dimensions"><span
-            data-i18n="kindCartons">Cartons</span></label>
-      </div>
-
-      <ol class="save-steps">
-        <li data-i18n="addStep1">Download the blank sheet below and fill it in.</li>
-        <li data-i18n="addStep2">Drag the finished file onto the box, or paste the rows straight in.</li>
-        <li data-i18n="addStep3">Check the preview, then choose Save.</li>
-      </ol>
-
-      <div class="save-actions">
-        <button id="saveTemplateButton" type="button" data-i18n="downloadTemplate">Download blank sheet</button>
-      </div>
-
-      <div id="saveDropZone" class="save-drop" tabindex="0" role="button">
-        <strong data-i18n="dropHere">Drop your file here</strong>
-        <span data-i18n="dropOrClick">or click to choose a file</span>
-        <input id="saveFileInput" type="file" accept=".csv,.txt" hidden>
-      </div>
-
-      <textarea id="savePasteBox" class="save-paste" data-i18n-placeholder="pastePlaceholder"
-        placeholder="You can also paste rows here"></textarea>
-
-      <div class="save-actions">
-        <button id="savePreviewButton" type="button" data-i18n="checkRows">Check the rows</button>
-        <button id="saveSubmitButton" class="primary" type="button" disabled data-i18n="saveAll">Save all</button>
-        <button id="saveClearButton" type="button" data-i18n="startOver">Start over</button>
-      </div>
-
-      <div id="saveBatchMessage" class="save-msg" role="status" aria-live="polite"></div>
-      <div id="saveBatchPreview" class="save-preview"></div>
-
-      <div class="footnote" data-i18n="addDataFootnote">If an item is already in the list, the new numbers replace the
-        old ones.</div>
     </section>
 
     <section id="sharedCartonPanel" class="table-panel proposal shared-carton-panel workflow-panel" data-workflow-panel="new-product" hidden>
@@ -1847,7 +1844,7 @@
             <div class="fg-pallet-side">
               <div id="cartonPalletToggle" class="tool-group segmented" role="group" hidden><button type="button" data-view="saved" data-i18n="palletViewSaved">Saved</button><button type="button" data-view="suggested" data-i18n="palletViewSuggested">Suggested</button></div>
               <div id="cartonPalletSummary" class="fg-pallet-summary"></div>
-              <div class="workflow-actions"><button id="cartonPalletEditManual" type="button" class="primary" data-i18n="palletEditInManual">Edit in Manual Pallet Layout</button></div>
+              <div class="workflow-actions"><button id="cartonPalletExportPdf" type="button" class="primary" data-i18n="palletExportPdf">Export SOP as PDF</button><button id="cartonPalletEditManual" type="button" data-i18n="palletEditInManual">Edit in Manual Pallet Layout</button></div>
             </div>
           </div>
         </div>
@@ -1875,6 +1872,16 @@
             <label><span data-i18n="settingPalletOverhang">Overhang allowed per side (mm)</span><input id="settingPalletOverhang" data-setting="palletOverhangMm" type="number"></label>
           </div>
         </fieldset>
+        <fieldset class="settings-group"><legend data-i18n="settingsGroupSop">SOP sheet</legend>
+          <div class="settings-grid">
+            <label><span data-i18n="settingSopNumber">SOP #</span><input id="settingSopNumber" data-setting="sopNumber" type="text" maxlength="60" placeholder="PROD-WI-PAL-{carton}"></label>
+            <label><span data-i18n="settingSopPlant">Plant</span><input id="settingSopPlant" data-setting="sopPlant" type="text" maxlength="60"></label>
+            <label><span data-i18n="settingSopArea">Area</span><input id="settingSopArea" data-setting="sopArea" type="text" maxlength="60"></label>
+            <label><span data-i18n="settingSopMadeBy">Made by</span><input id="settingSopMadeBy" data-setting="sopMadeBy" type="text" maxlength="60"></label>
+            <label><span data-i18n="settingSopReviewedBy">Reviewed by</span><input id="settingSopReviewedBy" data-setting="sopReviewedBy" type="text" maxlength="60"></label>
+            <label><span data-i18n="settingSopApprovedBy">Approved by</span><input id="settingSopApprovedBy" data-setting="sopApprovedBy" type="text" maxlength="60"></label>
+          </div>
+        </fieldset>
         <fieldset class="settings-group"><legend data-i18n="settingsGroupData">Data</legend>
           <div class="settings-grid">
             <label><span data-i18n="settingUpdateData">Read the Excel workbooks</span><select id="settingUpdateData" disabled>
@@ -1891,6 +1898,48 @@
         </fieldset>
         <div class="workflow-actions"><button id="settingsSaveButton" class="primary" type="submit" data-i18n="settingsSave">Save and reload</button><button id="settingsResetButton" type="button" data-i18n="settingsReset">Reset to defaults</button><span id="settingsMessage" class="manual-save-status" role="status"></span></div>
       </form>
+      <fieldset id="addDataPanel" class="settings-group"><legend data-i18n="addDataTitle">Add Data</legend>
+        <p class="footnote" data-i18n="addDataNote">Add several products or cartons at once. Anything you add is kept and used the next time you open the tool.</p>
+
+        <div class="save-kind">
+          <label><input type="radio" name="saveKind" value="fg-dimensions" checked><span data-i18n="kindProducts">Products
+              (finished goods)</span></label>
+          <label><input type="radio" name="saveKind" value="carton-dimensions"><span
+              data-i18n="kindCartons">Cartons</span></label>
+        </div>
+
+        <ol class="save-steps">
+          <li data-i18n="addStep1">Download the blank sheet below and fill it in.</li>
+          <li data-i18n="addStep2">Drag the finished file onto the box, or paste the rows straight in.</li>
+          <li data-i18n="addStep3">Check the preview, then choose Save.</li>
+        </ol>
+
+        <div class="save-actions">
+          <button id="saveTemplateButton" type="button" data-i18n="downloadTemplate">Download blank sheet</button>
+        </div>
+
+        <div id="saveDropZone" class="save-drop" tabindex="0" role="button">
+          <strong data-i18n="dropHere">Drop your file here</strong>
+          <span data-i18n="dropOrClick">or click to choose a file</span>
+          <input id="saveFileInput" type="file" accept=".csv,.txt" hidden>
+        </div>
+
+        <textarea id="savePasteBox" class="save-paste" data-i18n-placeholder="pastePlaceholder"
+          placeholder="You can also paste rows here"></textarea>
+
+        <div class="save-actions">
+          <button id="savePreviewButton" type="button" data-i18n="checkRows">Check the rows</button>
+          <button id="saveSubmitButton" class="primary" type="button" disabled data-i18n="saveAll">Save all</button>
+          <button id="saveClearButton" type="button" data-i18n="startOver">Start over</button>
+        </div>
+
+        <div id="saveBatchMessage" class="save-msg" role="status" aria-live="polite"></div>
+        <div id="saveBatchPreview" class="save-preview"></div>
+
+        <div class="footnote" data-i18n="addDataFootnote">If an item is already in the list, the new numbers replace the
+          old ones.</div>
+      </section>
+      </fieldset>
       <div class="settings-assumptions">
         <h3 data-i18n="engineeringAssumptions">Engineering assumptions</h3>
         <p class="footnote" data-i18n="scenarioModelNote" data-optimized-mode-only>FG fixed at 1.00 (exact dimensions), never adjusted · carton starts at the maximum measured dimension per axis and may grow up to 3% larger per axis to fit</p>
@@ -2009,12 +2058,17 @@
         palletWidthMm: { def: 1000, min: 100, max: 5000, step: 1 },
         maxHeightAirMm: { def: 1600, min: 100, max: 5000, step: 10 },
         maxHeightTruckMm: { def: 2200, min: 100, max: 5000, step: 10 },
-        palletOverhangMm: { def: 0, min: 0, max: 100, step: 5 }
+        palletOverhangMm: { def: 0, min: 0, max: 100, step: 5 },
+        // Printed on the SOP sheet. sopNumber may contain {carton} and {fg}; they are replaced on each export.
+        sopNumber: { def: '', text: true }, sopPlant: { def: 'VN', text: true }, sopArea: { def: 'Đóng gói', text: true },
+        sopMadeBy: { def: '', text: true }, sopReviewedBy: { def: '', text: true }, sopApprovedBy: { def: '', text: true }
       };
       const clean = raw => {
         const out = {};
         for (const [key, field] of Object.entries(FIELDS)) {
-          const given = raw?.[key]; let n = given === '' || given == null ? NaN : Number(given);
+          const given = raw?.[key];
+          if (field.text) { out[key] = given == null ? field.def : String(given).trim().slice(0, 60); continue }
+          let n = given === '' || given == null ? NaN : Number(given);
           if (!Number.isFinite(n)) n = field.def;
           n = Math.min(field.max, Math.max(field.min, n));
           out[key] = field.whole ? Math.round(n) : Math.round(n * 10) / 10;
@@ -2031,7 +2085,7 @@
     })();
     function palletMaxHeightMm(method) { return method === 'air' ? AppSettings.maxHeightAirMm : AppSettings.maxHeightTruckMm }
     // Fields that show a setting pick it up here, before anything reads them.
-    document.querySelectorAll('#settingsForm [data-setting]').forEach(el => { const field = AppSettings.FIELDS[el.dataset.setting]; if (!field) return; el.min = field.min; el.max = field.max; el.step = field.step; el.value = AppSettings[el.dataset.setting] });
+    document.querySelectorAll('#settingsForm [data-setting]').forEach(el => { const field = AppSettings.FIELDS[el.dataset.setting]; if (!field) return; if (!field.text) { el.min = field.min; el.max = field.max; el.step = field.step } el.value = AppSettings[el.dataset.setting] });
     for (const id of ['fgPalletLengthMm', 'manualPalletLengthMm', 'cartonPalletLengthMm']) { const el = document.getElementById(id); if (el) el.value = AppSettings.palletLengthMm }
     for (const id of ['fgPalletWidthMm', 'manualPalletWidthMm', 'cartonPalletWidthMm']) { const el = document.getElementById(id); if (el) el.value = AppSettings.palletWidthMm }
     class I18n {
@@ -2465,6 +2519,12 @@
         manualPalletCopySel: 'Copy', manualPalletPasteSel: 'Paste', manualPalletPasteNoRoom: 'No room on this level for the copied cartons.',
         palletEditInManual: 'Edit in Manual Pallet Layout', cartonSelectLabel: 'Existing carton', cartonSelectPrompt: '— Select carton —',
         settingsNav: 'Settings', settingsGroupFit: 'Carton fit', settingsGroupPallet: 'Pallet', settingsGroupData: 'Data',
+        settingsGroupSop: 'SOP sheet', settingSopNumber: 'SOP #', settingSopPlant: 'Plant', settingSopArea: 'Area', settingSopMadeBy: 'Made by', settingSopReviewedBy: 'Reviewed by', settingSopApprovedBy: 'Approved by',
+        wiTitle: 'PALLET STACKING', wiPosition: 'Pallet', wiAttention: 'Note:',
+        wiStepOverview: 'Pallet {pallet} mm. Stack carton {id} ({dims}) in {levels} levels, {total} cartons in all. Stack height {height} mm (limit {max} mm).',
+        wiStepOrder: 'Level order from the bottom: {order}.', wiStepFg: 'Finished good {fg}: {qty} per carton, {perPallet} per pallet.',
+        wiStepPattern: 'Pattern {label}, level {list}: place {n} cartons as drawn, in number order.', wiStepPatternSingle: 'Every level: place {n} cartons as drawn, in number order.',
+        wiOverhangNote: 'Cartons may hang over the pallet edge by up to {mm} mm, as drawn.', wiNoOverhangNote: 'Nothing may protrude beyond the pallet.', wiLabelsNote: 'Arrows point up; product and battery labels face outward.',
         settingCartonWall: 'Carton wall thickness per side (mm)', settingFitTolerance: 'Carton growth allowed (%)',
         settingPalletLength: 'Pallet length (mm)', settingPalletWidth: 'Pallet width (mm)', settingMaxHeightAir: 'Max stack height, air (mm)', settingMaxHeightTruck: 'Max stack height, truck / container (mm)', settingPalletOverhang: 'Overhang allowed per side (mm)',
         settingUpdateData: 'Read the Excel workbooks', updateDataAsk: 'Ask every time', updateDataAlways: 'Every time the tool opens', updateDataDaily: 'Once a day', updateDataWeekly: 'Once a week', updateDataChanged: 'Only when the workbooks changed', updateDataSkip: 'Never (use the last data)',
@@ -2486,6 +2546,12 @@
         manualPalletCopySel: 'Sao chép', manualPalletPasteSel: 'Dán', manualPalletPasteNoRoom: 'Không còn chỗ trên lớp này cho các thùng đã sao chép.',
         palletEditInManual: 'Chỉnh trong Xếp Pallet Thủ công', cartonSelectLabel: 'Thùng hiện có', cartonSelectPrompt: '— Chọn thùng —',
         settingsNav: 'Cài đặt', settingsGroupFit: 'Kiểm tra vừa thùng', settingsGroupPallet: 'Pallet', settingsGroupData: 'Dữ liệu',
+        settingsGroupSop: 'Phiếu SOP', settingSopNumber: 'Số SOP', settingSopPlant: 'Nhà máy (Plant)', settingSopArea: 'Khu vực (Area)', settingSopMadeBy: 'Người lập', settingSopReviewedBy: 'Người xem xét', settingSopApprovedBy: 'Người phê duyệt',
+        wiTitle: 'CHẤT PALLET', wiPosition: 'Pallet', wiAttention: 'Chú ý:',
+        wiStepOverview: 'Pallet {pallet} mm. Chất thùng {id} ({dims}) thành {levels} lớp, tổng cộng {total} thùng. Chiều cao chồng {height} mm (tối đa {max} mm).',
+        wiStepOrder: 'Thứ tự lớp từ dưới lên: {order}.', wiStepFg: 'Thành phẩm {fg}: {qty} cái/thùng, {perPallet} cái/pallet.',
+        wiStepPattern: 'Sơ đồ {label}, lớp {list}: xếp {n} thùng theo hình, theo thứ tự số.', wiStepPatternSingle: 'Mọi lớp: xếp {n} thùng theo hình, theo thứ tự số.',
+        wiOverhangNote: 'Thùng được phép nhô ra khỏi mép pallet tối đa {mm} mm như hình.', wiNoOverhangNote: 'Không để thùng nhô ra ngoài pallet.', wiLabelsNote: 'Mũi tên hướng lên; nhãn sản phẩm và nhãn pin quay ra ngoài.',
         settingCartonWall: 'Độ dày thành thùng mỗi bên (mm)', settingFitTolerance: 'Mức cho phép thùng lớn hơn (%)',
         settingPalletLength: 'Chiều dài pallet (mm)', settingPalletWidth: 'Chiều rộng pallet (mm)', settingMaxHeightAir: 'Chiều cao xếp tối đa, hàng không (mm)', settingMaxHeightTruck: 'Chiều cao xếp tối đa, xe tải / container (mm)', settingPalletOverhang: 'Cho phép nhô ra mỗi bên (mm)',
         settingUpdateData: 'Đọc lại file Excel', updateDataAsk: 'Hỏi mỗi lần mở', updateDataAlways: 'Mỗi lần mở công cụ', updateDataDaily: 'Mỗi ngày một lần', updateDataWeekly: 'Mỗi tuần một lần', updateDataChanged: 'Chỉ khi file Excel thay đổi', updateDataSkip: 'Không bao giờ (dùng dữ liệu lần trước)',
@@ -4460,6 +4526,7 @@
       // Anchor axes from the pallet's (0,0) corner at floor level, labelled with the real dimensions.
       const stackMm = Number.isFinite(o.stackMm) ? o.stackMm : levels.length * ch, fmtMm = n => Math.round(n).toLocaleString();
       const axis = (a, b, color, label) => { const p = pt(...a), q = pt(...b); return `<line x1="${p[0].toFixed(1)}" y1="${p[1].toFixed(1)}" x2="${q[0].toFixed(1)}" y2="${q[1].toFixed(1)}" stroke="${color}" stroke-width="2.4"/><circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="${color}"/><text x="${((p[0] + q[0]) / 2).toFixed(1)}" y="${((p[1] + q[1]) / 2 - 4).toFixed(1)}" font-size="9" font-weight="700" text-anchor="middle" fill="${color}" stroke="#fff" stroke-width=".4" paint-order="stroke">${label}</text>` };
+      if (o.noAxes) return out;
       out += axis([0, 0, 0], [PL, 0, 0], '#d63031', `L ${fmtMm(PL)} mm`) + axis([0, 0, 0], [0, PW, 0], '#00a651', `W ${fmtMm(PW)} mm`);
       out += axis([0, 0, PH], [0, 0, PH + Math.max(stackMm, ch)], '#2d5be3', `H ${fmtMm(stackMm)} mm${Number.isFinite(maxHeightMm) && !guideInView ? ` (limit ${fmtMm(maxHeightMm)})` : ''}`);
       return out;
@@ -4696,8 +4763,8 @@
     // Top-down drawing of one level. `interactive` adds the live ghost + per-carton support tint (screen); the print
     // version is static and numbers every carton so a packer can follow it.
     function buildManualPalletLevelSvg(b, levelIndex, opts = {}) {
-      const { interactive = false } = opts, selected = new Set(opts.selected || []), PL = b.palletLengthMm, PW = b.palletWidthMm, pad = manualPadMm(b), vbW = PL + pad * 2, vbH = PW + pad * 2;
-      const boxes = b.levels[levelIndex] || [], below = levelIndex > 0 ? b.levels[levelIndex - 1] : null, fontBase = Math.max(18, Math.min(PL, PW) / 38);
+      const { interactive = false, large = false } = opts, selected = new Set(opts.selected || []), PL = b.palletLengthMm, PW = b.palletWidthMm, pad = Math.max(manualPadMm(b), large ? 70 : 0), vbW = PL + pad * 2, vbH = PW + pad * 2;
+      const boxes = b.levels[levelIndex] || [], below = levelIndex > 0 ? b.levels[levelIndex - 1] : null, fontBase = large ? Math.min(PL, PW) / 19 : Math.max(18, Math.min(PL, PW) / 38);
       let out = `<svg viewBox="0 0 ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${interactive ? 760 : 560}px;height:auto;${interactive ? 'touch-action:none;user-select:none;cursor:crosshair;' : ''}">`;
       out += `<rect x="${pad}" y="${pad}" width="${PL}" height="${PW}" fill="#f3e6d4" stroke="#8a5a2e" stroke-width="4"/>`;
       if (b.overhangMm > 0) out += `<rect x="${pad - b.overhangMm}" y="${pad - b.overhangMm}" width="${PL + 2 * b.overhangMm}" height="${PW + 2 * b.overhangMm}" fill="none" stroke="#c0392b" stroke-width="2" stroke-dasharray="14 8" opacity=".7" pointer-events="none"/>`;
@@ -4709,14 +4776,14 @@
         const fill = !below ? 'rgba(23,100,143,.22)' : floating ? 'rgba(192,57,43,.45)' : s.support >= PALLET_SUPPORT_TARGET ? 'rgba(46,160,67,.32)' : s.support >= 0.5 ? 'rgba(230,160,0,.38)' : 'rgba(192,57,43,.38)';
         const label = interactive ? (below ? `${Math.round(s.support * 100)}%` : '') : String(i + 1);
         out += `<rect ${interactive ? `data-box="${i}"` : ''} x="${pad + box.x}" y="${pad + box.y}" width="${box.l}" height="${box.w}" fill="${fill}" stroke="${single ? '#b9770e' : '#17648f'}" stroke-width="${single ? 4 : 2.5}" ${single ? 'stroke-dasharray="12 6"' : ''} ${interactive ? 'style="cursor:grab"' : ''}/>`;
-        if (label) out += `<text x="${pad + box.x + box.l / 2}" y="${pad + box.y + box.w / 2}" font-size="${Math.min(fontBase, Math.min(box.l, box.w) * .36)}" text-anchor="middle" dominant-baseline="central" fill="#0d2b3d" style="font-weight:700;pointer-events:none">${label}</text>`;
+        if (label) out += `<text x="${pad + box.x + box.l / 2}" y="${pad + box.y + box.w / 2}" font-size="${large ? Math.min(box.l, box.w) * .42 : Math.min(fontBase, Math.min(box.l, box.w) * .36)}" text-anchor="middle" dominant-baseline="central" fill="#0d2b3d" style="font-weight:700;pointer-events:none">${label}</text>`;
         void weak;
       });
       // Selection rings sit on top of the cartons; every carton gets one (hidden unless selected) so selecting only toggles attributes.
       if (interactive) boxes.forEach((box, i) => { out += `<rect data-sel="${i}" x="${pad + box.x - 3}" y="${pad + box.y - 3}" width="${box.l + 6}" height="${box.w + 6}" fill="none" stroke="#ff7a00" stroke-width="6" pointer-events="none" ${selected.has(i) ? '' : 'display="none"'}/>` });
       if (!interactive) {
-        out += `<text x="${pad + PL / 2}" y="${vbH - 4}" font-size="${fontBase}" text-anchor="middle" fill="#444">${fmt(PL)} mm</text>`;
-        out += `<text x="12" y="${pad + PW / 2}" font-size="${fontBase}" text-anchor="middle" fill="#444" transform="rotate(-90 12 ${pad + PW / 2})">${fmt(PW)} mm</text>`;
+        out += `<text x="${pad + PL / 2}" y="${vbH - (large ? 16 : 4)}" font-size="${fontBase}" text-anchor="middle" fill="#444">${fmt(PL)} mm</text>`;
+        const sideX = large ? 52 : 12; out += `<text x="${sideX}" y="${pad + PW / 2}" font-size="${fontBase}" text-anchor="middle" fill="#444" transform="rotate(-90 ${sideX} ${pad + PW / 2})">${fmt(PW)} mm</text>`;
       } else out += `<rect id="manualGhost" x="0" y="0" width="0" height="0" fill="rgba(46,160,67,.35)" stroke="#2ea043" stroke-width="3" stroke-dasharray="8 5" pointer-events="none" display="none"/>`;
       return out + '</svg>';
     }
@@ -4784,33 +4851,6 @@
       if (stability?.columnStack) html += `<div class="notice audit-warning">${escapeHtml(I18n.t('palletColumnStackWarning'))}</div>`;
       return html;
     }
-    function buildPalletSummaryHtml(ctx) {
-      const { carton, layout, method, maxHeightMm, qtyPerCarton, cartonsNeeded, palletsNeeded, targetQty, targetSource, partialInfo } = ctx;
-      const describe = p => `${fmt(p.cartonsPerLayer)} — ${patternKindLabel(p)} (${p.regions.map(r => `${r.perLength}×${r.perWidth}`).join(' + ')}${p.variant ? ', ' + patternVariantLabel(p) : ''}${p.offsetAxis ? ', ' + I18n.t('palletOrientationOffset') : ''})`;
-      const rows = [
-        [I18n.t('palletCartonId'), escapeHtml(carton.carton_id || I18n.t('manualCartonLabel'))],
-        [I18n.t('palletCartonDims'), escapeHtml(dims(carton))],
-        [I18n.t('palletLayerPatternLabel'), layout.interlocked ? escapeHtml(I18n.t('palletLayerPatternInterlocked', { a: describe(layout.primary), b: describe(layout.secondary) })) : escapeHtml(I18n.t('palletLayerPatternUniform', { a: describe(layout.primary) }))],
-        [I18n.t('palletLayers'), fmt(layout.layers)],
-        [I18n.t('palletTotalPerPallet'), fmt(layout.totalPerPallet)],
-        [I18n.t('palletMaxHeightLabel', { method: I18n.t(method === 'air' ? 'palletShipAir' : 'palletShipTruck') }), `${fmt(maxHeightMm)} mm`],
-        [I18n.t('palletStackHeightLabel'), `${fmt(layout.stackHeightMm)} mm`],
-      ];
-      if (layout.overhangMm > 0) rows.push([I18n.t('fgPalletOverhang'), escapeHtml(I18n.t('fgPalletOverhangGain', { mm: fmt(layout.overhangMm, 1), n: fmt(layout.overhangGain) }))]);
-      const stability = layout.stability;
-      if (stability) rows.push([I18n.t('palletStabilityLabel'), escapeHtml(I18n.t('palletStabilityValue', { interlock: Math.round(stability.interlockedShare * 100), support: Math.round(stability.minSupport * 100) }))]);
-      if (Number.isFinite(qtyPerCarton)) rows.push([I18n.t('palletQtyPerCarton'), fmt(qtyPerCarton)]);
-      if (Number.isFinite(cartonsNeeded)) rows.push([I18n.t('palletCartonsNeeded'), fmt(cartonsNeeded)]);
-      if (Number.isFinite(palletsNeeded)) rows.push([I18n.t('palletPalletsNeeded'), fmt(palletsNeeded)]);
-      if (targetSource) rows.push([I18n.t('palletTargetSource'), escapeHtml(targetSource)]);
-      let html = `<dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
-      if (partialInfo) html += `<div class="notice">${escapeHtml(partialInfo)}</div>`;
-      else if (Number.isFinite(cartonsNeeded)) html += `<div class="notice">${escapeHtml(I18n.t('palletFullLayers'))}</div>`;
-      if (!layout.totalPerPallet) html += `<div class="notice">${escapeHtml(I18n.t('palletInvalidCartonDims'))}</div>`;
-      if (stability?.columnStack) html += `<div class="notice audit-warning">${escapeHtml(I18n.t('palletColumnStackWarning'))}</div>`;
-      else if (stability && stability.tier >= 3) html += `<div class="notice">${escapeHtml(I18n.t('palletWeakInterlockNote'))}</div>`;
-      return html;
-    }
     function buildPalletSopHtml(method) {
       const stepD = method === 'air' ? I18n.t('palletSopStepDText') : I18n.t('palletSopStepDTextTruck');
       const step = (title, text) => `<div class="pallet-sop-step"><strong>${escapeHtml(title)}</strong><p>${escapeHtml(text)}</p></div>`;
@@ -4821,14 +4861,64 @@
         step(I18n.t('palletSopStepDTitle'), stepD) +
         step(I18n.t('palletSopStepETitle'), I18n.t('palletSopStepEText'));
     }
-    function buildLayerTopViewSvg(pattern, palletLengthMm, palletWidthMm) {
-      const cells = expandPatternCells(pattern), over = Math.max(0, ...cells.map(c => Math.max(-c.x, -c.y, c.x + c.uL - palletLengthMm, c.y + c.uW - palletWidthMm)));
-      const pad = 20 + Math.ceil(over), vbW = palletLengthMm + pad * 2, vbH = palletWidthMm + pad * 2;
-      let out = `<svg viewBox="0 0 ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:520px;height:auto;">`;
-      out += `<rect x="${pad}" y="${pad}" width="${palletLengthMm}" height="${palletWidthMm}" fill="#f3e6d4" stroke="#8a5a2e" stroke-width="4"/>`;
-      for (const cell of cells) out += `<rect x="${(pad + cell.x).toFixed(1)}" y="${(pad + cell.y).toFixed(1)}" width="${cell.uL}" height="${cell.uW}" fill="#9bd2ef" stroke="#17648f" stroke-width="2"/>`;
-      out += '</svg>';
-      return out;
+    // ---- Pallet SOP as a Work Instruction sheet ---------------------------------------------------------------------
+    // Same layout as the plant's WI workbooks (PROD-WI-...): logo / banner / page number, the yellow TITLE bar, the
+    // PLANT - Area - Model rows, then numbered steps three to a row - a picture with the instruction under it - and
+    // the operator sign-off table with the issue / approval footer. `spec` is { carton, palletLengthMm, palletWidthMm,
+    // method, maxHeightMm, levels, overhangMm?, fg?, sourceFgId?, qtyPerCarton? }; levels are free boxes, so one
+    // builder serves the suggested layout, a saved layout and whatever is on screen in the manual builder.
+    const WI_LOGO = 'data:image/jpeg;base64,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';
+    function buildPalletWiHtml(spec) {
+      const esc = escapeHtml, carton = spec.carton, PL = spec.palletLengthMm, PW = spec.palletWidthMm, ch = Number(carton.height), levels = spec.levels.filter(level => level.length);
+      // text comes from the dictionary and is escaped; the {placeholders} are then filled with ready-made HTML
+      const fill = (key, vars = {}) => { let text = esc(I18n.t(key)); for (const [name, html] of Object.entries(vars)) text = text.replaceAll(`{${name}}`, html); return text };
+      const pn = value => `<span class="wi-pn">${esc(value)}</span>`, attention = html => `<span class="wi-note"><u>${esc(I18n.t('wiAttention'))}</u> ${html}</span>`;
+      const groups = [], bySignature = new Map();
+      levels.forEach((boxes, k) => {
+        const signature = manualLevelSignature(boxes); let group = bySignature.get(signature);
+        if (!group) { group = { label: groups.length < 26 ? String.fromCharCode(65 + groups.length) : `#${groups.length + 1}`, boxes, levels: [] }; bySignature.set(signature, group); groups.push(group) }
+        group.levels.push(k + 1);
+      });
+      const total = levels.reduce((n, level) => n + level.length, 0), order = levels.map(level => bySignature.get(manualLevelSignature(level)).label).join(' – ');
+      const used = Math.max(0, ...levels.flat().map(o => Math.max(-o.x, -o.y, o.x + o.l - PL, o.y + o.w - PW))), overhangMm = Math.max(Number(spec.overhangMm) || 0, Math.ceil(used));
+      const cartonId = String(carton.carton_id || '').trim(), fgId = String(spec.fg?.fg_id || spec.sourceFgId || '').trim();
+      const methodText = I18n.t(spec.method === 'air' ? 'palletShipAir' : 'palletShipTruck');
+
+      const steps = [];
+      // 1. what the finished pallet looks like
+      let overview = fill('wiStepOverview', { pallet: `${fmt(PL)} × ${fmt(PW)}`, id: pn(cartonId || I18n.t('manualCartonLabel')), dims: esc(dims(carton)), levels: fmt(levels.length), total: `<b>${fmt(total)}</b>`, height: fmt(levels.length * ch), max: fmt(spec.maxHeightMm) });
+      if (groups.length > 1) overview += ' ' + fill('wiStepOrder', { order: `<b>${esc(order)}</b>` });
+      if (fgId && Number.isFinite(spec.qtyPerCarton) && spec.qtyPerCarton > 0) overview += ' ' + fill('wiStepFg', { fg: pn(fgId), qty: fmt(spec.qtyPerCarton), perPallet: fmt(spec.qtyPerCarton * total) });
+      steps.push({ picture: `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">${buildStack3dSvg({ PL, PW, levels, ch, fullLevels: levels.length, maxHeightMm: spec.maxHeightMm, rotation: 0, pitch: 0, stackMm: levels.length * ch, noAxes: true })}</svg>`, text: overview });
+      // 2. one step per distinct level pattern, cartons numbered in the order they go down
+      groups.forEach((group, g) => {
+        let text = groups.length > 1 ? fill('wiStepPattern', { label: `<b>${esc(group.label)}</b>`, list: `<b>${esc(group.levels.join(', '))}</b>`, n: `<b>${fmt(group.boxes.length)}</b>` }) : fill('wiStepPatternSingle', { n: `<b>${fmt(group.boxes.length)}</b>` });
+        if (g === 0) text += '<br>' + attention(esc(I18n.t('wiLabelsNote')) + ' ' + (used > 0.05 ? fill('wiOverhangNote', { mm: fmt(used, 1) }) : esc(I18n.t('wiNoOverhangNote'))));
+        steps.push({ picture: buildManualPalletLevelSvg({ carton, palletLengthMm: PL, palletWidthMm: PW, overhangMm, levels: [group.boxes] }, 0, { interactive: false, large: true }), text });
+      });
+      // 3. securing the load: the standing SOP wording, one cell each
+      const plain = key => I18n.t(key).replace(/^[^—]*—\s*/, '');
+      const wordsStep = (...keys) => ({ heading: true, text: esc(keys.map(key => plain(`palletSopStep${key}Title`)).join(' · ')), small: keys.length > 1, words: keys.map(key => `<div>${keys.length > 1 ? `<strong>${esc(plain(`palletSopStep${key}Title`))}</strong>` : ''}${esc(I18n.t(`palletSopStep${key}Text`))}</div>`).join('') });
+      steps.push(wordsStep('B'), wordsStep('C'), spec.method === 'air' ? wordsStep('D', 'E') : wordsStep('E'));
+
+      const pages = []; for (let i = 0; i < steps.length; i += 6) pages.push(steps.slice(i, i + 6));
+      const sopNumber = AppSettings.sopNumber.replaceAll('{carton}', cartonId).replaceAll('{fg}', fgId).replace(/[-_/\s]+$/, ''), today = new Date(), issued = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+      const cell = (width, html, cls = '') => `<div class="${cls}" style="flex:${width ? `0 0 ${width}%` : '1 1 0'}">${html}</div>`;
+      const header = page => `<div class="wi-row wi-r1">${cell(13, `<img src="${WI_LOGO}" alt="WAHL">`, 'wi-logo')}${cell(0, 'Work Instruction - Hướng Dẫn Công Việc', 'wi-banner')}${cell(15, `${page}/${pages.length}`, 'wi-pageno')}</div>` +
+        `<div class="wi-row wi-r2">${cell(8, 'TITLE:')}${cell(0, esc(I18n.t('wiTitle')), 'wi-title')}${cell(6, 'SOP #')}${cell(21, esc(sopNumber), 'wi-blue')}</div>` +
+        `<div class="wi-row wi-r3">${cell(8, 'PLANT:')}${cell(6, esc(AppSettings.sopPlant), 'wi-blue wi-small')}${cell(5, 'Area')}${cell(11, esc(AppSettings.sopArea), 'wi-blue wi-small')}${cell(9, 'POSITION /MACHINE')}${cell(9, esc(I18n.t('wiPosition')), 'wi-blue wi-small')}${cell(12, 'SUPPORTING DOCUMENTS #:')}${cell(0, '')}${cell(6, 'Model:')}${cell(21, esc(fgId || cartonId), 'wi-blue')}</div>` +
+        `<div class="wi-row wi-r4">${cell(8, 'COMPULSORY PPE:')}${cell(22, '')}${cell(6, 'NOTES')}${cell(0, esc(methodText))}${cell(12, 'OTHER PPE AVAILABLE ON REQUEST:')}${cell(9, '')}${cell(9, 'Standard Time (s) of Workstation')}${cell(12, '', 'wi-dark')}</div>`;
+      const stepHtml = (step, number) => `<div class="wi-step"><div class="wi-num">${number}</div><div class="wi-pic">${step ? (step.picture || `<div class="wi-words${step.small ? ' wi-small' : ''}">${step.words}</div>`) : ''}</div><div class="wi-sts">STs</div><div class="wi-txt${step && step.heading ? ' wi-heading' : ''}"><div>${step && step.text ? step.text : ''}</div></div></div>`;
+      const pageHtml = (pageSteps, index) => {
+        const shown = Math.ceil(pageSteps.length / 3) * 3, cells = [];   // complete the row, like the blank cells on the sample sheets
+        for (let i = 0; i < shown; i++) cells.push(stepHtml(pageSteps[i], index * 6 + i + 1));
+        return `<div class="wi-page${index === pages.length - 1 ? ' wi-last' : ''}">${header(index + 1)}<div class="wi-grid">${cells.join('')}</div></div>`;
+      };
+      const signRow = '<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
+      const signoff = `<div class="wi-signoff"><table><colgroup><col style="width:27%"><col style="width:6%"><col style="width:3%"><col style="width:19%"><col style="width:10%"><col style="width:3%"><col style="width:22%"><col style="width:10%"></colgroup>` +
+        `<thead><tr><th>Name of Operator Trained</th><th>Signature</th><th>#</th><th>Name of Operator Trained</th><th>Signature</th><th>#</th><th>Name of Operator Trained</th><th>Signature</th></tr></thead><tbody>${signRow.repeat(10)}</tbody></table>` +
+        `<div class="wi-foot"><div style="flex:0 0 9%"><span>Date of Issue</span><b>${issued}</b></div><div><span>Made By</span><b>${esc(AppSettings.sopMadeBy)}</b></div><div><span>Reviewed By (Asst. Project Manager)</span><b>${esc(AppSettings.sopReviewedBy)}</b></div><div><span>Approved By (Production Asst. Manager)</span><b>${esc(AppSettings.sopApprovedBy)}</b></div><div>${pages.length}/${pages.length}</div></div></div>`;
+      return pages.map(pageHtml).join('') + signoff;
     }
 
     const CARTON_WALL_THICKNESS_MM = QUICK_MODE_CARTON_WALL_MM;
@@ -5195,6 +5285,7 @@
         document.querySelector('#settingsResetButton')?.addEventListener('click', () => { if (AppSettings.reset()) location.reload(); else this.setSettingsMessage(this.t('settingsSaveFailed'), 'bad') });
         document.querySelector('.workflow-nav [data-workflow="settings"]')?.addEventListener('click', () => this.refreshSettingsData());
         document.querySelector('#cartonPalletEditManual')?.addEventListener('click', () => { if (this.cartonPalletCtx) this.openManualPalletWith(this.cartonPalletCtx) });
+        document.querySelector('#cartonPalletExportPdf')?.addEventListener('click', () => { if (this.cartonPalletCtx) this.printPalletWi(this.cartonPalletCtx) });
         document.querySelector('#manualPalletSaveButton')?.addEventListener('click', () => this.saveManualPalletLayout());
         document.querySelector('#manualPalletLoadSavedButton')?.addEventListener('click', () => this.loadSavedManualPalletLayout());
         document.querySelector('#cartonLookupSelect')?.addEventListener('change', e => { if (!e.target.value) return; document.querySelector('#cartonLookupInput').value = e.target.value; this.lookupCarton() });
@@ -5291,7 +5382,7 @@
         }
         this.activeWorkflow = name || 'new-product';
         const saved = this.workflowPanelState.get(this.activeWorkflow) || null;
-        const primary = new Set(['newProductPanel','auditSection','fgLookupPanel','fgResultsGrid','fgPalletPanel','batchAuditPanel','cartonLookupPanel','addDataPanel','manualPalletLayoutPanel','settingsPanel']);
+        const primary = new Set(['newProductPanel','auditSection','fgLookupPanel','fgResultsGrid','fgPalletPanel','batchAuditPanel','cartonLookupPanel','manualPalletLayoutPanel','settingsPanel']);
         document.querySelectorAll('.workflow-nav [data-workflow]').forEach(button => { const active = button.dataset.workflow === this.activeWorkflow; button.classList.toggle('active', active); button.setAttribute('aria-selected', String(active)); button.setAttribute('role', 'tab') });
         panels.forEach(panel => {
           const matches = String(panel.dataset.workflowPanel || '').split(/\s+/).includes(this.activeWorkflow);
@@ -5537,32 +5628,20 @@
         if (fgs.length) { const g = document.createElement('optgroup'); g.label = this.t('finishedGoods'); fgs.forEach(({ fg, ready }) => { const o = document.createElement('option'); o.value = fg.fg_id; o.textContent = `${fg.fg_id} — ${fg.fg_name || this.t('unnamedFg')}`; o.dataset.dataComplete = String(ready); g.append(o) }); select.append(g) }
         if (cartons.length) { const g = document.createElement('optgroup'); g.label = this.t('cartons'); cartons.forEach(({ c, ready }) => { const o = document.createElement('option'); o.value = c.carton_id; o.textContent = `${c.carton_id} — ${c.carton_name || ''}`; o.dataset.dataComplete = String(ready); g.append(o) }); select.append(g) }
       }
-      buildPalletPrintSheetHtml(ctx, palletLengthMm, palletWidthMm) {
-        const layout = ctx.layout;
-        const summaryHtml = buildPalletSummaryHtml(ctx), sopHtml = buildPalletSopHtml(ctx.method);
-        const oddLayers = [], evenLayers = [];
-        for (let layer = 1; layer <= layout.layers; layer++) (layer % 2 === 1 ? oddLayers : evenLayers).push(layer);
-        const patternPage = (pattern, layerNumbers, label) => `<div class="print-layer-page"><h2>${escapeHtml(I18n.t('palletPatternTitle', { label }))}</h2><div class="print-layer-meta">${escapeHtml(patternKindLabel(pattern))} — ${escapeHtml(I18n.t('palletCartonsPerLayer'))}: ${pattern.cartonsPerLayer} (${pattern.regions.map(r => `${r.perLength}×${r.perWidth}`).join(' + ')}${pattern.variant ? ', ' + escapeHtml(patternVariantLabel(pattern)) : ''}${pattern.offsetAxis ? ', ' + escapeHtml(I18n.t('palletOrientationOffset')) : ''})<br>${escapeHtml(I18n.t('palletPatternAppliesTo', { list: layerNumbers.join(', ') }))}</div>${buildLayerTopViewSvg(pattern, palletLengthMm, palletWidthMm)}</div>`;
-        const pages = layout.interlocked
-          ? patternPage(layout.primary, oddLayers, I18n.t('palletPatternOddLabel')) + patternPage(layout.secondary, evenLayers, I18n.t('palletPatternEvenLabel')) + `<div class="print-layer-page"><p>${escapeHtml(I18n.t('palletPatternRepeatInterlocked', { total: layout.layers }))}</p></div>`
-          : patternPage(layout.primary, oddLayers.concat(evenLayers), I18n.t('palletPatternUniformLabel')) + `<div class="print-layer-page"><p>${escapeHtml(I18n.t('palletPatternRepeatUniform', { total: layout.layers }))}</p></div>`;
-        return `<div class="print-summary">${summaryHtml}</div><div class="print-sop">${sopHtml}</div>${pages}`;
-      }
-      printPalletSopPdf(ctx, palletLengthMm, palletWidthMm) {
-        if (!ctx?.layout?.layers) return;
+      // Every pallet SOP - FG Lookup, Carton Lookup, Manual Pallet Layout - is the same Work Instruction sheet, printed in
+      // Vietnamese like the plant's other WIs. Returns false when there is nothing to print.
+      printPalletWi(spec) {
+        if (!spec?.carton || !spec.levels?.some(level => level.length)) return false;
         const prevLang = I18n.language;
         I18n.language = 'vi';
-        try {
-          document.querySelector('#palletPrintSheet').innerHTML = this.buildPalletPrintSheetHtml(ctx, palletLengthMm, palletWidthMm);
-        } finally {
-          I18n.language = prevLang;
-        }
+        try { document.querySelector('#palletPrintSheet').innerHTML = buildPalletWiHtml(spec) } finally { I18n.language = prevLang }
         document.body.classList.add('printing-pallet');
         window.print();
+        return true;
       }
       exportPalletSopPdf() {
-        const ctx = this.lastFgPalletCtx; if (!ctx) return;
-        this.printPalletSopPdf(ctx, Number(document.querySelector('#fgPalletLengthMm').value) || 1200, Number(document.querySelector('#fgPalletWidthMm').value) || 1000);
+        const ctx = this.lastFgPalletCtx; if (!ctx?.layout) return;
+        this.printPalletWi({ carton: ctx.carton, palletLengthMm: ctx.palletLengthMm, palletWidthMm: ctx.palletWidthMm, method: ctx.method, maxHeightMm: ctx.maxHeightMm, levels: palletLayoutToLevels(ctx.layout), overhangMm: ctx.layout.overhangMm || 0, fg: ctx.fg, qtyPerCarton: ctx.qtyPerCarton });
       }
       renderDashboard() { const root=document.querySelector('#dashboardKpis'),ready=document.querySelector('#dataReadyStatus');if(!root||!ready)return;const fgs=this.store.finishedGoods||this.data?.fgs||[],cartons=this.store.cartons||this.data?.cartons||[],bom=this.store.bomRows||this.weeklyBom?.rows||[],eligible=fgs.filter(f=>CartonFitEngine.validFG(f)&&!!(f.assignedCartonId||f.mvpAssignedCartonId)).length,active=cartons.filter(c=>CartonScorer.active(c.lifecycle)).length;root.innerHTML=[[this.t('finishedGoods'),fgs.length],[this.t('eligibleFgs'),eligible],[this.t('cartons'),cartons.length],[this.t('activeCartons'),active],[this.t('bomRows'),bom.length]].map(([label,value])=>`<div class="kpi"><span>${escapeHtml(label)}</span><strong>${Number(value).toLocaleString()}</strong></div>`).join('');ready.textContent=this.store.ready?`✓ ${this.t('dataReady')}`:this.t('dataNotReady');ready.className=`data-ready-pill ${this.store.ready?'good':'bad'}`}
       async runBatchAudit(customStore = null) { if(!this.store.ready){this.message(this.t('loadNeeded'),'error');return}const missingMode=document.querySelector('#batchFilter')?.value==='missing',batchMode=this.getBatchRunMode(),batchOrientation=document.querySelector('#batchOrientation')?.value||null,modeLabels={quick:this.t('quickBatchAudit'),optimized:this.t('optimizedBatchSuggestions'),consolidation:this.t('cartonLineReduction')},modeLabel=modeLabels[batchMode]||this.t('quickBatchAudit'),taskId=this.progress.startTask({title:modeLabel,phase:'STARTING',detail:missingMode?'Checking missing dimension data…':this.t(batchMode==='optimized'?'optimizedBatchDescription':batchMode==='consolidation'?'consolidationBatchDescription':'quickBatchDescription'),cancellable:true,indeterminate:true});document.querySelector('#batchStatus').textContent=modeLabel;document.querySelector('#batchRunButton').disabled=true;try{this.batchResult=missingMode?await MissingDimensionQuery.run(customStore||this.store,this.progress,taskId):await BatchAuditEngine.run(customStore||this.store,DimensionSettings.current,this.progress,taskId,this.remeasuredByFg,batchMode,batchOrientation);this.batchResult.calculationMode=AppState.calculationMode;this.batchPage=1;this.renderBatchResults();if(batchMode==='consolidation'&&this.batchResult.consolidation?.length)this.renderConsolidationResults();else this.renderBatchPortfolio();const message=missingMode?`${this.t('missingDimensionQueryComplete')} — ${this.batchResult.rows.length} records found. ${this.t('noFitCalculations')}`:`${this.t('auditComplete')} · ${modeLabel}`;this.progress.completeTask(message,taskId);document.querySelector('#batchExportButton').disabled=false}catch(e){if(e instanceof TaskCancelledError||this.progress.state.cancelled){try{this.progress.completeTask(this.t('batchCancelled'),taskId)}catch(_){}if(this.batchResult?.rows?.length){this.batchPage=1;this.renderBatchResults()}document.querySelector('#batchExportButton').disabled=!(this.batchResult?.rows?.length)}else this.progress.failTask(e,taskId)}finally{document.querySelector('#batchRunButton').disabled=false} }
@@ -5657,7 +5736,7 @@
         const q = idKey(query ?? document.querySelector('#cartonLookupInput')?.value ?? ''), keep = normalizeId(select.value || this.cartonPalletShownId || '');
         select.disabled = false; select.innerHTML = `<option value="" data-i18n="cartonSelectPrompt">${escapeHtml(this.t('cartonSelectPrompt'))}</option>`;
         const rows = this.store.cartons.filter(c => !q || idKey(c.carton_id).includes(q) || idKey(c.carton_name).includes(q)).map(c => ({ c, ready: CartonFitEngine.validCarton(c) })).sort((a, b) => Number(b.ready) - Number(a.ready) || String(a.c.carton_id).localeCompare(String(b.c.carton_id), undefined, { numeric: true, sensitivity: 'base' }));
-        for (const { c, ready } of rows) { const o = document.createElement('option'); o.value = c.carton_id; o.textContent = `${c.carton_id} — ${c.carton_name || '—'}  |  ${ready ? dims(c) : this.t('missing')}${PalletLayouts.get(c.carton_id) ? `  |  ${this.t('palletSavedTag')}` : ''}`; o.dataset.dataComplete = String(ready); if (keep && normalizeId(c.carton_id) === keep) o.selected = true; select.append(o) }
+        for (const { c, ready } of rows) { const o = document.createElement('option'); o.value = c.carton_id; o.textContent = `${c.carton_id} — ${c.carton_name || '—'}  |  ${ready ? dims(c) : this.t('missing')}${PalletLayouts.get(c.carton_id) ? `  |  ${this.t('palletSavedTag')}` : ''}`; o.dataset.dataComplete = String(ready); const saved = PalletLayouts.get(c.carton_id); if (saved && PalletLayouts.matchesCarton(saved, c)) o.dataset.savedLayout = 'true'; if (keep && normalizeId(c.carton_id) === keep) o.selected = true; select.append(o) }
       }
       syncCartonLookupSelect(id) { const select = document.querySelector('#cartonLookupSelect'); if (!select) return; const match = [...select.options].find(o => o.value && normalizeId(o.value) === normalizeId(id)); select.value = match ? match.value : '' }
       // The layout saved for this carton when there is one (and the carton still has the size it was saved for),
@@ -6050,35 +6129,9 @@
         const sop = document.querySelector('#manualPalletSopSteps'); sop.innerHTML = buildPalletSopHtml(b.method);
         this.updateManualTray(); this.renderManualPalletControls();
       }
-      // One printed page per DISTINCT level pattern (levels with the same arrangement are listed together), then the
-      // order those patterns repeat in - the same "print only what has to be repeated" rule as the auto pallet SOP.
       exportManualPalletSopPdf() {
         const b = this.manualBuilder; if (!b) return;
-        const built = b.levels.map((boxes, k) => ({ boxes, k })).filter(l => l.boxes.length);
-        if (!built.length) { this.manualNotice('manualPalletBuildWarn'); return }
-        const prevLang = I18n.language;
-        I18n.language = 'vi';
-        try {
-          const groups = [], bySignature = new Map();
-          for (const level of built) {
-            const signature = manualLevelSignature(level.boxes);
-            let group = bySignature.get(signature);
-            if (!group) { group = { label: String.fromCharCode(65 + groups.length), boxes: level.boxes, levels: [] }; bySignature.set(signature, group); groups.push(group) }
-            group.levels.push(level.k + 1);
-          }
-          const order = built.map(level => bySignature.get(manualLevelSignature(level.boxes)).label).join(' – ');
-          const pages = groups.map(group => {
-            const ref = b.levels.indexOf(group.boxes), svg = buildManualPalletLevelSvg(b, ref, { interactive: false });
-            const sizes = [...new Set(group.boxes.map(o => `${fmt(o.l)} × ${fmt(o.w)}`))].join(', ');
-            return `<div class="print-layer-page"><h2>${escapeHtml(I18n.t('manualPalletPrintLevelTitle', { label: group.label }))}</h2><div class="print-layer-meta">${escapeHtml(I18n.t('manualPalletPrintApplies', { list: group.levels.join(', ') }))} — ${escapeHtml(I18n.t('manualPalletPerLevel'))}: ${group.boxes.length}<br>${escapeHtml(I18n.t('manualPalletPrintDims'))}: ${escapeHtml(sizes)} mm</div>${svg}</div>`;
-          }).join('');
-          const orderPage = `<div class="print-layer-page"><p>${escapeHtml(I18n.t('manualPalletPrintOrder', { order }))}</p></div>`;
-          document.querySelector('#palletPrintSheet').innerHTML = `<div class="print-summary">${buildManualPalletSummaryHtml(b)}</div><div class="print-sop">${buildPalletSopHtml(b.method)}</div>${pages}${orderPage}`;
-        } finally {
-          I18n.language = prevLang;
-        }
-        document.body.classList.add('printing-pallet');
-        window.print();
+        if (!this.printPalletWi({ carton: b.carton, palletLengthMm: b.palletLengthMm, palletWidthMm: b.palletWidthMm, method: b.method, maxHeightMm: b.maxHeightMm, levels: b.levels, overhangMm: b.overhangMm, sourceFgId: b.sourceFgId })) this.manualNotice('manualPalletBuildWarn');
       }
       setComparison(fg,currentCarton,currentFit,suggestedCarton,suggestedFit){const panel=document.querySelector('#comparisonPanel'),suggestedId=normalizeId(suggestedCarton?.carton_id),existingSuggested=suggestedId?this.data?.cartons?.find(carton=>normalizeId(carton.carton_id)===suggestedId):null;if(!fg||!currentCarton||!existingSuggested){panel.hidden=true;return}panel.hidden=false;this.comparisonCurrent.set({fg,carton:currentCarton,fit:currentFit,kind:'existing'});this.comparisonSuggested.set({fg,carton:existingSuggested,fit:suggestedFit,kind:'existing'})}
       clearAuditSuggestedComparison(showPanel=false){this.comparisonSuggested.empty(this.t('dragAlternativeHere'));const panel=document.querySelector('#comparisonPanel');if(panel)panel.hidden=!(showPanel&&this.auditComparisonContext)}
@@ -7640,10 +7693,6 @@
         available = state;
         if (cameUp) reloadPalletLayouts();
         document.body.classList.toggle('saving-available', state);
-        // If the active tab is the one that just disappeared, fall back somewhere valid.
-        if (!state && typeof toolUi !== 'undefined' && toolUi.activeWorkflow === 'add-data') {
-          toolUi.activateWorkflow('new-product');
-        }
       };
 
       const probe = async () => {

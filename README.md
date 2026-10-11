@@ -102,11 +102,20 @@ Every adjustable assumption is on the **Settings** tab (the old "Engineering ass
 | Pallet | Pallet length × width (mm) | 1200 × 1000 |
 | | Max stack height, air / truck (mm) | 1600 / 2200 |
 | | Overhang allowed per side (mm) | 0 |
+| SOP sheet | SOP #, Plant, Area, Made by, Reviewed by, Approved by | blank / VN / Đóng gói / blank |
 | Data | Read the Excel workbooks | Ask every time |
 
 **Save and reload** stores them in the browser profile the launcher uses on this PC and reloads the tool; **Reset to defaults** clears them. The wording elsewhere in the tool (for example "may grow up to 3%", "max 1.6 m") follows the saved values.
 
 **Overhang** lets cartons reach up to that many millimetres past each pallet edge. The suggested layout only uses it when it puts more cartons on the pallet, and reports how much was actually used and how many cartons it gained; the manual builder lets cartons be dragged out to the dashed red limit.
+
+**Add Data** (adding several products or cartons at once from a sheet or pasted rows) is now a section at the bottom of the Settings tab instead of a tab of its own. It appears while the saving helper is running.
+
+### Pallet SOP sheet
+
+**Export SOP as PDF** is available in FG Lookup, Carton Lookup and Manual Pallet Layout and always produces the same sheet, laid out like the plant's Work Instruction workbooks (`PROD-WI-...`): WAHL logo, "Work Instruction - Hướng Dẫn Công Việc", page number, the yellow TITLE bar, PLANT / Area / Model, then numbered steps three to a row - a drawing with the instruction under it - followed by the operator sign-off table and the Date of Issue / Made By / Reviewed By / Approved By footer. Step 1 is the finished pallet, the next steps are one numbered top view per distinct level pattern, and the last steps are corner boards, stretch film and strapping / incomplete top layer. The sheet is A4 landscape and printed in Vietnamese. The header and footer values come from the **SOP sheet** group in Settings; `{carton}` and `{fg}` in the SOP # are replaced on each export (for example `PROD-WI-PAL-{carton}`). In the print dialog choose "Save as PDF" and switch on "Background graphics" if the yellow and grey fills are missing.
+
+In Carton Lookup the dropdown shows cartons that have a saved pallet layout in blue, and the export prints whichever layout is on show (Saved or Suggested).
 
 ### Saving products and cartons: CSV first
 

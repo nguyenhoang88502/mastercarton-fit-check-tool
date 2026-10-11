@@ -30,7 +30,7 @@ can be searched for like any other.
 
 HOW TO ADD MANY AT ONCE
 -----------------------
-1. Go to the "Add Data" tab.
+1. Go to the "Settings" tab and scroll down to "Add Data".
 2. Choose whether you are adding products or cartons.
 3. Press "Download blank sheet" and fill it in with Excel.
 4. Drag the finished file onto the box on the page (or paste the rows in).
