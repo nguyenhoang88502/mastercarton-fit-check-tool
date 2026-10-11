@@ -1373,6 +1373,88 @@
     .toast-close:hover{color:var(--ink)}
     @keyframes toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
     @media(max-width:620px){#toastQueueContainer{left:16px;right:16px;max-width:none}}
+    /* ==================================================================================================================
+       UI layer - one control size, one card style, explanations tucked behind the header "Details" switch.
+       Everything below only restyles; no rule here changes behaviour. Keep it last in this sheet.
+       ================================================================================================================== */
+    :root { --radius: 8px; --control-h: 40px }
+    body { font: 14px/1.45 "Segoe UI", Arial, Helvetica, sans-serif }
+    .app { padding: 14px }
+    header, .section, .visual-panel, .table-panel, .comparison-pane, .kpi-card, .link-card { border-radius: var(--radius) }
+    .section { padding: 14px 16px; margin-bottom: 12px }
+    h2 { font-size: 16px }
+    .brand h1 { font-size: 20px }
+
+    /* Buttons: big, same height everywhere, obvious primary, obvious pressed state. */
+    .app button, .app .file-button {
+      min-height: var(--control-h); padding: 8px 16px; font-size: 14px; font-weight: 600; line-height: 1.2;
+      border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--ink);
+      transition: background .12s, border-color .12s
+    }
+    .app button:hover:not(:disabled), .app .file-button:hover { background: var(--blue2); border-color: var(--blue) }
+    .app button.primary, .app .file-button.primary { background: var(--blue); border-color: var(--blue); color: #fff }
+    .app button.primary:hover:not(:disabled) { background: var(--blue); filter: brightness(1.1) }
+    .app button:disabled { opacity: .4; cursor: not-allowed }
+    .app button:focus-visible, .app input:focus-visible, .app select:focus-visible, .app textarea:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px }
+    .app .toggle-btn.active, .app .segmented button.active, .app #manualPalletSnapButton.active { background: var(--blue); border-color: var(--blue); color: #fff }
+    .app .calculation-mode-toggle.quick { background: var(--good); border-color: var(--good); color: #fff }
+    .app .calculation-mode-toggle.optimized { background: var(--warn); border-color: var(--warn); color: #fff }
+    .app .small-secondary, .app .visual-controls button, .app .view-btn { padding: 8px 14px; font-size: 14px }
+    .app .save-status { padding: 4px 6px 4px 12px; font-size: 13px }
+    .app .save-status button { min-height: 30px; padding: 4px 12px; font-size: 13px; border-radius: 999px }
+
+    /* Tabs. */
+    .app .workflow-nav { gap: 6px; padding: 6px; box-shadow: none }
+    .app .workflow-nav button { min-height: 44px; padding: 10px 14px; border-color: transparent; background: transparent; font-size: 14px; font-weight: 600 }
+    .app .workflow-nav button:hover:not(.active) { background: var(--soft); border-color: transparent }
+    .app .workflow-nav button.active { background: var(--blue); border-color: var(--blue); color: #fff }
+    .task-panel { top: 70px; box-shadow: none }
+    .task-panel.good { display: none }                      /* finished without trouble: nothing to report */
+
+    /* Fields: same height and corners as the buttons. */
+    .app input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), .app select {
+      height: var(--control-h); padding: 6px 10px; font-size: 14px; border: 1px solid var(--line); border-radius: var(--radius);
+      background: var(--input); color: var(--ink)
+    }
+    .app textarea { padding: 10px; font-size: 13px; border: 1px solid var(--line); border-radius: var(--radius) }
+    .app input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--blue) }
+    .app label { font-size: 13px }
+    .form-block h3 { font-size: 12px; margin-bottom: 8px }
+    .dimension-row { grid-template-columns: repeat(3, minmax(90px, 130px)) }
+    .dimension-row.weight-row { grid-template-columns: repeat(2, minmax(130px, 200px)) }
+    .weight-block h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em }
+    .workflow-form, .workflow-actions, .manual-actions, .visual-controls, .batch-toolbar { gap: 10px }
+    .manual-actions { padding-top: 6px }
+    .app .section { border-left-width: 1px; border-left-color: var(--line) }   /* no colour-coded side bars */
+    .manual-section { border-color: var(--line); background: var(--panel) }
+    .manual-section>.section-heading { background: transparent }
+    .visual-head { padding: 12px 14px }
+    .fg-pallet-controls { gap: 8px 12px; font-size: 13px }
+    .fg-pallet-controls .dimension-row { grid-template-columns: repeat(2, 84px); gap: 6px }
+    .fg-pallet-head h2 { font-size: 16px }
+
+    /* Manual pallet toolbar: related buttons sit together. */
+    .manual-toolbar { align-items: center; gap: 10px 18px; margin: 12px 0 }
+    .tool-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px }
+    .app .segmented { gap: 0 }
+    .app .segmented button { border-radius: 0; margin-left: -1px }
+    .app .segmented button:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0 }
+    .app .segmented button:last-child { border-radius: 0 var(--radius) var(--radius) 0 }
+    .manual-tray { min-height: var(--control-h); padding: 4px 14px; font-size: 14px; border-radius: var(--radius) }
+    .manual-level-bar { gap: 8px; margin: 12px 0 }
+    .manual-level-tabs { gap: 6px }
+    #manualPalletOrientationButton { display: none !important }   /* same action as the toolbar's Rotate carton */
+    #manualPalletSelCount { font-size: 13px; font-weight: 600; color: var(--blue) }
+
+    /* Explanations, footnotes and long diagnostics: off unless Details is switched on. Warnings stay. */
+    html:not([data-details="on"]) :is(
+      .analysis-badge, .footnote, .link-card .detail, #linkageFlow, .weekly-bom-summary, .pallet-sop, .proposal-summary-warning,
+      .visual-summary .notice:not(.audit-warning),
+      [data-i18n="manualNote"], [data-i18n="addDataNote"], [data-i18n="auditSubtitle"], [data-i18n="rotateHint"],
+      [data-i18n="batchAuditNote"], [data-i18n="palletVisualizerNote"], [data-i18n="palletDragHint"], [data-i18n="palletBatchNote"],
+      [data-i18n="manualPalletLayoutNote"], [data-i18n="manualPalletGridHint"], [data-i18n="optimizedModeDescription"],
+      [data-i18n="sourceLinkWaiting"], [data-i18n="engineeringAdvisory"], #batchModeDescription
+    ) { display: none !important }
   </style>
 </head>
 
@@ -1389,7 +1471,7 @@
           data-i18n="analysisMode">Analysis Mode Only</span>
       </div><button id="calculationModeToggle" class="toggle-btn calculation-mode-toggle quick" type="button" aria-pressed="false">⚡ Quick Mode</button><button id="dataToggle" type="button" data-i18n="showData">Workbook</button><button id="languageToggle"
         class="toggle-btn" type="button">EN / VI</button><button id="themeToggle" class="toggle-btn" type="button">☾
-        Dark</button><button id="resetButton" type="button" data-i18n="reset">Reset</button><button id="clearAllButton"
+        Dark</button><button id="detailsToggle" class="toggle-btn" type="button" aria-pressed="false" data-i18n="detailsToggle">Details</button><button id="resetButton" type="button" data-i18n="reset">Reset</button><button id="clearAllButton"
         type="button" data-i18n="clearAll">Clear all</button><span id="saveStatus" class="save-status"><span
           class="save-dot"></span><span data-i18n="savingOn">Saving is on</span><button id="saveStopButton"
           type="button" data-i18n="turnOffSaving">Turn off</button></span>
@@ -1815,19 +1897,29 @@
         <div id="manualPalletGridWrap"></div>
         <div id="manualPalletGridSummary" class="visual-summary"></div>
       </div>
-      <div id="manualPalletGridControls" class="visual-controls" hidden>
-        <div id="manualPalletTray" class="manual-tray" role="button" tabindex="0"><span id="manualPalletTrayBox" class="manual-tray-box"></span><span data-i18n="manualPalletTrayLabel">Drag a carton onto the pallet</span></div>
-        <button id="manualPalletRotateHeldButton" type="button" data-i18n="manualPalletFlipOrientation">Rotate carton in hand 90°</button>
-        <button id="manualPalletModeButton" type="button" data-i18n="manualPalletModeAdd">Mode: place</button>
-        <button id="manualPalletSelectAllButton" type="button" data-i18n="manualPalletSelectAll">Select all</button>
-        <button id="manualPalletRotateSelButton" type="button" data-i18n="manualPalletRotateSel" disabled>Rotate selected 90°</button>
-        <button id="manualPalletDeleteSelButton" type="button" data-i18n="manualPalletDeleteSel" disabled>Delete selected</button>
-        <span id="manualPalletSelCount" class="source-note"></span>
-        <button id="manualPalletSnapButton" type="button" data-i18n="manualPalletSnapOn">Snap: on</button>
-        <button id="manualPalletUndoButton" type="button" data-i18n="manualPalletUndo">Undo last</button>
-        <button id="manualPalletClearButton" type="button" data-i18n="manualPalletClearLevel">Clear level</button>
-        <button id="manualPalletCopyPrevButton" type="button" data-i18n="manualPalletCopyPrev">Copy previous level here</button>
-        <button id="manualPalletRepeatButton" type="button" data-i18n="manualPalletRepeat">Repeat last 2 levels to full height</button>
+      <div id="manualPalletGridControls" class="visual-controls manual-toolbar" hidden>
+        <div class="tool-group">
+          <div id="manualPalletTray" class="manual-tray" role="button" tabindex="0"><span id="manualPalletTrayBox" class="manual-tray-box"></span><span data-i18n="manualPalletTrayLabel">Drag onto pallet</span></div>
+          <button id="manualPalletRotateHeldButton" type="button" data-i18n="manualPalletFlipOrientation">Rotate carton</button>
+        </div>
+        <div id="manualPalletModeGroup" class="tool-group segmented" role="group">
+          <button type="button" data-mode="add" data-i18n="manualPalletModePlace">Place</button><button type="button" data-mode="select" data-i18n="manualPalletModeSelectShort">Select</button><button type="button" data-mode="remove" data-i18n="manualPalletModeRemoveShort">Remove</button>
+        </div>
+        <div class="tool-group">
+          <button id="manualPalletSelectAllButton" type="button" data-i18n="manualPalletSelectAll">Select all</button>
+          <button id="manualPalletRotateSelButton" type="button" data-i18n="manualPalletRotateSel" disabled>Rotate selected</button>
+          <button id="manualPalletDeleteSelButton" type="button" data-i18n="manualPalletDeleteSel" disabled>Delete selected</button>
+          <span id="manualPalletSelCount"></span>
+        </div>
+        <div class="tool-group">
+          <button id="manualPalletSnapButton" type="button" data-i18n="manualPalletSnapOn">Snap on</button>
+          <button id="manualPalletUndoButton" type="button" data-i18n="manualPalletUndo">Undo</button>
+          <button id="manualPalletClearButton" type="button" data-i18n="manualPalletClearLevel">Clear level</button>
+        </div>
+        <div class="tool-group">
+          <button id="manualPalletCopyPrevButton" type="button" data-i18n="manualPalletCopyPrev">Copy level below</button>
+          <button id="manualPalletRepeatButton" type="button" data-i18n="manualPalletRepeat">Repeat to top</button>
+        </div>
         <span class="source-note" data-i18n="manualPalletGridHint">Press and hold a carton, drag, and release to drop it.</span>
       </div>
       <div id="manualPallet3DBody" class="visual-body" hidden>
@@ -1896,13 +1988,11 @@
         });
         Object.assign(this.text.en, {
           manualPalletModeSelect: 'Mode: select', manualPalletSelectAll: 'Select all', manualPalletRotateSel: 'Rotate selected 90°', manualPalletDeleteSel: 'Delete selected', manualPalletSelCount: '{n} selected',
-          manualPalletRotateBlocked: 'The rotated block would overlap another carton or leave the pallet. Move it or free some space first.',
-          manualPalletGridHint: 'Press and hold a carton (or the empty pallet), drag, and release to drop it. Drag a placed carton to move it. Select mode: drag across empty space to box-select (Shift/Ctrl adds or removes one), then drag any selected carton to move them all; R rotates and Delete removes the selection. Right-click removes one.'
+          manualPalletRotateBlocked: 'The rotated block would overlap another carton or leave the pallet. Move it or free some space first.'
         });
         Object.assign(this.text.vi, {
           manualPalletModeSelect: 'Chế độ: chọn thùng', manualPalletSelectAll: 'Chọn tất cả', manualPalletRotateSel: 'Xoay các thùng đã chọn 90°', manualPalletDeleteSel: 'Xóa các thùng đã chọn', manualPalletSelCount: 'Đã chọn {n}',
-          manualPalletRotateBlocked: 'Khối thùng sau khi xoay sẽ chồng lên thùng khác hoặc ra ngoài pallet. Hãy di chuyển hoặc chừa thêm chỗ trước.',
-          manualPalletGridHint: 'Nhấn giữ một thùng (hoặc vùng trống của pallet), kéo rồi thả để đặt. Kéo thùng đã đặt để di chuyển. Chế độ chọn: kéo trên vùng trống để quét chọn (Shift/Ctrl để thêm hoặc bớt một thùng), rồi kéo một thùng đã chọn để di chuyển tất cả; phím R xoay và Delete xóa các thùng đã chọn. Bấm chuột phải để bỏ một thùng.'
+          manualPalletRotateBlocked: 'Khối thùng sau khi xoay sẽ chồng lên thùng khác hoặc ra ngoài pallet. Hãy di chuyển hoặc chừa thêm chỗ trước.'
         });
         Object.assign(this.text.en, { sourceWorkbooks: 'Source workbooks:', openDimensionSource: 'Open dimension source', openBomSource: 'Open Weekly BOM source', sourceLinkWaiting: 'Links appear after launcher-loaded source files are found.', sourceLinkManual: 'The browser hides the original path of a manually selected file; use the launcher for a direct source link.', fgIdOptional: 'New FG ID (optional)', fgIdOptionalPlaceholder: 'Optional — generated if blank', invalidManual: 'Enter positive dimensions in mm and a positive whole-number target quantity. FG ID is optional.', explainUnderutilized: 'The target physically fits, but volumetric utilization is below the selected threshold. Review the optimized engineering proposal.', bomFallbackAlert: 'Weekly BOM source of truth did not load. The tool is using provisional FG_MasterCarton assignments with the available FG and carton dimension sheets. Verify the assignment before making an engineering decision.', bomFallbackLoading: 'Weekly BOM is still loading. Provisional FG_MasterCarton data is temporarily available.', dataCompleteFallback: '✓ Complete provisional data', fallbackMode: 'PROVISIONAL WORKBOOK FALLBACK', fallbackAssigned: 'PROVISIONAL FG_MasterCarton ASSIGNMENT', fallbackReference: 'WORKBOOK FALLBACK', fallbackPass: 'WORKBOOK FALLBACK — PASS — SIMPLE GRID', fallbackFail: 'WORKBOOK FALLBACK — SIMPLE GRID FAIL', fallbackMissing: 'WORKBOOK FALLBACK — DIMENSIONS MISSING', fallback3d: 'The 3D view uses the provisional FG_MasterCarton assignment because Weekly BOM is unavailable.', orientationsTested: 'Orthogonal orientations tested' });
         Object.assign(this.text.vi, { sourceWorkbooks: 'Workbook nguồn:', openDimensionSource: 'Mở file nguồn kích thước', openBomSource: 'Mở file nguồn BOM tuần', sourceLinkWaiting: 'Liên kết xuất hiện sau khi launcher tìm thấy file nguồn.', sourceLinkManual: 'Trình duyệt ẩn đường dẫn gốc của file được chọn thủ công; hãy dùng launcher để có liên kết trực tiếp.', fgIdOptional: 'Mã FG mới (không bắt buộc)', fgIdOptionalPlaceholder: 'Không bắt buộc — hệ thống tự tạo nếu để trống', invalidManual: 'Nhập kích thước dương theo mm và số lượng mục tiêu là số nguyên dương. Mã FG không bắt buộc.', explainUnderutilized: 'Số lượng mục tiêu vừa về mặt vật lý nhưng tỷ lệ sử dụng thể tích thấp hơn ngưỡng đã chọn. Hãy xem đề xuất kỹ thuật tối ưu.', bomFallbackAlert: 'Không tải được BOM tuần là nguồn dữ liệu chính. Công cụ đang dùng dữ liệu gán tạm từ FG_MasterCarton cùng các sheet kích thước FG và Master Carton hiện có. Hãy xác minh dữ liệu gán trước khi ra quyết định kỹ thuật.', bomFallbackLoading: 'BOM tuần vẫn đang tải. Dữ liệu tạm từ FG_MasterCarton hiện vẫn có thể sử dụng.', dataCompleteFallback: '✓ Đủ dữ liệu tạm', fallbackMode: 'DỮ LIỆU DỰ PHÒNG TỪ WORKBOOK', fallbackAssigned: 'GÁN TẠM TỪ FG_MasterCarton', fallbackReference: 'DỮ LIỆU DỰ PHÒNG', fallbackPass: 'DỮ LIỆU DỰ PHÒNG — ĐẠT — LƯỚI ĐƠN GIẢN', fallbackFail: 'DỮ LIỆU DỰ PHÒNG — KHÔNG ĐẠT LƯỚI ĐƠN GIẢN', fallbackMissing: 'DỮ LIỆU DỰ PHÒNG — THIẾU KÍCH THƯỚC', fallback3d: 'Mô hình 3D đang dùng dữ liệu gán tạm từ FG_MasterCarton vì chưa có BOM tuần.', orientationsTested: 'Số hướng vuông góc đã kiểm tra' });
@@ -2271,6 +2361,18 @@
         manualPalletTopPartial:'Lớp trên cùng có ít thùng hơn lớp bên dưới. Hãy xếp đầy hoặc bỏ các thùng lẻ để mặt trên phẳng và ổn định.',
         manualPalletBuildWarn:'Hãy đặt một vài thùng ở lớp 1 trước.', manualPalletEmptyLevel:'Hãy đặt thùng vào lớp này trước khi thêm lớp khác.',
         manualPalletPrintLevelTitle:'Kiểu xếp lớp {label}', manualPalletPrintApplies:'Áp dụng cho các lớp: {list}', manualPalletPrintOrder:'Thứ tự lớp, lặp lại đến hết chồng: {order}', manualPalletPrintDims:'Diện tích đáy thùng (D × R)',
+      }) }
+      // Final overrides - keep this block last: short, self-explanatory labels and the current manual-layout hint.
+      static { Object.assign(this.text.en, {
+        detailsToggle: 'Details', manualPalletModePlace: 'Place', manualPalletModeSelectShort: 'Select', manualPalletModeRemoveShort: 'Remove',
+        manualPalletFlipOrientation: 'Rotate carton', manualPalletTrayLabel: 'Drag onto pallet', manualPalletRotateSel: 'Rotate selected', manualPalletSnapOn: 'Snap on', manualPalletSnapOff: 'Snap off',
+        manualPalletUndo: 'Undo', manualPalletCopyPrev: 'Copy level below', manualPalletRepeat: 'Repeat to top',
+        manualPalletGridHint: 'Press and hold a carton (or the empty pallet), drag, and release to drop it. Drag a placed carton to move it. Select mode: drag across empty space to box-select (Shift/Ctrl adds or removes one), then drag any selected carton to move them all; R rotates and Delete removes the selection. Right-click removes one.'
+      }); Object.assign(this.text.vi, {
+        detailsToggle: 'Chi tiết', manualPalletModePlace: 'Đặt', manualPalletModeSelectShort: 'Chọn', manualPalletModeRemoveShort: 'Bỏ',
+        manualPalletFlipOrientation: 'Xoay thùng', manualPalletTrayLabel: 'Kéo vào pallet', manualPalletRotateSel: 'Xoay thùng đã chọn', manualPalletSnapOn: 'Hít: bật', manualPalletSnapOff: 'Hít: tắt',
+        manualPalletUndo: 'Hoàn tác', manualPalletCopyPrev: 'Sao chép lớp dưới', manualPalletRepeat: 'Lặp đến đỉnh',
+        manualPalletGridHint: 'Nhấn giữ một thùng (hoặc vùng trống của pallet), kéo rồi thả để đặt. Kéo thùng đã đặt để di chuyển. Chế độ chọn: kéo trên vùng trống để quét chọn (Shift/Ctrl để thêm hoặc bớt một thùng), rồi kéo một thùng đã chọn để di chuyển tất cả; phím R xoay và Delete xóa các thùng đã chọn. Bấm chuột phải để bỏ một thùng.'
       }) }
       static t(key, vars = {}) { let s = this.text[this.language][key] ?? this.text.en[key] ?? key; for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, v); return s }
     }
@@ -4824,8 +4926,16 @@
         document.querySelector('#manualForm').addEventListener('submit', e => { e.preventDefault(); this.checkManual() }); document.querySelector('#suggestSharedCartonBtn').addEventListener('click', () => this.suggestSharedCartonLine());
         document.querySelector('#openEngineeringSettings')?.addEventListener('click', () => { const settings=document.querySelector('#dashboardPanel'); settings.open=true; settings.scrollIntoView({behavior:'smooth',block:'start'}); document.querySelector('#settingMinUtil')?.focus({preventScroll:true}) });
         document.querySelector('#dataToggle').addEventListener('click', () => { this.dataTools.hidden = !this.dataTools.hidden; document.querySelector('#dataToggle').textContent = this.t(this.dataTools.hidden ? 'showData' : 'hideData') });
-        document.querySelector('#languageToggle').addEventListener('click', () => { I18n.language = I18n.language === 'en' ? 'vi' : 'en'; this.applyLanguage(); updateCalculationModeUi(); this.updateCalculationSettingsSummary(); this.renderDashboard(); if (this.current) this.run() });
+        document.querySelector('#languageToggle').addEventListener('click', () => { I18n.language = I18n.language === 'en' ? 'vi' : 'en'; this.applyLanguage(); updateCalculationModeUi(); this.updateCalculationSettingsSummary(); this.renderDashboard(); if (this.manualBuilder) this.renderManualPalletBuilder(); if (this.current) this.run() });
         document.querySelector('#calculationModeToggle')?.addEventListener('click',()=>this.toggleCalculationMode());document.querySelector('#openRemeasurementButton')?.addEventListener('click',()=>{const panel=document.querySelector('#quickRemeasurementPanel');panel.hidden=!panel.hidden;if(!panel.hidden)document.querySelector('#remeasuredLength')?.focus()});
+        const detailsToggle = document.querySelector('#detailsToggle');
+        if (detailsToggle) {
+          // Off by default: the screen shows controls and results only. On: every explanatory note, footnote and diagnostic line.
+          const applyDetails = on => { document.documentElement.dataset.details = on ? 'on' : 'off'; detailsToggle.classList.toggle('active', on); detailsToggle.setAttribute('aria-pressed', String(on)) };
+          let savedDetails = false; try { savedDetails = localStorage.getItem('wvnDetails') === 'on' } catch (_) { /* storage may be blocked */ }
+          applyDetails(savedDetails);
+          detailsToggle.addEventListener('click', () => { const on = document.documentElement.dataset.details !== 'on'; applyDetails(on); try { localStorage.setItem('wvnDetails', on ? 'on' : 'off') } catch (_) { /* storage may be blocked */ } });
+        }
         document.querySelector('#themeToggle').addEventListener('click', () => this.toggleTheme()); document.querySelector('#resetButton').addEventListener('click', () => this.reset()); document.querySelector('#clearAllButton').addEventListener('click', () => this.clearAllInputs());
         document.querySelector('#rotateLeft').addEventListener('click', () => { this.visual.rotation = (this.visual.rotation + 1) % 24; this.visual.render() }); document.querySelector('#rotateRight').addEventListener('click', () => { this.visual.rotation = (this.visual.rotation - 1) % 24; this.visual.render() }); document.querySelector('#resetView').addEventListener('click', () => { this.visual.rotation = 0; this.visual.pitch = 0; this.visual.render() });
         document.querySelector('#palletLookupForm')?.addEventListener('submit', e => this.runPalletLookup(e));
@@ -4859,6 +4969,7 @@
         document.querySelector('#manualPalletLookupSelect')?.addEventListener('change', e => { if (!e.target.value) return; document.querySelector('#manualPalletLookupId').value = e.target.value; this.syncManualPalletCartonFromLookup() });
         for (const id of ['#manualPalletOrientationButton', '#manualPalletRotateHeldButton']) document.querySelector(id)?.addEventListener('click', () => this.toggleManualPalletOrientation());
         document.querySelector('#manualPalletModeButton')?.addEventListener('click', () => this.toggleManualPalletMode());
+        document.querySelector('#manualPalletModeGroup')?.addEventListener('click', e => { const button = e.target.closest('[data-mode]'); if (button) this.setManualPalletMode(button.dataset.mode) });
         document.querySelector('#manualPalletSnapButton')?.addEventListener('click', () => this.toggleManualPalletSnap());
         document.querySelector('#manualPalletSelectAllButton')?.addEventListener('click', () => this.manualSelectAll());
         document.querySelector('#manualPalletRotateSelButton')?.addEventListener('click', () => this.manualRotateSelected());
@@ -5342,6 +5453,7 @@
         this.updateManualTray();
       }
       toggleManualPalletMode() { const b = this.manualBuilder; if (!b) return; b.mode = b.mode === 'add' ? 'select' : b.mode === 'select' ? 'remove' : 'add'; this.renderManualPalletControls() }
+      setManualPalletMode(mode) { const b = this.manualBuilder; if (!b || !['add', 'select', 'remove'].includes(mode)) return; b.mode = mode; this.renderManualPalletControls() }
       toggleManualPalletSnap() { const b = this.manualBuilder; if (!b) return; b.snap = !b.snap; this.renderManualPalletControls() }
       manualActiveBoxes() { const b = this.manualBuilder; return b ? b.levels[b.activeLevel] : [] }
       // ---- multi-select: the selection is a list of indices into the ACTIVE level and always acts as one rigid block ----
@@ -5543,6 +5655,8 @@
         const set = (id, text) => { const el = document.querySelector(id); if (el) el.textContent = text };
         set('#manualPalletModeButton', this.t(b.mode === 'add' ? 'manualPalletModeAdd' : b.mode === 'select' ? 'manualPalletModeSelect' : 'manualPalletModeRemove'));
         set('#manualPalletSnapButton', this.t(b.snap ? 'manualPalletSnapOn' : 'manualPalletSnapOff'));
+        document.querySelector('#manualPalletSnapButton')?.classList.toggle('active', !!b.snap);
+        document.querySelectorAll('#manualPalletModeGroup [data-mode]').forEach(el => { const on = el.dataset.mode === b.mode; el.classList.toggle('active', on); el.setAttribute('aria-pressed', String(on)) });
         const active = b.levels[b.activeLevel] || [], topEmpty = !b.levels[b.levels.length - 1].length;
         const disable = (id, value) => { const el = document.querySelector(id); if (el) el.disabled = !!value };
         disable('#manualPalletUndoButton', !active.length); disable('#manualPalletClearButton', !active.length);

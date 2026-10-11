@@ -55,6 +55,8 @@ The current checkout still uses `Quick Start.txt`, a nonstandard application-fol
 
 The dialog can be bypassed: `Open_WVN_Master_Carton_Fit_Tool.cmd --skip-update` or `--update` on the command line, or `UpdateData=ask|always|skip` under `[Launcher]` in `system\config.ini` (a per-PC `system\config.local.ini` overrides it). Skipping is refused when no generated data exists yet. The hidden rebuild that runs after a Save never asks.
 
+The screen shows controls and results only. The **Details** button in the header switches the explanatory notes, footnotes, on-screen SOP steps and long diagnostic lines on or off (remembered per browser); warnings are always shown.
+
 Only one launcher preparation process runs at a time. A second launch displays a friendly message and exits cleanly.
 
 ## 5. Source workbooks
