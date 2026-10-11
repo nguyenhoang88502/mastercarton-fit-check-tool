@@ -53,6 +53,8 @@ The current checkout still uses `Quick Start.txt`, a nonstandard application-fol
 5. Wait for preprocessing (skipped when you chose Skip).
 6. The tool opens in Chrome or Edge.
 
+How often the workbooks are re-read can be set in the tool: **Settings → Data → Read the Excel workbooks** (Ask every time / Every time the tool opens / Once a day / Once a week / Only when the workbooks changed / Never). The choice is stored per PC in `system\config.local.ini` as `UpdateData=ask|always|daily|weekly|changed|skip`.
+
 The dialog can be bypassed: `Open_WVN_Master_Carton_Fit_Tool.cmd --skip-update` or `--update` on the command line, or `UpdateData=ask|always|skip` under `[Launcher]` in `system\config.ini` (a per-PC `system\config.local.ini` overrides it). Skipping is refused when no generated data exists yet. The hidden rebuild that runs after a Save never asks.
 
 The screen shows controls and results only. The **Details** button in the header switches the explanatory notes, footnotes, on-screen SOP steps and long diagnostic lines on or off (remembered per browser); warnings are always shown.
@@ -85,6 +87,30 @@ cache_state.ini
 Do not edit these files manually.
 
 `fg_dimensions.csv` also carries four weights in kg read from the `Dimension` sheet: `gross_weight_kg` / `net_weight_kg` (the FG's `EA` row, columns `Gross weight` / `Net Weight`) and `carton_gross_weight_kg` / `carton_net_weight_kg` (the FG's `CA` row, same columns). Where the `CA` row leaves a carton weight blank, the `Master list` sheet's `GW` / `NW` for the same item number fills it; `carton_weight_source` records which sheet supplied the values. A net weight larger than its own gross weight is dropped and listed in `data_quality.csv`.
+
+### Settings tab
+
+Every adjustable assumption is on the **Settings** tab (the old "Engineering assumptions" bar is gone):
+
+| Group | Setting | Default |
+| --- | --- | --- |
+| Carton fit | Minimum utilization (%) | 85 |
+| | Clearance (mm) | 5 |
+| | Rounding increment (mm) | 5 |
+| | Carton wall thickness per side (mm) | 5 |
+| | Carton growth allowed (%) | 3 |
+| Pallet | Pallet length × width (mm) | 1200 × 1000 |
+| | Max stack height, air / truck (mm) | 1600 / 2200 |
+| | Overhang allowed per side (mm) | 0 |
+| Data | Read the Excel workbooks | Ask every time |
+
+**Save and reload** stores them in the browser profile the launcher uses on this PC and reloads the tool; **Reset to defaults** clears them. The wording elsewhere in the tool (for example "may grow up to 3%", "max 1.6 m") follows the saved values.
+
+**Overhang** lets cartons reach up to that many millimetres past each pallet edge. The suggested layout only uses it when it puts more cartons on the pallet, and reports how much was actually used and how many cartons it gained; the manual builder lets cartons be dragged out to the dashed red limit.
+
+### Saving products and cartons: CSV first
+
+**Save this product** and **Save carton** (New Product tab) are instant: the entry is stored in the saving helper's CSV files and queued in `system\http-listener\system\generated\pending_workbook_writes.csv`. The next time the launcher updates the data it writes every queued entry into the dimension workbook **first**, then reads the workbooks, so the entry comes back as ordinary workbook data. If the workbook is open elsewhere at that moment the entries stay queued for the following update. The Settings tab shows how many are waiting; `system\logs\excel_writeback.log` records each write.
 
 ### Saved pallet layouts
 

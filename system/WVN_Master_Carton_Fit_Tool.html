@@ -1454,6 +1454,16 @@
     .manual-save-status.good { color: var(--good) }
     .manual-save-status.bad { color: var(--bad) }
 
+    /* Settings tab: every adjustable assumption, grouped. */
+    .settings-group { border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 14px 14px; margin: 0 0 14px; min-width: 0 }
+    .settings-group legend { padding: 0 6px; font-weight: 700; color: var(--blue) }
+    #settingsPanel .settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px 16px; margin: 0 }
+    #settingsPanel .settings-grid label { display: flex; flex-direction: column; gap: 4px; margin: 0; font-weight: 700 }
+    #settingsPanel .settings-note { margin: 10px 0 0; font-size: 13px; font-weight: 600; color: var(--muted) }
+    #settingsPanel .settings-assumptions { margin-top: 16px }
+    #settingsPanel .settings-assumptions h3 { margin: 0 0 6px; font-size: 14px }
+    #settingsPanel .settings-assumptions p { margin: 4px 0; font-size: 13px }
+
     /* Explanations, footnotes and long diagnostics: off unless Details is switched on. Warnings stay. */
     html:not([data-details="on"]) :is(
       .analysis-badge, .footnote, .link-card .detail, #linkageFlow, .weekly-bom-summary, .pallet-sop, .proposal-summary-warning,
@@ -1463,6 +1473,7 @@
       [data-i18n="manualPalletLayoutNote"], [data-i18n="manualPalletGridHint"], [data-i18n="optimizedModeDescription"],
       [data-i18n="sourceLinkWaiting"], [data-i18n="engineeringAdvisory"], #batchModeDescription
     ) { display: none !important }
+    html:not([data-details="on"]) #settingsPanel .settings-assumptions :is(.footnote, .notice) { display: block !important }
   </style>
 </head>
 
@@ -1492,6 +1503,7 @@
       <button type="button" class="workflow-nav-btn" data-workflow="carton-lookup" data-i18n="cartonLookup">Carton Lookup</button>
       <button type="button" class="workflow-nav-btn" data-workflow="manual-pallet-layout" data-i18n="manualPalletLayoutNav">Manual Pallet Layout</button>
       <button type="button" class="workflow-nav-btn save-feature" data-workflow="add-data" data-i18n="addDataNav" role="tab" aria-selected="false">Add Data</button>
+      <button type="button" class="workflow-nav-btn" data-workflow="settings" data-i18n="settingsNav" role="tab" aria-selected="false">Settings</button>
     </nav>
     <section id="taskProgressPanel" class="task-panel" role="status" aria-live="polite" hidden>
       <div class="task-head"><span id="taskTitle" class="task-title">Preparing data</span><span><span id="taskElapsed">0.0 s</span> · <span id="taskEta" class="task-eta">Estimated remaining: calculating…</span></span></div>
@@ -1499,20 +1511,6 @@
       <div id="taskProgressTrack" class="task-track indeterminate"><div id="taskProgressBar" class="task-bar"></div></div>
       <div class="task-head"><span id="taskDetail" class="task-detail"></span><span id="taskPercent"></span><button id="taskCancelButton" type="button" hidden data-i18n="cancelTask">Cancel</button></div>
     </section>
-    <details id="dashboardPanel" class="section engineering-settings">
-      <summary><span data-i18n="engineeringAssumptions">Engineering assumptions</span><span id="dataReadyStatus" class="data-ready-pill" data-i18n="loadingData">Loading data</span></summary>
-      <div class="engineering-settings-body">
-      <div id="dashboardKpis" class="kpi-grid"></div>
-      <div class="settings-grid" data-optimized-mode-only>
-        <label><span data-i18n="minimumUtilization">Minimum utilization (%)</span><input id="settingMinUtil" type="number" min="1" max="100" step="1" value="85"></label>
-        <label><span data-i18n="clearance">Clearance (mm)</span><input id="settingClearance" type="number" min="0" step="0.5" value="5"></label>
-        <label><span data-i18n="roundingIncrement">Rounding increment (mm)</span><input id="settingRounding" type="number" min="1" step="1" value="5"></label>
-      </div>
-      <p class="footnote" data-i18n="scenarioModelNote" data-optimized-mode-only>FG fixed at 1.00 (exact dimensions), never adjusted · carton starts at the maximum measured dimension per axis and may grow up to 3% larger per axis to fit</p>
-      <p class="quick-assumptions" data-quick-mode-only data-i18n="quickModeAssumptions">Exact active FG dimensions · Exact source carton dimensions · Six orthogonal orientations · Rigid rectangular grid · No compression · No nesting · No diagonal placement</p>
-      <p class="notice" data-i18n="engineeringAdvisory">Engineering advisory only — physical sample validation required.</p>
-      </div>
-    </details>
     <div id="dataTools" class="data-tools" hidden>
       <div class="load-row"><label class="file-button primary"><span data-i18n="selectDimensionWorkbook">Select Dimension Workbook</span><input
             id="fileInput" type="file" accept=".xlsx,.xlsm"></label><label class="file-button"><span
@@ -1755,7 +1753,7 @@
       </div>
       <details id="fgCalculationSettings" class="section expandable-panel" data-optimized-mode-only hidden>
         <summary><span data-i18n="calculationAndMeasurement">Calculation and measurement settings</span><span id="calculationSettingsSummary" class="source-note">Optimized Mode</span></summary>
-        <div class="expandable-panel-body"><div id="optimizedSettingsMount"></div><div class="note" data-i18n="optimizedModeDescription">Multi-axis utilization optimization enabled.</div><div class="source-note">FG fixed at 1.00 (exact dimensions), never adjusted · carton starts at the maximum measured dimension per axis and may grow up to 3% larger per axis to fit</div></div>
+        <div class="expandable-panel-body"><div id="optimizedSettingsMount"></div><div class="note" data-i18n="optimizedModeDescription">Multi-axis utilization optimization enabled.</div><div class="source-note" data-i18n="scenarioModelNote">FG fixed at 1.00 (exact dimensions), never adjusted · carton starts at the maximum measured dimension per axis and may grow up to 3% larger per axis to fit</div></div>
       </details>
     </section>
     <section id="linkagePanel" class="section linkage-panel workflow-panel" data-workflow-panel="fg-lookup" hidden>
@@ -1856,6 +1854,51 @@
       </div>
       <div id="cartonLookupTable" class="table-wrap"></div>
     </section>
+    <section id="settingsPanel" class="section workflow-panel settings-panel" data-workflow-panel="settings" hidden>
+      <div class="section-heading"><h2 data-i18n="settingsNav">Settings</h2><span id="dataReadyStatus" class="data-ready-pill" data-i18n="loadingData">Loading data</span></div>
+      <form id="settingsForm" novalidate>
+        <fieldset class="settings-group"><legend data-i18n="settingsGroupFit">Carton fit</legend>
+          <div class="settings-grid">
+            <label><span data-i18n="minimumUtilization">Minimum utilization (%)</span><input id="settingMinUtil" data-setting="minimumUtilizationPct" type="number"></label>
+            <label><span data-i18n="clearance">Clearance (mm)</span><input id="settingClearance" data-setting="clearanceMm" type="number"></label>
+            <label><span data-i18n="roundingIncrement">Rounding increment (mm)</span><input id="settingRounding" data-setting="roundingIncrementMm" type="number"></label>
+            <label><span data-i18n="settingCartonWall">Carton wall thickness per side (mm)</span><input id="settingCartonWall" data-setting="cartonWallMm" type="number"></label>
+            <label><span data-i18n="settingFitTolerance">Carton growth allowed (%)</span><input id="settingFitTolerance" data-setting="fitTolerancePct" type="number"></label>
+          </div>
+        </fieldset>
+        <fieldset class="settings-group"><legend data-i18n="settingsGroupPallet">Pallet</legend>
+          <div class="settings-grid">
+            <label><span data-i18n="settingPalletLength">Pallet length (mm)</span><input id="settingPalletLength" data-setting="palletLengthMm" type="number"></label>
+            <label><span data-i18n="settingPalletWidth">Pallet width (mm)</span><input id="settingPalletWidth" data-setting="palletWidthMm" type="number"></label>
+            <label><span data-i18n="settingMaxHeightAir">Max stack height, air (mm)</span><input id="settingMaxHeightAir" data-setting="maxHeightAirMm" type="number"></label>
+            <label><span data-i18n="settingMaxHeightTruck">Max stack height, truck / container (mm)</span><input id="settingMaxHeightTruck" data-setting="maxHeightTruckMm" type="number"></label>
+            <label><span data-i18n="settingPalletOverhang">Overhang allowed per side (mm)</span><input id="settingPalletOverhang" data-setting="palletOverhangMm" type="number"></label>
+          </div>
+        </fieldset>
+        <fieldset class="settings-group"><legend data-i18n="settingsGroupData">Data</legend>
+          <div class="settings-grid">
+            <label><span data-i18n="settingUpdateData">Read the Excel workbooks</span><select id="settingUpdateData" disabled>
+              <option value="ask" data-i18n="updateDataAsk">Ask every time</option>
+              <option value="always" data-i18n="updateDataAlways">Every time the tool opens</option>
+              <option value="daily" data-i18n="updateDataDaily">Once a day</option>
+              <option value="weekly" data-i18n="updateDataWeekly">Once a week</option>
+              <option value="changed" data-i18n="updateDataChanged">Only when the workbooks changed</option>
+              <option value="skip" data-i18n="updateDataSkip">Never (use the last data)</option>
+            </select></label>
+          </div>
+          <div id="settingsPendingWrites" class="settings-note"></div>
+          <div id="dashboardKpis" class="kpi-grid"></div>
+        </fieldset>
+        <div class="workflow-actions"><button id="settingsSaveButton" class="primary" type="submit" data-i18n="settingsSave">Save and reload</button><button id="settingsResetButton" type="button" data-i18n="settingsReset">Reset to defaults</button><span id="settingsMessage" class="manual-save-status" role="status"></span></div>
+      </form>
+      <div class="settings-assumptions">
+        <h3 data-i18n="engineeringAssumptions">Engineering assumptions</h3>
+        <p class="footnote" data-i18n="scenarioModelNote" data-optimized-mode-only>FG fixed at 1.00 (exact dimensions), never adjusted · carton starts at the maximum measured dimension per axis and may grow up to 3% larger per axis to fit</p>
+        <p class="quick-assumptions" data-quick-mode-only data-i18n="quickModeAssumptions">Exact active FG dimensions · Exact source carton dimensions · Six orthogonal orientations · Rigid rectangular grid · No compression · No nesting · No diagonal placement</p>
+        <p class="footnote" data-i18n="palletFixedAssumptions">Pallet: a carton counts as supported when 78% of its base rests on the level below; more than 82% on one carton is a column; the 150 mm pallet deck is not counted in the stack height.</p>
+        <p class="notice" data-i18n="engineeringAdvisory">Engineering advisory only — physical sample validation required.</p>
+      </div>
+    </section>
     <div id="palletPrintSheet" class="pallet-print-sheet"></div>
     <section id="manualPalletLayoutPanel" class="section workflow-panel" data-workflow-panel="manual-pallet-layout" hidden>
       <div class="section-heading"><h2 data-i18n="manualPalletLayoutNav">Manual Pallet Layout</h2><span class="source-note" data-i18n="manualPalletLayoutNote">Pick a carton, then click the grid to stack it onto the pallet by hand, Tetris-style.</span></div>
@@ -1951,6 +1994,45 @@
   <script>
     'use strict';
 
+    // ---- Settings: every adjustable assumption lives here ---------------------------------------------------------
+    // Read once, at start-up, from localStorage ('wvnSettings'). The engine's constants further down are derived from
+    // these values, so the Settings tab saves and reloads the page instead of patching live state.
+    const AppSettings = (() => {
+      const FIELDS = {
+        minimumUtilizationPct: { def: 85, min: 1, max: 100, step: 1 },
+        clearanceMm: { def: 5, min: 0, max: 100, step: 0.5 },
+        roundingIncrementMm: { def: 5, min: 1, max: 100, step: 1 },
+        cartonWallMm: { def: 5, min: 0, max: 30, step: 0.5 },
+        fitTolerancePct: { def: 3, min: 1, max: 10, step: 1, whole: true },
+        palletLengthMm: { def: 1200, min: 100, max: 5000, step: 1 },
+        palletWidthMm: { def: 1000, min: 100, max: 5000, step: 1 },
+        maxHeightAirMm: { def: 1600, min: 100, max: 5000, step: 10 },
+        maxHeightTruckMm: { def: 2200, min: 100, max: 5000, step: 10 },
+        palletOverhangMm: { def: 0, min: 0, max: 100, step: 5 }
+      };
+      const clean = raw => {
+        const out = {};
+        for (const [key, field] of Object.entries(FIELDS)) {
+          const given = raw?.[key]; let n = given === '' || given == null ? NaN : Number(given);
+          if (!Number.isFinite(n)) n = field.def;
+          n = Math.min(field.max, Math.max(field.min, n));
+          out[key] = field.whole ? Math.round(n) : Math.round(n * 10) / 10;
+        }
+        return out;
+      };
+      let stored = {};
+      try { stored = JSON.parse(localStorage.getItem('wvnSettings') || '{}') || {} } catch (_) { stored = {} }
+      return Object.freeze({
+        FIELDS, defaults: Object.freeze(clean({})), clean, ...clean(stored),
+        save(values) { try { localStorage.setItem('wvnSettings', JSON.stringify(clean(values))); return true } catch (_) { return false } },
+        reset() { try { localStorage.removeItem('wvnSettings'); return true } catch (_) { return false } }
+      });
+    })();
+    function palletMaxHeightMm(method) { return method === 'air' ? AppSettings.maxHeightAirMm : AppSettings.maxHeightTruckMm }
+    // Fields that show a setting pick it up here, before anything reads them.
+    document.querySelectorAll('#settingsForm [data-setting]').forEach(el => { const field = AppSettings.FIELDS[el.dataset.setting]; if (!field) return; el.min = field.min; el.max = field.max; el.step = field.step; el.value = AppSettings[el.dataset.setting] });
+    for (const id of ['fgPalletLengthMm', 'manualPalletLengthMm', 'cartonPalletLengthMm']) { const el = document.getElementById(id); if (el) el.value = AppSettings.palletLengthMm }
+    for (const id of ['fgPalletWidthMm', 'manualPalletWidthMm', 'cartonPalletWidthMm']) { const el = document.getElementById(id); if (el) el.value = AppSettings.palletWidthMm }
     class I18n {
       static language = 'en';
       static text = {
@@ -2381,6 +2463,15 @@
         manualPalletUndo: 'Undo', manualPalletCopyPrev: 'Copy level below', manualPalletRepeat: 'Repeat to top',
         manualPalletCopySel: 'Copy', manualPalletPasteSel: 'Paste', manualPalletPasteNoRoom: 'No room on this level for the copied cartons.',
         palletEditInManual: 'Edit in Manual Pallet Layout', cartonSelectLabel: 'Existing carton', cartonSelectPrompt: '— Select carton —',
+        settingsNav: 'Settings', settingsGroupFit: 'Carton fit', settingsGroupPallet: 'Pallet', settingsGroupData: 'Data',
+        settingCartonWall: 'Carton wall thickness per side (mm)', settingFitTolerance: 'Carton growth allowed (%)',
+        settingPalletLength: 'Pallet length (mm)', settingPalletWidth: 'Pallet width (mm)', settingMaxHeightAir: 'Max stack height, air (mm)', settingMaxHeightTruck: 'Max stack height, truck / container (mm)', settingPalletOverhang: 'Overhang allowed per side (mm)',
+        settingUpdateData: 'Read the Excel workbooks', updateDataAsk: 'Ask every time', updateDataAlways: 'Every time the tool opens', updateDataDaily: 'Once a day', updateDataWeekly: 'Once a week', updateDataChanged: 'Only when the workbooks changed', updateDataSkip: 'Never (use the last data)',
+        settingsPending: 'Saved entries waiting to be written into the workbook: {n}', settingsSave: 'Save and reload', settingsReset: 'Reset to defaults',
+        settingsSaveFailed: 'Settings could not be saved in this browser.', settingsLauncherFailed: 'The workbook reading setting could not be saved.', settingsHelperOff: 'Open the tool with Open_WVN_Master_Carton_Fit_Tool.cmd to change this.',
+        palletFixedAssumptions: 'Pallet: a carton counts as supported when 78% of its base rests on the level below; more than 82% on one carton is a column; the 150 mm pallet deck is not counted in the stack height.',
+        fgPalletOverhang: 'Overhang', fgPalletOverhangValue: '{mm} mm per side', fgPalletOverhangGain: '{mm} mm per side (+{n} cartons)',
+        excelQueued: 'It will be written into the Excel workbook at the next data update.', excelQueueFailed: 'It could not be queued for the Excel workbook: ',
         palletSourceSaved: 'Saved layout · {date}', palletSourceSuggested: 'Suggested layout', palletViewSaved: 'Saved', palletViewSuggested: 'Suggested', palletSavedTag: 'saved layout',
         palletSavedStale: 'The saved layout was made for a different carton size ({dims}), so it is not shown. Save a new one to replace it.',
         manualPalletSave: 'Save layout', manualPalletLoadSaved: 'Load saved', manualPalletSaved: 'Saved {date}', manualPalletSaving: 'Saving…',
@@ -2393,6 +2484,15 @@
         manualPalletUndo: 'Hoàn tác', manualPalletCopyPrev: 'Sao chép lớp dưới', manualPalletRepeat: 'Lặp đến đỉnh',
         manualPalletCopySel: 'Sao chép', manualPalletPasteSel: 'Dán', manualPalletPasteNoRoom: 'Không còn chỗ trên lớp này cho các thùng đã sao chép.',
         palletEditInManual: 'Chỉnh trong Xếp Pallet Thủ công', cartonSelectLabel: 'Thùng hiện có', cartonSelectPrompt: '— Chọn thùng —',
+        settingsNav: 'Cài đặt', settingsGroupFit: 'Kiểm tra vừa thùng', settingsGroupPallet: 'Pallet', settingsGroupData: 'Dữ liệu',
+        settingCartonWall: 'Độ dày thành thùng mỗi bên (mm)', settingFitTolerance: 'Mức cho phép thùng lớn hơn (%)',
+        settingPalletLength: 'Chiều dài pallet (mm)', settingPalletWidth: 'Chiều rộng pallet (mm)', settingMaxHeightAir: 'Chiều cao xếp tối đa, hàng không (mm)', settingMaxHeightTruck: 'Chiều cao xếp tối đa, xe tải / container (mm)', settingPalletOverhang: 'Cho phép nhô ra mỗi bên (mm)',
+        settingUpdateData: 'Đọc lại file Excel', updateDataAsk: 'Hỏi mỗi lần mở', updateDataAlways: 'Mỗi lần mở công cụ', updateDataDaily: 'Mỗi ngày một lần', updateDataWeekly: 'Mỗi tuần một lần', updateDataChanged: 'Chỉ khi file Excel thay đổi', updateDataSkip: 'Không bao giờ (dùng dữ liệu lần trước)',
+        settingsPending: 'Dữ liệu đã lưu đang chờ ghi vào file Excel: {n}', settingsSave: 'Lưu và tải lại', settingsReset: 'Đặt lại mặc định',
+        settingsSaveFailed: 'Không thể lưu cài đặt trong trình duyệt này.', settingsLauncherFailed: 'Không thể lưu cài đặt đọc file Excel.', settingsHelperOff: 'Hãy mở công cụ bằng Open_WVN_Master_Carton_Fit_Tool.cmd để đổi mục này.',
+        palletFixedAssumptions: 'Pallet: thùng được coi là được đỡ khi 78% đáy tựa lên lớp dưới; hơn 82% trên một thùng duy nhất là xếp cột; mặt pallet cao 150 mm không tính vào chiều cao chồng.',
+        fgPalletOverhang: 'Nhô ra', fgPalletOverhangValue: '{mm} mm mỗi bên', fgPalletOverhangGain: '{mm} mm mỗi bên (+{n} thùng)',
+        excelQueued: 'Dữ liệu sẽ được ghi vào file Excel ở lần cập nhật dữ liệu tiếp theo.', excelQueueFailed: 'Không thể đưa vào hàng chờ ghi file Excel: ',
         palletSourceSaved: 'Bố trí đã lưu · {date}', palletSourceSuggested: 'Bố trí đề xuất', palletViewSaved: 'Đã lưu', palletViewSuggested: 'Đề xuất', palletSavedTag: 'có bố trí đã lưu',
         palletSavedStale: 'Bố trí đã lưu được tạo cho kích thước thùng khác ({dims}) nên không hiển thị. Hãy lưu bố trí mới để thay thế.',
         manualPalletSave: 'Lưu bố trí', manualPalletLoadSaved: 'Mở bố trí đã lưu', manualPalletSaved: 'Đã lưu {date}', manualPalletSaving: 'Đang lưu…',
@@ -2400,6 +2500,16 @@
         manualPalletSaveOverwrite: 'Thùng {id} đã có bố trí được lưu ({date}). Thay thế?', manualPalletSaveFailed: 'Chưa lưu được: {error}', manualPalletSaveOldHelper: 'Chưa lưu được: một bản cũ của công cụ vẫn đang chạy. Hãy đóng mọi cửa sổ công cụ rồi mở lại.', manualPalletLoadConfirm: 'Thay bố trí đang hiển thị bằng bố trí đã lưu?',
         manualPalletGridHint: 'Nhấn giữ một thùng (hoặc vùng trống của pallet), kéo rồi thả để đặt. Kéo thùng đã đặt để di chuyển. Chế độ chọn: kéo trên vùng trống để quét chọn (Shift/Ctrl để thêm hoặc bớt một thùng), rồi kéo một thùng đã chọn để di chuyển tất cả; phím R xoay, Delete xóa, Ctrl+C / Ctrl+V sao chép và dán các thùng đã chọn (kể cả sang lớp khác). Bấm chuột phải để bỏ một thùng.'
       }) }
+      // Text that quotes an adjustable assumption (growth %, wall, clearance, stack height limits) follows the Settings tab.
+      static {
+        const a = AppSettings, d = a.defaults, metres = (mm, comma) => { const text = String(Number((mm / 1000).toFixed(2))); return comma ? text.replace('.', ',') : text };
+        const rules = [];
+        if (a.fitTolerancePct !== d.fitTolerancePct) rules.push([/(?<![\d.,])3%/g, () => `${a.fitTolerancePct}%`]);
+        if (a.cartonWallMm !== d.cartonWallMm) rules.push([/\b5 mm (carton wall|walls?\b)/g, (_, tail) => `${a.cartonWallMm} mm ${tail}`], [/(thành(?: thùng)?) 5 mm/gi, (_, head) => `${head} ${a.cartonWallMm} mm`]);
+        if (a.clearanceMm !== d.clearanceMm) rules.push([/\b5 mm clearance/g, () => `${a.clearanceMm} mm clearance`], [/khoảng hở 5 mm/g, () => `khoảng hở ${a.clearanceMm} mm`]);
+        if (a.maxHeightAirMm !== d.maxHeightAirMm || a.maxHeightTruckMm !== d.maxHeightTruckMm) rules.push([/(1\.6|2\.2|1,6|2,2) m\b/g, (_, n) => `${metres(n.startsWith('1') ? a.maxHeightAirMm : a.maxHeightTruckMm, n.includes(','))} m`]);
+        if (rules.length) for (const dict of Object.values(this.text)) for (const key of Object.keys(dict)) { if (typeof dict[key] !== 'string') continue; let text = dict[key]; for (const [pattern, to] of rules) text = text.replace(pattern, to); dict[key] = text }
+      }
       static t(key, vars = {}) { let s = this.text[this.language][key] ?? this.text.en[key] ?? key; for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, v); return s }
     }
 
@@ -2760,7 +2870,7 @@
       }
     }
     // Single source of truth for how far FG/carton dimensions may be adjusted when searching for a fit (+/- 3%).
-    const FIT_TOLERANCE = 0.03;
+    const FIT_TOLERANCE = AppSettings.fitTolerancePct / 100;   // Settings: carton growth allowed
     const RATIO_MIN = Number((1 - FIT_TOLERANCE).toFixed(6));
     const RATIO_MAX = Number((1 + FIT_TOLERANCE).toFixed(6));
     const RATIO_STEP = 0.01;
@@ -2771,7 +2881,7 @@
     const VERIFY_MAX_TIME_MS = 150;
     const OPTIMIZE_MAX_SCENARIOS = 20000;
     const OPTIMIZE_MAX_TIME_MS = 1500;
-    const QUICK_MODE_CARTON_WALL_MM = 5;
+    const QUICK_MODE_CARTON_WALL_MM = AppSettings.cartonWallMm;   // Settings: carton wall thickness per side
     const QUICK_MODE_TOTAL_WALL_DEDUCTION_MM = QUICK_MODE_CARTON_WALL_MM * 2;
     const CALCULATION_MODES=Object.freeze({QUICK:'quick',OPTIMIZED:'optimized'});
     const DEFAULT_CALCULATION_MODE=CALCULATION_MODES.OPTIMIZED;
@@ -2877,9 +2987,9 @@
         verifyMaxTimeMs: VERIFY_MAX_TIME_MS,
         optimizeMaxScenarios: OPTIMIZE_MAX_SCENARIOS,
         optimizeMaxTimeMs: OPTIMIZE_MAX_TIME_MS,
-        minimumUtilizationPct: 85,
-        clearanceMm: 5,
-        roundingIncrementMm: 5
+        minimumUtilizationPct: AppSettings.minimumUtilizationPct,
+        clearanceMm: AppSettings.clearanceMm,
+        roundingIncrementMm: AppSettings.roundingIncrementMm
       });
       static current = { ...FitSettings.defaults };
       static reset() {
@@ -2912,7 +3022,7 @@
     }
 
     class DimensionSettings {
-      static defaults = Object.freeze({ minimumUtilizationPct: 85, clearanceMm: 5, roundingIncrementMm: 5 });
+      static defaults = Object.freeze({ minimumUtilizationPct: AppSettings.minimumUtilizationPct, clearanceMm: AppSettings.clearanceMm, roundingIncrementMm: AppSettings.roundingIncrementMm });
       static current = { ...DimensionSettings.defaults };
       static reset() { this.current = { ...this.defaults } }
       static signature(settings = this.current) { return [settings.minimumUtilizationPct, settings.clearanceMm, settings.roundingIncrementMm].join('|') }
@@ -4209,7 +4319,21 @@
       return unique;
     }
     const palletLayoutCache = new Map();
-    function computePalletLayout(carton, palletLengthMm, palletWidthMm, maxHeightMm) {
+    // Layout for a pallet, with the overhang allowance from Settings: cartons may reach up to `overhangMm` past each
+    // edge. The allowance is only used when it actually puts more cartons on the pallet; otherwise the flush layout
+    // wins. Coordinates stay relative to the real pallet corner, so an overhanging carton has x or y below 0 (or
+    // ends beyond the deck). layout.overhangMm is the overhang actually used.
+    function computePalletLayout(carton, palletLengthMm, palletWidthMm, maxHeightMm, overhangMm = AppSettings.palletOverhangMm) {
+      const flush = computePalletLayoutOnDeck(carton, palletLengthMm, palletWidthMm, maxHeightMm), oh = Math.max(0, Number(overhangMm) || 0);
+      if (!oh) return flush;
+      const wide = computePalletLayoutOnDeck(carton, palletLengthMm + 2 * oh, palletWidthMm + 2 * oh, maxHeightMm);
+      if (!wide || (flush && wide.totalPerPallet <= flush.totalPerPallet)) return flush;
+      const shift = pattern => ({ ...pattern, regions: pattern.regions.map(r => r && { ...r, startL: r.startL - oh, startW: r.startW - oh }) });
+      const primary = shift(wide.primary), secondary = wide.secondary === wide.primary ? primary : shift(wide.secondary);
+      const used = Math.max(0, ...[...expandPatternCells(primary), ...expandPatternCells(secondary)].map(c => Math.max(-c.x, -c.y, c.x + c.uL - palletLengthMm, c.y + c.uW - palletWidthMm)));
+      return { ...wide, primary, secondary, overhangMm: Math.round(used * 10) / 10, overhangGain: wide.totalPerPallet - (flush ? flush.totalPerPallet : 0) };
+    }
+    function computePalletLayoutOnDeck(carton, palletLengthMm, palletWidthMm, maxHeightMm) {
       const cl = Number(carton?.width), cw = Number(carton?.depth), ch = Number(carton?.height);
       if (![cl, cw, ch].every(n => Number.isFinite(n) && n > 0)) return null;
       const PL = palletLengthMm, PW = palletWidthMm, cacheKey = [cl, cw, ch, PL, PW, maxHeightMm].join('|');
@@ -4383,6 +4507,7 @@
     }
     // ---- Manual Pallet Layout: free-placement helpers. All values in mm, origin at the pallet corner. -------------
     const MANUAL_PAD_MM = 20, MANUAL_SNAP_MM = 12, MANUAL_EPS_MM = 0.5;
+    function manualPadMm(b) { return MANUAL_PAD_MM + (b?.overhangMm || 0) }   // drawing margin: room for cartons that hang over the edge
     function manualOverlaps(boxes, rect, ignoreIndex = -1) {
       for (let i = 0; i < boxes.length; i++) {
         if (i === ignoreIndex) continue;
@@ -4392,19 +4517,19 @@
       return false;
     }
     // Where a carton of size l x w ends up when its centre is dragged to (cx, cy): pulled to the pallet edges and
-    // to neighbouring cartons when snapping is on, always clamped inside the pallet (no overhang), and checked for overlap.
+    // to neighbouring cartons when snapping is on, always clamped to the pallet plus the builder's overhang allowance, and checked for overlap.
     function manualResolvePosition(b, boxes, cx, cy, l, w, ignoreIndex = -1) {
-      const PL = b.palletLengthMm, PW = b.palletWidthMm;
+      const oh = b.overhangMm || 0, LO = -oh, PL = b.palletLengthMm, PW = b.palletWidthMm, HX = PL + oh, HY = PW + oh;
       let x = cx - l / 2, y = cy - w / 2;
       const pull = (v, candidates) => { let best = v, bestDistance = MANUAL_SNAP_MM; for (const c of candidates) { const d = Math.abs(c - v); if (d <= bestDistance) { bestDistance = d; best = c } } return best };
       if (b.snap) {
-        const xs = [0, PL - l], ys = [0, PW - w];
+        const xs = [0, PL - l, LO, HX - l], ys = [0, PW - w, LO, HY - w];
         boxes.forEach((o, i) => { if (i === ignoreIndex) return; xs.push(o.x + o.l, o.x - l, o.x, o.x + o.l - l); ys.push(o.y + o.w, o.y - w, o.y, o.y + o.w - w) });
         x = pull(x, xs); y = pull(y, ys);
       }
-      x = Math.round(Math.min(Math.max(0, x), Math.max(0, PL - l)) * 10) / 10; y = Math.round(Math.min(Math.max(0, y), Math.max(0, PW - w)) * 10) / 10;
+      x = Math.round(Math.min(Math.max(LO, x), Math.max(LO, HX - l)) * 10) / 10; y = Math.round(Math.min(Math.max(LO, y), Math.max(LO, HY - w)) * 10) / 10;
       const rect = { x, y, l, w };
-      return { ...rect, valid: l <= PL + 1e-6 && w <= PW + 1e-6 && !manualOverlaps(boxes, rect, ignoreIndex) };
+      return { ...rect, valid: l <= HX - LO + 1e-6 && w <= HY - LO + 1e-6 && !manualOverlaps(boxes, rect, ignoreIndex) };
     }
     // ---- Group (multi-select) helpers: the selected cartons move and turn as ONE rigid block so their relative layout survives. ----
     function manualRound1(v) { return Math.round(v * 10) / 10 }
@@ -4414,20 +4539,20 @@
     // Where the selected block ends up when dragged by (dx, dy): kept fully inside the pallet, pulled to the pallet edges and to
     // the unselected cartons when snapping is on (any edge of any selected carton can snap), and rejected on overlap.
     function manualResolveGroup(b, boxes, indices, dx, dy) {
-      const PL = b.palletLengthMm, PW = b.palletWidthMm, selected = new Set(indices), group = indices.map(i => boxes[i]).filter(Boolean), others = boxes.filter((_, i) => !selected.has(i));
+      const oh = b.overhangMm || 0, LO = -oh, PL = b.palletLengthMm, PW = b.palletWidthMm, HX = PL + oh, HY = PW + oh, selected = new Set(indices), group = indices.map(i => boxes[i]).filter(Boolean), others = boxes.filter((_, i) => !selected.has(i));
       if (!group.length) return { dx: 0, dy: 0, valid: false };
       const { x0, x1, y0, y1 } = manualGroupBounds(group), clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
-      let mx = clamp(dx, -x0, PL - x1), my = clamp(dy, -y0, PW - y1);
+      let mx = clamp(dx, LO - x0, HX - x1), my = clamp(dy, LO - y0, HY - y1);
       if (b.snap) {
         const pull = (value, edges, targets, lo, hi) => {
           let best = value, bestDistance = MANUAL_SNAP_MM;
           for (const e of edges) for (const t of targets) { const candidate = t - e, d = Math.abs(candidate - value); if (d <= bestDistance) { bestDistance = d; best = candidate } }
           return clamp(best, lo, hi);
         };
-        const xTargets = new Set([0, PL]), yTargets = new Set([0, PW]), xEdges = new Set(), yEdges = new Set();
+        const xTargets = new Set([0, PL, LO, HX]), yTargets = new Set([0, PW, LO, HY]), xEdges = new Set(), yEdges = new Set();
         for (const o of others) { xTargets.add(o.x); xTargets.add(o.x + o.l); yTargets.add(o.y); yTargets.add(o.y + o.w) }
         for (const o of group) { xEdges.add(o.x); xEdges.add(o.x + o.l); yEdges.add(o.y); yEdges.add(o.y + o.w) }
-        mx = pull(mx, xEdges, xTargets, -x0, PL - x1); my = pull(my, yEdges, yTargets, -y0, PW - y1);
+        mx = pull(mx, xEdges, xTargets, LO - x0, HX - x1); my = pull(my, yEdges, yTargets, LO - y0, HY - y1);
       }
       mx = manualRound1(mx); my = manualRound1(my);
       return { dx: mx, dy: my, valid: group.every(o => !manualOverlaps(others, { x: o.x + mx, y: o.y + my, l: o.l, w: o.w })) };
@@ -4436,16 +4561,16 @@
     // own centre. If that would leave the pallet or hit another carton, the block is tried pinned at each of its four corners
     // instead. Returns the new rectangles (same order as `indices`) or null when no placement works.
     function manualRotateGroup(b, boxes, indices) {
-      const PL = b.palletLengthMm, PW = b.palletWidthMm, selected = new Set(indices), group = indices.map(i => boxes[i]).filter(Boolean), others = boxes.filter((_, i) => !selected.has(i));
+      const oh = b.overhangMm || 0, LO = -oh, PL = b.palletLengthMm, PW = b.palletWidthMm, HX = PL + oh, HY = PW + oh, selected = new Set(indices), group = indices.map(i => boxes[i]).filter(Boolean), others = boxes.filter((_, i) => !selected.has(i));
       if (!group.length) return null;
       const { x0, x1, y0, y1 } = manualGroupBounds(group), gx = (x0 + x1) / 2, gy = (y0 + y1) / 2, width = x1 - x0, height = y1 - y0;
       const turned = group.map(o => ({ cx: -(o.y + o.w / 2 - gy), cy: o.x + o.l / 2 - gx, l: o.w, w: o.l }));   // centre relative to the block centre
-      if (height > PL + 1e-6 || width > PW + 1e-6) return null;                                                 // the block's new footprint is height x width
+      if (height > HX - LO + 1e-6 || width > HY - LO + 1e-6) return null;                                                 // the block's new footprint is height x width
       const anchors = [[gx, gy], [x0 + height / 2, y0 + width / 2], [x1 - height / 2, y0 + width / 2], [x0 + height / 2, y1 - width / 2], [x1 - height / 2, y1 - width / 2]];
       for (const [ax, ay] of anchors) {
-        const cx = Math.min(Math.max(ax, height / 2), PL - height / 2), cy = Math.min(Math.max(ay, width / 2), PW - width / 2);
+        const cx = Math.min(Math.max(ax, LO + height / 2), HX - height / 2), cy = Math.min(Math.max(ay, LO + width / 2), HY - width / 2);
         const rects = turned.map(t => ({ x: manualRound1(cx + t.cx - t.l / 2), y: manualRound1(cy + t.cy - t.w / 2), l: t.l, w: t.w }));
-        if (rects.every(r => r.x >= -1e-6 && r.y >= -1e-6 && r.x + r.l <= PL + 1e-6 && r.y + r.w <= PW + 1e-6 && !manualOverlaps(others, r))) return rects;
+        if (rects.every(r => r.x >= LO - 1e-6 && r.y >= LO - 1e-6 && r.x + r.l <= HX + 1e-6 && r.y + r.w <= HY + 1e-6 && !manualOverlaps(others, r))) return rects;
       }
       return null;
     }
@@ -4453,13 +4578,13 @@
     // case when pasting onto another level), otherwise the free spot nearest to it. Candidate corners are the pallet
     // edges and the edges of the cartons already on the level, so a pasted block always lands flush against something.
     function manualFindPasteSpot(b, boxes, clip) {
-      const PL = b.palletLengthMm, PW = b.palletWidthMm, { x0, x1, y0, y1 } = manualGroupBounds(clip), width = x1 - x0, height = y1 - y0;
-      if (width > PL + 1e-6 || height > PW + 1e-6) return null;
+      const oh = b.overhangMm || 0, LO = -oh, PL = b.palletLengthMm, PW = b.palletWidthMm, HX = PL + oh, HY = PW + oh, { x0, x1, y0, y1 } = manualGroupBounds(clip), width = x1 - x0, height = y1 - y0;
+      if (width > HX - LO + 1e-6 || height > HY - LO + 1e-6) return null;
       const place = (ox, oy) => clip.map(o => ({ x: manualRound1(o.x - x0 + ox), y: manualRound1(o.y - y0 + oy), l: o.l, w: o.w }));
-      const xs = new Set([x0, 0, PL - width]), ys = new Set([y0, 0, PW - height]);
+      const xs = new Set([x0, 0, PL - width, LO, HX - width]), ys = new Set([y0, 0, PW - height, LO, HY - height]);
       for (const o of boxes) { xs.add(o.x + o.l); xs.add(o.x - width); ys.add(o.y + o.w); ys.add(o.y - height) }
       const candidates = [];
-      for (const x of xs) if (x >= -1e-6 && x <= PL - width + 1e-6) for (const y of ys) if (y >= -1e-6 && y <= PW - height + 1e-6) candidates.push([Math.max(0, x), Math.max(0, y)]);
+      for (const x of xs) if (x >= LO - 1e-6 && x <= HX - width + 1e-6) for (const y of ys) if (y >= LO - 1e-6 && y <= HY - height + 1e-6) candidates.push([Math.max(LO, x), Math.max(LO, y)]);
       candidates.sort((p, q) => Math.hypot(p[0] - x0, p[1] - y0) - Math.hypot(q[0] - x0, q[1] - y0) || p[1] - q[1] || p[0] - q[0]);
       for (const [ox, oy] of candidates) { const rects = place(ox, oy); if (rects.every(r => !manualOverlaps(boxes, r))) return rects }
       return null;
@@ -4507,6 +4632,8 @@
         [I18n.t('palletTotalPerPallet'), fmt(a.total)],
         [I18n.t('palletStackHeightLabel'), `${fmt(a.levelsUsed * Number(carton.height))} / ${fmt(spec.maxHeightMm)} mm`],
       ];
+      const over = Number.isFinite(spec.palletLengthMm) ? Math.max(0, ...spec.levels.flat().map(o => Math.max(-o.x, -o.y, o.x + o.l - spec.palletLengthMm, o.y + o.w - spec.palletWidthMm))) : 0;
+      if (over > 0.05) facts.push([I18n.t('fgPalletOverhang'), I18n.t('fgPalletOverhangValue', { mm: fmt(over, 1) })]);
       if (opts.cartonGrossKg > 0) facts.push([I18n.t('fgPalletLoad'), `${fmt(opts.cartonGrossKg * a.total, 1)} kg`]);
       if (stability) facts.push([I18n.t('palletStabilityLabel'), I18n.t('palletStabilityValue', { interlock: Math.round(stability.interlockedShare * 100), support: Math.round(stability.minSupport * 100) }), true]);
       else if (above > 0) facts.push([I18n.t('palletStabilityLabel'), I18n.t('palletStabilityValue', { interlock: Math.round((1 - (a.singleSupporter + a.floating) / above) * 100), support: Math.round(a.minSupport * 100) }), true]);
@@ -4527,16 +4654,16 @@
         const id = String(raw.carton_id ?? '').trim(), c = raw.carton || {}, p = raw.pallet || {};
         const carton = { length_mm: num(c.length_mm), width_mm: num(c.width_mm), height_mm: num(c.height_mm) }, pallet = { length_mm: num(p.length_mm), width_mm: num(p.width_mm) };
         if (!id || ![carton.length_mm, carton.width_mm, carton.height_mm, pallet.length_mm, pallet.width_mm].every(n => n > 0)) return null;
-        const levels = [];
+        const levels = [], overhang = num(raw.overhang_mm) > 0 ? Math.min(200, raw.overhang_mm) : 0;
         for (const level of raw.levels) {
           if (!Array.isArray(level)) return null;
           const boxes = level.map(o => ({ x: num(o?.x), y: num(o?.y), l: num(o?.l), w: num(o?.w) }));
-          if (!boxes.every(o => o.x >= -1 && o.y >= -1 && o.l > 0 && o.w > 0)) return null;
+          if (!boxes.every(o => o.x >= -(overhang + 1) && o.y >= -(overhang + 1) && o.l > 0 && o.w > 0)) return null;
           if (boxes.length) levels.push(boxes);
         }
         if (!levels.length) return null;
         const method = raw.ship_method === 'air' ? 'air' : 'truck', maxHeight = num(raw.max_height_mm);
-        return { schema_version: SCHEMA_VERSION, carton_id: id, carton, pallet, ship_method: method, max_height_mm: maxHeight > 0 ? maxHeight : (method === 'air' ? 1600 : 2200), levels, origin: raw.origin === 'suggested' ? 'suggested' : 'manual', source_fg_id: String(raw.source_fg_id ?? ''), saved_at: String(raw.saved_at ?? ''), saved_by: String(raw.saved_by ?? '') };
+        return { schema_version: SCHEMA_VERSION, carton_id: id, carton, pallet, ship_method: method, max_height_mm: maxHeight > 0 ? maxHeight : palletMaxHeightMm(method), overhang_mm: overhang, levels, origin: raw.origin === 'suggested' ? 'suggested' : 'manual', source_fg_id: String(raw.source_fg_id ?? ''), saved_at: String(raw.saved_at ?? ''), saved_by: String(raw.saved_by ?? '') };
       };
       const put = raw => { const record = normalize(raw); if (record) byCarton.set(normalizeId(record.carton_id), record); return record };
       return {
@@ -4551,17 +4678,18 @@
         savedLabel(record) { const d = new Date(record?.saved_at || ''); return Number.isNaN(d.getTime()) ? String(record?.saved_at || '') : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) },
         // The document sent to the helper. Empty levels are left out; saved_at / saved_by are stamped by the helper.
         fromBuilder(b) {
-          return { schema_version: SCHEMA_VERSION, carton_id: String(b.carton.carton_id || '').trim(), carton: { length_mm: Number(b.carton.width), width_mm: Number(b.carton.depth), height_mm: Number(b.carton.height) }, pallet: { length_mm: Number(b.palletLengthMm), width_mm: Number(b.palletWidthMm) }, ship_method: b.method === 'air' ? 'air' : 'truck', max_height_mm: Number(b.maxHeightMm), origin: b.origin === 'suggested' ? 'suggested' : 'manual', source_fg_id: String(b.sourceFgId || ''), levels: b.levels.filter(level => level.length).map(level => level.map(o => ({ x: manualRound1(o.x), y: manualRound1(o.y), l: manualRound1(o.l), w: manualRound1(o.w) }))) };
+          return { schema_version: SCHEMA_VERSION, carton_id: String(b.carton.carton_id || '').trim(), carton: { length_mm: Number(b.carton.width), width_mm: Number(b.carton.depth), height_mm: Number(b.carton.height) }, pallet: { length_mm: Number(b.palletLengthMm), width_mm: Number(b.palletWidthMm) }, ship_method: b.method === 'air' ? 'air' : 'truck', max_height_mm: Number(b.maxHeightMm), overhang_mm: Number(b.overhangMm) || 0, origin: b.origin === 'suggested' ? 'suggested' : 'manual', source_fg_id: String(b.sourceFgId || ''), levels: b.levels.filter(level => level.length).map(level => level.map(o => ({ x: manualRound1(o.x), y: manualRound1(o.y), l: manualRound1(o.l), w: manualRound1(o.w) }))) };
         }
       };
     })();
     // Top-down drawing of one level. `interactive` adds the live ghost + per-carton support tint (screen); the print
     // version is static and numbers every carton so a packer can follow it.
     function buildManualPalletLevelSvg(b, levelIndex, opts = {}) {
-      const { interactive = false } = opts, selected = new Set(opts.selected || []), PL = b.palletLengthMm, PW = b.palletWidthMm, pad = MANUAL_PAD_MM, vbW = PL + pad * 2, vbH = PW + pad * 2;
+      const { interactive = false } = opts, selected = new Set(opts.selected || []), PL = b.palletLengthMm, PW = b.palletWidthMm, pad = manualPadMm(b), vbW = PL + pad * 2, vbH = PW + pad * 2;
       const boxes = b.levels[levelIndex] || [], below = levelIndex > 0 ? b.levels[levelIndex - 1] : null, fontBase = Math.max(18, Math.min(PL, PW) / 38);
       let out = `<svg viewBox="0 0 ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${interactive ? 760 : 560}px;height:auto;${interactive ? 'touch-action:none;user-select:none;cursor:crosshair;' : ''}">`;
       out += `<rect x="${pad}" y="${pad}" width="${PL}" height="${PW}" fill="#f3e6d4" stroke="#8a5a2e" stroke-width="4"/>`;
+      if (b.overhangMm > 0) out += `<rect x="${pad - b.overhangMm}" y="${pad - b.overhangMm}" width="${PL + 2 * b.overhangMm}" height="${PW + 2 * b.overhangMm}" fill="none" stroke="#c0392b" stroke-width="2" stroke-dasharray="14 8" opacity=".7" pointer-events="none"/>`;
       for (let gx = 100; gx < PL; gx += 100) out += `<line x1="${pad + gx}" y1="${pad}" x2="${pad + gx}" y2="${pad + PW}" stroke="#c9b79c" stroke-width="1" opacity=".55"/>`;
       for (let gy = 100; gy < PW; gy += 100) out += `<line x1="${pad}" y1="${pad + gy}" x2="${pad + PL}" y2="${pad + gy}" stroke="#c9b79c" stroke-width="1" opacity=".55"/>`;
       if (below && interactive) for (const o of below) out += `<rect x="${pad + o.x}" y="${pad + o.y}" width="${o.l}" height="${o.w}" fill="none" stroke="#6b7a88" stroke-width="2" stroke-dasharray="10 7" opacity=".85" pointer-events="none"/>`;
@@ -4594,6 +4722,7 @@
         [I18n.t('palletMaxHeightLabel', { method: I18n.t(b.method === 'air' ? 'palletShipAir' : 'palletShipTruck') }), `${fmt(b.maxHeightMm)} mm`],
         [I18n.t('manualPalletLevelFill'), pct(footprint)],
       ];
+      if (b.overhangMm > 0) rows.push([I18n.t('settingPalletOverhang'), `${fmt(b.overhangMm, 1)} mm`]);
       if (a.levelsUsed > 1) {
         rows.push([I18n.t('manualPalletWeakest'), pct(a.minSupport)]);
         rows.push([I18n.t('manualPalletLowSupport'), fmt(a.low)]);
@@ -4634,6 +4763,7 @@
         [I18n.t('palletTotalPerPallet'), fmt(layout.totalPerPallet)],
         [I18n.t('palletStackHeightLabel'), `${fmt(layout.stackHeightMm)} / ${fmt(maxHeightMm)} mm`],
       ];
+      if (layout.overhangMm > 0) facts.push([I18n.t('fgPalletOverhang'), I18n.t('fgPalletOverhangGain', { mm: fmt(layout.overhangMm, 1), n: fmt(layout.overhangGain) })]);
       if (Number.isFinite(ctx.qtyPerCarton) && ctx.qtyPerCarton > 0) facts.push([I18n.t('fgPalletFgPerPallet'), fmt(ctx.qtyPerCarton * layout.totalPerPallet)]);
       const cartonGross = Number(fg?.cartonGrossWeightKg);
       if (cartonGross > 0) facts.push([I18n.t('fgPalletLoad'), `${fmt(cartonGross * layout.totalPerPallet, 1)} kg`]);
@@ -4655,6 +4785,7 @@
         [I18n.t('palletMaxHeightLabel', { method: I18n.t(method === 'air' ? 'palletShipAir' : 'palletShipTruck') }), `${fmt(maxHeightMm)} mm`],
         [I18n.t('palletStackHeightLabel'), `${fmt(layout.stackHeightMm)} mm`],
       ];
+      if (layout.overhangMm > 0) rows.push([I18n.t('fgPalletOverhang'), escapeHtml(I18n.t('fgPalletOverhangGain', { mm: fmt(layout.overhangMm, 1), n: fmt(layout.overhangGain) }))]);
       const stability = layout.stability;
       if (stability) rows.push([I18n.t('palletStabilityLabel'), escapeHtml(I18n.t('palletStabilityValue', { interlock: Math.round(stability.interlockedShare * 100), support: Math.round(stability.minSupport * 100) }))]);
       if (Number.isFinite(qtyPerCarton)) rows.push([I18n.t('palletQtyPerCarton'), fmt(qtyPerCarton)]);
@@ -4680,10 +4811,11 @@
         step(I18n.t('palletSopStepETitle'), I18n.t('palletSopStepEText'));
     }
     function buildLayerTopViewSvg(pattern, palletLengthMm, palletWidthMm) {
-      const pad = 20, vbW = palletLengthMm + pad * 2, vbH = palletWidthMm + pad * 2;
+      const cells = expandPatternCells(pattern), over = Math.max(0, ...cells.map(c => Math.max(-c.x, -c.y, c.x + c.uL - palletLengthMm, c.y + c.uW - palletWidthMm)));
+      const pad = 20 + Math.ceil(over), vbW = palletLengthMm + pad * 2, vbH = palletWidthMm + pad * 2;
       let out = `<svg viewBox="0 0 ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:520px;height:auto;">`;
       out += `<rect x="${pad}" y="${pad}" width="${palletLengthMm}" height="${palletWidthMm}" fill="#f3e6d4" stroke="#8a5a2e" stroke-width="4"/>`;
-      for (const cell of expandPatternCells(pattern)) out += `<rect x="${(pad + cell.x).toFixed(1)}" y="${(pad + cell.y).toFixed(1)}" width="${cell.uL}" height="${cell.uW}" fill="#9bd2ef" stroke="#17648f" stroke-width="2"/>`;
+      for (const cell of cells) out += `<rect x="${(pad + cell.x).toFixed(1)}" y="${(pad + cell.y).toFixed(1)}" width="${cell.uL}" height="${cell.uW}" fill="#9bd2ef" stroke="#17648f" stroke-width="2"/>`;
       out += '</svg>';
       return out;
     }
@@ -4808,7 +4940,7 @@
         fgLookup: { cartonId: '', index: 0 },
         cartonLookup: { cartonId: '', index: 0 }
       };
-      constructor() { this.file = document.querySelector('#fileInput'); this.drop = document.querySelector('#dropZone'); this.select = document.querySelector('#fgSelect'); this.target = document.querySelector('#targetQty'); this.targetLabel = document.querySelector('#targetLabel'); this.fgInfo = document.querySelector('#fgInfo'); this.msg = document.querySelector('#message'); this.existing = document.querySelector('#existingTable'); this.existingStatus = document.querySelector('#existingStatus'); this.proposals = document.querySelector('#proposalPanel'); this.proposalTable = document.querySelector('#proposalTable'); this.proposalStatus = document.querySelector('#proposalStatus'); this.temporaryId = document.querySelector('#temporaryId'); this.dataTools = document.querySelector('#dataTools'); this.linkagePanel = document.querySelector('#linkagePanel'); this.linkageOverall = document.querySelector('#linkageOverall'); this.linkageFlow = document.querySelector('#linkageFlow'); this.linkageCards = document.querySelector('#linkageCards'); this.loaderOverlay = document.querySelector('#loaderOverlay'); this.loaderText = document.querySelector('#loaderText'); this.visual = new PackingVisualizer3D(document.querySelector('#packingSvg'), document.querySelector('#visualSummary')); this.fgPalletVisual = new PalletVisualizer(document.querySelector('#fgPalletSvg'), document.querySelector('#fgPalletSummary')); this.manualPalletVisual = new ManualPalletVisualizer(document.querySelector('#manualPalletSvg')); this.cartonPalletVisual = new ManualPalletVisualizer(document.querySelector('#cartonPalletSvg')); this.cartonPalletPrefs = { palletLengthMm: 1200, palletWidthMm: 1000, method: 'truck' }; this.progress = new TaskProgressManager(document.querySelector('#taskProgressPanel')); this.store = new AppDataStore(); this.comparisonCurrent = new PackingVisualizer3D(document.querySelector('#comparisonCurrentSvg'), document.querySelector('#comparisonCurrentSummary')); this.comparisonSuggested = new PackingVisualizer3D(document.querySelector('#comparisonSuggestedSvg'), document.querySelector('#comparisonSuggestedSummary')); this.comparisonSync = true; this.auditComparisonItems=new Map();this.auditComparisonContext=null; this.batchResult = null; this.batchPage = 1; this.batchPageSize = 50; this.activeWorkflow = ''; this.workflowPanelState = new Map(); this.data = null; this.current = null; this.activeContext = 'fit'; this.manualMode = false; this.tempCartonId = ''; this.theme = 'light'; this.weeklyBomState = 'loading'; this._fgSearchTimer = null; this._dimensionSourceName = ''; this.sources = { workbook: { href: '', name: '', manual: false }, bom: { href: '', name: '', manual: false } }; this.auditMcUserEdited = false; this.lastAuditAutoFilledFgId = ''; this.lastAuditAutoFilledCartonId = ''; this.auditAutoFillTimer = null; this.auditModuleBound = false; this.fgLookupCartonOverrideByFg = new Map(); loadCalculationMode(); this.bind(); this.applyLanguage(); this.initToleranceControls(); this.syncDimensionSettings(); updateCalculationModeUi(); this.activateWorkflow('new-product'); }
+      constructor() { this.file = document.querySelector('#fileInput'); this.drop = document.querySelector('#dropZone'); this.select = document.querySelector('#fgSelect'); this.target = document.querySelector('#targetQty'); this.targetLabel = document.querySelector('#targetLabel'); this.fgInfo = document.querySelector('#fgInfo'); this.msg = document.querySelector('#message'); this.existing = document.querySelector('#existingTable'); this.existingStatus = document.querySelector('#existingStatus'); this.proposals = document.querySelector('#proposalPanel'); this.proposalTable = document.querySelector('#proposalTable'); this.proposalStatus = document.querySelector('#proposalStatus'); this.temporaryId = document.querySelector('#temporaryId'); this.dataTools = document.querySelector('#dataTools'); this.linkagePanel = document.querySelector('#linkagePanel'); this.linkageOverall = document.querySelector('#linkageOverall'); this.linkageFlow = document.querySelector('#linkageFlow'); this.linkageCards = document.querySelector('#linkageCards'); this.loaderOverlay = document.querySelector('#loaderOverlay'); this.loaderText = document.querySelector('#loaderText'); this.visual = new PackingVisualizer3D(document.querySelector('#packingSvg'), document.querySelector('#visualSummary')); this.fgPalletVisual = new PalletVisualizer(document.querySelector('#fgPalletSvg'), document.querySelector('#fgPalletSummary')); this.manualPalletVisual = new ManualPalletVisualizer(document.querySelector('#manualPalletSvg')); this.cartonPalletVisual = new ManualPalletVisualizer(document.querySelector('#cartonPalletSvg')); this.cartonPalletPrefs = { palletLengthMm: AppSettings.palletLengthMm, palletWidthMm: AppSettings.palletWidthMm, method: 'truck' }; this.progress = new TaskProgressManager(document.querySelector('#taskProgressPanel')); this.store = new AppDataStore(); this.comparisonCurrent = new PackingVisualizer3D(document.querySelector('#comparisonCurrentSvg'), document.querySelector('#comparisonCurrentSummary')); this.comparisonSuggested = new PackingVisualizer3D(document.querySelector('#comparisonSuggestedSvg'), document.querySelector('#comparisonSuggestedSummary')); this.comparisonSync = true; this.auditComparisonItems=new Map();this.auditComparisonContext=null; this.batchResult = null; this.batchPage = 1; this.batchPageSize = 50; this.activeWorkflow = ''; this.workflowPanelState = new Map(); this.data = null; this.current = null; this.activeContext = 'fit'; this.manualMode = false; this.tempCartonId = ''; this.theme = 'light'; this.weeklyBomState = 'loading'; this._fgSearchTimer = null; this._dimensionSourceName = ''; this.sources = { workbook: { href: '', name: '', manual: false }, bom: { href: '', name: '', manual: false } }; this.auditMcUserEdited = false; this.lastAuditAutoFilledFgId = ''; this.lastAuditAutoFilledCartonId = ''; this.auditAutoFillTimer = null; this.auditModuleBound = false; this.fgLookupCartonOverrideByFg = new Map(); loadCalculationMode(); this.bind(); this.applyLanguage(); this.initToleranceControls(); this.syncDimensionSettings(); updateCalculationModeUi(); this.activateWorkflow('new-product'); }
       showLoader(text = 'Loading data…') { this.loaderText.textContent = text; if (this.progress?.state.active) { const phase=/weekly bom/i.test(text)?'PARSING_WEEKLY_BOM':/reading|opening/i.test(text)?'PARSING_DIMENSION_WORKBOOK':this.progress.state.phase; this.progress.updateTask({ detail:text, phase, indeterminate:true }) } else this.loaderOverlay.classList.add('active') }
       hideLoader() { this.loaderOverlay.classList.remove('active') }
       getSourceFgLookupCartonId(fg) { if (!fg || this.manualMode) return ''; return String(this.weeklyBom ? fg.assignedCartonId || '' : fg.mvpAssignedCartonId || '').trim(); }
@@ -5024,9 +5156,9 @@
         const fgLookupMcInput = document.querySelector('#FGlookupMcId'); if (fgLookupMcInput) { fgLookupMcInput.addEventListener('change', () => this.applyFgLookupCartonOverride()); fgLookupMcInput.addEventListener('keydown', event => { if (event.key !== 'Enter') return; event.preventDefault(); this.applyFgLookupCartonOverride(); }); }
         document.querySelector('#fgOrientationSelect')?.addEventListener('change', () => this.applyFgOrientationOverride());
         document.querySelector('#manualForm').addEventListener('submit', e => { e.preventDefault(); this.checkManual() }); document.querySelector('#suggestSharedCartonBtn').addEventListener('click', () => this.suggestSharedCartonLine());
-        document.querySelector('#openEngineeringSettings')?.addEventListener('click', () => { const settings=document.querySelector('#dashboardPanel'); settings.open=true; settings.scrollIntoView({behavior:'smooth',block:'start'}); document.querySelector('#settingMinUtil')?.focus({preventScroll:true}) });
+        document.querySelector('#openEngineeringSettings')?.addEventListener('click', () => { this.activateWorkflow('settings'); document.querySelector('#settingMinUtil')?.focus({preventScroll:true}) });
         document.querySelector('#dataToggle').addEventListener('click', () => { this.dataTools.hidden = !this.dataTools.hidden; document.querySelector('#dataToggle').textContent = this.t(this.dataTools.hidden ? 'showData' : 'hideData') });
-        document.querySelector('#languageToggle').addEventListener('click', () => { I18n.language = I18n.language === 'en' ? 'vi' : 'en'; this.applyLanguage(); updateCalculationModeUi(); this.updateCalculationSettingsSummary(); this.renderDashboard(); if (this.manualBuilder) this.renderManualPalletBuilder(); this.onPalletLayoutsChanged(); if (this.current) this.run() });
+        document.querySelector('#languageToggle').addEventListener('click', () => { I18n.language = I18n.language === 'en' ? 'vi' : 'en'; this.applyLanguage(); updateCalculationModeUi(); this.updateCalculationSettingsSummary(); this.renderDashboard(); if (this.manualBuilder) this.renderManualPalletBuilder(); this.onPalletLayoutsChanged(); this.refreshSettingsData(); if (this.current) this.run() });
         document.querySelector('#calculationModeToggle')?.addEventListener('click',()=>this.toggleCalculationMode());document.querySelector('#openRemeasurementButton')?.addEventListener('click',()=>{const panel=document.querySelector('#quickRemeasurementPanel');panel.hidden=!panel.hidden;if(!panel.hidden)document.querySelector('#remeasuredLength')?.focus()});
         const detailsToggle = document.querySelector('#detailsToggle');
         if (detailsToggle) {
@@ -5048,6 +5180,9 @@
         document.querySelector('#fgPalletLayerSlider')?.addEventListener('input', e => { const value = Number(e.target.value); this.fgPalletVisual.visibleLayers = value; document.querySelector('#fgPalletLayerValue').textContent = `${value} / ${e.target.max}`; this.fgPalletVisual.render() });
         document.querySelector('#fgPalletExportPdf')?.addEventListener('click', () => this.exportPalletSopPdf());
         document.querySelector('#fgPalletEditManual')?.addEventListener('click', () => this.editFgPalletInManual());
+        document.querySelector('#settingsForm')?.addEventListener('submit', e => { e.preventDefault(); this.saveSettings() });
+        document.querySelector('#settingsResetButton')?.addEventListener('click', () => { if (AppSettings.reset()) location.reload(); else this.setSettingsMessage(this.t('settingsSaveFailed'), 'bad') });
+        document.querySelector('.workflow-nav [data-workflow="settings"]')?.addEventListener('click', () => this.refreshSettingsData());
         document.querySelector('#cartonPalletEditManual')?.addEventListener('click', () => { if (this.cartonPalletCtx) this.openManualPalletWith(this.cartonPalletCtx) });
         document.querySelector('#manualPalletSaveButton')?.addEventListener('click', () => this.saveManualPalletLayout());
         document.querySelector('#manualPalletLoadSavedButton')?.addEventListener('click', () => this.loadSavedManualPalletLayout());
@@ -5144,7 +5279,7 @@
         }
         this.activeWorkflow = name || 'new-product';
         const saved = this.workflowPanelState.get(this.activeWorkflow) || null;
-        const primary = new Set(['newProductPanel','auditSection','fgLookupPanel','fgResultsGrid','fgPalletPanel','batchAuditPanel','cartonLookupPanel','addDataPanel','manualPalletLayoutPanel']);
+        const primary = new Set(['newProductPanel','auditSection','fgLookupPanel','fgResultsGrid','fgPalletPanel','batchAuditPanel','cartonLookupPanel','addDataPanel','manualPalletLayoutPanel','settingsPanel']);
         document.querySelectorAll('.workflow-nav [data-workflow]').forEach(button => { const active = button.dataset.workflow === this.activeWorkflow; button.classList.toggle('active', active); button.setAttribute('aria-selected', String(active)); button.setAttribute('role', 'tab') });
         panels.forEach(panel => {
           const matches = String(panel.dataset.workflowPanel || '').split(/\s+/).includes(this.activeWorkflow);
@@ -5429,7 +5564,7 @@
       auditCartonUsers(){const users=this.lookupCartonRows||[];if(!users.length)return;this.activateWorkflow('batch-audit');this.runBatchAudit(Object.assign(Object.create(Object.getPrototypeOf(this.store)),this.store,{finishedGoods:users}))}
       resolvePalletId(rawId) { const id = normalizeId(rawId); if (!id) return { error: 'empty' }; const fg = this.store.fgById.get(id); if (fg) { const cartonId = this.store.assignedCartonByFg.get(id) || ''; const carton = cartonId ? this.store.cartonById.get(cartonId) : null; return { type: 'fg', fg, carton } } const carton = this.store.cartonById.get(id); if (carton) return { type: 'carton', carton }; return { error: 'not_found' } }
       computePalletContext(rawId, opts) {
-        const { method, palletLengthMm, palletWidthMm, qtyOverride } = opts, maxHeightMm = method === 'air' ? 1600 : 2200, id = String(rawId || '').trim();
+        const { method, palletLengthMm, palletWidthMm, qtyOverride } = opts, maxHeightMm = palletMaxHeightMm(method), id = String(rawId || '').trim();
         if (!id) return { inputId: rawId, error: this.t('palletNotFound', { id: '' }) };
         const resolved = this.resolvePalletId(id);
         if (resolved.error) return { inputId: id, error: this.t('palletNotFound', { id }) };
@@ -5487,13 +5622,13 @@
       openManualPalletWith(spec) {
         const { carton, method, palletLengthMm, palletWidthMm } = spec || {};
         if (!carton || !CartonFitEngine.validCarton(carton) || !spec.levels?.length) return false;
-        const maxHeightMm = method === 'air' ? 1600 : 2200, ch = Number(carton.height), maxLayers = Math.max(1, Math.floor(maxHeightMm / ch)), cartonId = String(carton.carton_id || '');
+        const maxHeightMm = palletMaxHeightMm(method), ch = Number(carton.height), maxLayers = Math.max(1, Math.floor(maxHeightMm / ch)), cartonId = String(carton.carton_id || '');
         const set = (id, value) => { const el = document.querySelector(id); if (el) el.value = value };
         set('#manualPalletLookupId', cartonId); this.populatePalletLookupSelect(cartonId, '#manualPalletLookupSelect'); set('#manualPalletLookupSelect', cartonId);
         set('#manualPalletCartonLength', carton.width); set('#manualPalletCartonWidth', carton.depth); set('#manualPalletCartonHeight', carton.height);
         set('#manualPalletShipMethod', method); set('#manualPalletLengthMm', palletLengthMm); set('#manualPalletWidthMm', palletWidthMm);
         this.manualDrag = null; this.manualClipboard = null;
-        this.manualBuilder = { carton: { carton_id: cartonId, width: Number(carton.width), depth: Number(carton.depth), height: ch }, method, palletLengthMm, palletWidthMm, maxHeightMm, maxLayers, holdRotated: false, mode: 'add', snap: true, activeLevel: 0, levels: spec.levels.slice(0, maxLayers).map(level => level.map(o => ({ x: o.x, y: o.y, l: o.l, w: o.w }))), origin: spec.origin === 'suggested' ? 'suggested' : 'manual', sourceFgId: String(spec.sourceFgId || ''), savedHere: !!spec.fromSaved };
+        this.manualBuilder = { carton: { carton_id: cartonId, width: Number(carton.width), depth: Number(carton.depth), height: ch }, method, palletLengthMm, palletWidthMm, maxHeightMm, maxLayers, holdRotated: false, mode: 'add', snap: true, activeLevel: 0, levels: spec.levels.slice(0, maxLayers).map(level => level.map(o => ({ x: o.x, y: o.y, l: o.l, w: o.w }))), overhangMm: Number.isFinite(spec.overhangMm) ? Math.max(0, spec.overhangMm) : AppSettings.palletOverhangMm, origin: spec.origin === 'suggested' ? 'suggested' : 'manual', sourceFgId: String(spec.sourceFgId || ''), savedHere: !!spec.fromSaved };
         document.querySelector('#manualPalletOrientationButton').hidden = false;
         this.activateWorkflow('manual-pallet-layout'); this.renderManualPalletBuilder(); this.showManualSavedStatus();
         document.querySelector('#manualPalletLayoutPanel')?.scrollIntoView({ block: 'start' });
@@ -5528,9 +5663,9 @@
         if (!saved) this.cartonPalletView = 'suggested'; else if (!this.cartonPalletHadSaved || !['saved', 'suggested'].includes(this.cartonPalletView)) this.cartonPalletView = 'saved';
         this.cartonPalletHadSaved = !!saved;
         const view = this.cartonPalletView; let ctx = null, stability = null;
-        if (view === 'saved') ctx = { carton, method: saved.ship_method, palletLengthMm: saved.pallet.length_mm, palletWidthMm: saved.pallet.width_mm, maxHeightMm: saved.max_height_mm, levels: PalletLayouts.levelsOf(saved), origin: saved.origin, sourceFgId: saved.source_fg_id, fromSaved: true };
+        if (view === 'saved') ctx = { carton, method: saved.ship_method, palletLengthMm: saved.pallet.length_mm, palletWidthMm: saved.pallet.width_mm, maxHeightMm: saved.max_height_mm, levels: PalletLayouts.levelsOf(saved), overhangMm: saved.overhang_mm, origin: saved.origin, sourceFgId: saved.source_fg_id, fromSaved: true };
         else if (valid) {
-          const maxHeightMm = prefs.method === 'air' ? 1600 : 2200, layout = computePalletLayout(carton, prefs.palletLengthMm, prefs.palletWidthMm, maxHeightMm);
+          const maxHeightMm = palletMaxHeightMm(prefs.method), layout = computePalletLayout(carton, prefs.palletLengthMm, prefs.palletWidthMm, maxHeightMm);
           if (layout && layout.cartonsPerLayer && layout.layers) { stability = layout.stability; ctx = { carton, method: prefs.method, palletLengthMm: prefs.palletLengthMm, palletWidthMm: prefs.palletWidthMm, maxHeightMm, levels: palletLayoutToLevels(layout), origin: 'suggested', sourceFgId: '' } }
         }
         const shown = ctx || prefs;
@@ -5553,6 +5688,32 @@
         if (this.cartonPalletShownId) this.renderCartonLookupPallet();
         if (this.manualBuilder) this.renderManualPalletControls();
       }
+      // ---- Settings tab -------------------------------------------------------------------------------------------
+      setSettingsMessage(text, tone = '') { const el = document.querySelector('#settingsMessage'); if (el) { el.textContent = text; el.className = 'manual-save-status' + (tone ? ' ' + tone : '') } }
+      // The assumptions are read once at start-up (AppSettings), so saving stores them and reloads the page. How often the
+      // workbooks are re-read belongs to the launcher: it goes to config.local.ini through the helper.
+      async saveSettings() {
+        const form = document.querySelector('#settingsForm'), select = document.querySelector('#settingUpdateData'), values = {};
+        form.querySelectorAll('[data-setting]').forEach(el => { values[el.dataset.setting] = el.value });
+        if (select && !select.disabled && select.value !== this.launcherUpdateData) {
+          let saved = false;
+          try { const res = await SavedEntries.saveLauncherSettings(select.value); saved = res.ok && res.body?.success === true } catch (_) { saved = false }
+          if (!saved) { this.setSettingsMessage(this.t('settingsLauncherFailed'), 'bad'); return }
+          this.launcherUpdateData = select.value;
+        }
+        if (!AppSettings.save(values)) { this.setSettingsMessage(this.t('settingsSaveFailed'), 'bad'); return }
+        location.reload();
+      }
+      // The launcher preference and the count of saves still waiting for the workbook; both come from the helper.
+      async refreshSettingsData() {
+        const select = document.querySelector('#settingUpdateData'), pending = document.querySelector('#settingsPendingWrites'); if (!select || !pending) return;
+        let known = false;
+        if (SavedEntries.isAvailable()) {
+          try { const res = await SavedEntries.getLauncherSettings(); if (res.ok && res.body?.update_data) { known = true; this.launcherUpdateData = res.body.update_data; if (document.activeElement !== select) select.value = res.body.update_data } } catch (_) { /* helper went away */ }
+          try { const rows = await SavedEntries.listPendingWrites(); pending.textContent = rows.length ? this.t('settingsPending', { n: rows.length }) : '' } catch (_) { pending.textContent = '' }
+        } else pending.textContent = '';
+        select.disabled = !known; select.title = known ? '' : this.t('settingsHelperOff');
+      }
       // ---- Manual Pallet Layout: save / load ------------------------------------------------------------------
       manualSavedLayout(b = this.manualBuilder) { const record = b?.carton?.carton_id ? PalletLayouts.get(b.carton.carton_id) : null; return record && PalletLayouts.matchesCarton(record, b.carton) ? record : null }
       setManualSaveStatus(text, tone = '') { const el = document.querySelector('#manualPalletSaveStatus'); if (el) { el.textContent = text; el.className = 'manual-save-status' + (tone ? ' ' + tone : '') } }
@@ -5560,7 +5721,7 @@
       loadSavedManualPalletLayout() {
         const b = this.manualBuilder, record = this.manualSavedLayout(); if (!b || !record) return;
         if (b.levels.some(level => level.length) && !window.confirm(this.t('manualPalletLoadConfirm'))) return;
-        this.openManualPalletWith({ carton: b.carton, method: record.ship_method, palletLengthMm: record.pallet.length_mm, palletWidthMm: record.pallet.width_mm, levels: PalletLayouts.levelsOf(record), origin: record.origin, sourceFgId: record.source_fg_id, fromSaved: true });
+        this.openManualPalletWith({ carton: b.carton, method: record.ship_method, palletLengthMm: record.pallet.length_mm, palletWidthMm: record.pallet.width_mm, levels: PalletLayouts.levelsOf(record), overhangMm: record.overhang_mm, origin: record.origin, sourceFgId: record.source_fg_id, fromSaved: true });
       }
       async saveManualPalletLayout() {
         const b = this.manualBuilder; if (!b || this.manualSaving) return;
@@ -5609,12 +5770,13 @@
         if (event) event.preventDefault();
         const resolved = this.resolveManualPalletCarton();
         if (resolved.error) { this.renderManualPalletError(resolved.error); return }
-        const method = document.querySelector('#manualPalletShipMethod').value, palletLengthMm = Number(document.querySelector('#manualPalletLengthMm').value) || 1200, palletWidthMm = Number(document.querySelector('#manualPalletWidthMm').value) || 1000, maxHeightMm = method === 'air' ? 1600 : 2200;
+        const method = document.querySelector('#manualPalletShipMethod').value, palletLengthMm = Number(document.querySelector('#manualPalletLengthMm').value) || 1200, palletWidthMm = Number(document.querySelector('#manualPalletWidthMm').value) || 1000, maxHeightMm = palletMaxHeightMm(method);
         const { width: cl, depth: cw, height: ch } = resolved.carton;
-        const fits = (cl <= palletLengthMm && cw <= palletWidthMm) || (cw <= palletLengthMm && cl <= palletWidthMm);
+        const overhangMm = AppSettings.palletOverhangMm, deckL = palletLengthMm + 2 * overhangMm, deckW = palletWidthMm + 2 * overhangMm;
+        const fits = (cl <= deckL && cw <= deckW) || (cw <= deckL && cl <= deckW);
         if (!fits || ch > maxHeightMm) { this.renderManualPalletError(this.t('palletInvalidCartonDims')); return }
         this.manualDrag = null; this.manualClipboard = null;   // a new layout may use a different carton size
-        this.manualBuilder = { carton: resolved.carton, method, palletLengthMm, palletWidthMm, maxHeightMm, maxLayers: Math.max(1, Math.floor(maxHeightMm / ch)), holdRotated: false, mode: 'add', snap: true, activeLevel: 0, levels: [[]], origin: 'manual', sourceFgId: '', savedHere: false };
+        this.manualBuilder = { carton: resolved.carton, method, palletLengthMm, palletWidthMm, maxHeightMm, maxLayers: Math.max(1, Math.floor(maxHeightMm / ch)), holdRotated: false, mode: 'add', snap: true, activeLevel: 0, levels: [[]], overhangMm, origin: 'manual', sourceFgId: '', savedHere: false };
         document.querySelector('#manualPalletOrientationButton').hidden = false;
         this.renderManualPalletBuilder(); this.showManualSavedStatus();
       }
@@ -5685,7 +5847,7 @@
         const boxes = this.manualActiveBoxes();
         if (!drag.ghost) {
           drag.ghost = this.manualSvgNode('g', { id: 'manualGroupGhost', 'pointer-events': 'none' });
-          for (const i of drag.indices) { const o = boxes[i]; if (o) drag.ghost.appendChild(this.manualSvgNode('rect', { x: MANUAL_PAD_MM + o.x, y: MANUAL_PAD_MM + o.y, width: o.l, height: o.w, 'stroke-width': 3, 'stroke-dasharray': '8 5' })) }
+          for (const i of drag.indices) { const o = boxes[i]; if (o) drag.ghost.appendChild(this.manualSvgNode('rect', { x: manualPadMm(this.manualBuilder) + o.x, y: manualPadMm(this.manualBuilder) + o.y, width: o.l, height: o.w, 'stroke-width': 3, 'stroke-dasharray': '8 5' })) }
           svg.appendChild(drag.ghost);
           for (const i of drag.indices) svg.querySelector(`[data-box="${i}"]`)?.setAttribute('opacity', '.25');
         }
@@ -5702,7 +5864,7 @@
         if (!b || !svg || !p || !drag.moved) return;
         const x0 = Math.min(drag.origin.x, p.x), x1 = Math.max(drag.origin.x, p.x), y0 = Math.min(drag.origin.y, p.y), y1 = Math.max(drag.origin.y, p.y);
         if (!drag.rect) { drag.rect = this.manualSvgNode('rect', { id: 'manualMarquee', fill: 'rgba(11,94,168,.12)', stroke: '#0b5ea8', 'stroke-width': 2, 'stroke-dasharray': '6 4', 'pointer-events': 'none' }); svg.appendChild(drag.rect) }
-        drag.rect.setAttribute('x', MANUAL_PAD_MM + x0); drag.rect.setAttribute('y', MANUAL_PAD_MM + y0); drag.rect.setAttribute('width', x1 - x0); drag.rect.setAttribute('height', y1 - y0);
+        drag.rect.setAttribute('x', manualPadMm(this.manualBuilder) + x0); drag.rect.setAttribute('y', manualPadMm(this.manualBuilder) + y0); drag.rect.setAttribute('width', x1 - x0); drag.rect.setAttribute('height', y1 - y0);
         const hits = []; this.manualActiveBoxes().forEach((o, i) => { if (o.x < x1 && o.x + o.l > x0 && o.y < y1 && o.y + o.w > y0) hits.push(i) });
         b.selection = [...new Set([...drag.base, ...hits])].sort((a, c) => a - c); b.selectionLevel = b.activeLevel;
         this.manualPaintSelection();
@@ -5740,7 +5902,7 @@
         const matrix = svg.getScreenCTM(); if (!matrix) return null;
         const point = svg.createSVGPoint(); point.x = event.clientX; point.y = event.clientY;
         const p = point.matrixTransform(matrix.inverse());
-        return { x: p.x - MANUAL_PAD_MM, y: p.y - MANUAL_PAD_MM };
+        return { x: p.x - manualPadMm(this.manualBuilder), y: p.y - manualPadMm(this.manualBuilder) };
       }
       manualPointerDown(event, source) {
         const b = this.manualBuilder; if (!b || this.manualDrag || (event.button !== undefined && event.button !== 0)) return;
@@ -5792,7 +5954,7 @@
         if (!p || !inside) { drag.pos = null; ghost.setAttribute('display', 'none'); return }
         const pos = manualResolvePosition(b, this.manualActiveBoxes(), p.x - drag.grab.dx, p.y - drag.grab.dy, drag.l, drag.w, drag.ignore);
         drag.pos = pos;
-        ghost.setAttribute('x', MANUAL_PAD_MM + pos.x); ghost.setAttribute('y', MANUAL_PAD_MM + pos.y); ghost.setAttribute('width', pos.l); ghost.setAttribute('height', pos.w);
+        ghost.setAttribute('x', manualPadMm(this.manualBuilder) + pos.x); ghost.setAttribute('y', manualPadMm(this.manualBuilder) + pos.y); ghost.setAttribute('width', pos.l); ghost.setAttribute('height', pos.w);
         ghost.setAttribute('fill', pos.valid ? 'rgba(46,160,67,.35)' : 'rgba(192,57,43,.35)'); ghost.setAttribute('stroke', pos.valid ? '#2ea043' : '#c0392b'); ghost.removeAttribute('display');
       }
       manualPointerMove(event) { const drag = this.manualDrag; if (drag && event.pointerId === drag.pointerId) { this.manualUpdateDrag(event); event.preventDefault() } }
@@ -7454,7 +7616,7 @@
       /* Saved pallet layouts are (re)read every time the helper comes up: it is started just
          before the browser, so the page's first probe can easily run before it is listening. */
       const reloadPalletLayouts = async () => {
-        try { PalletLayouts.replaceAll(await listPalletLayouts()); toolUi.onPalletLayoutsChanged(); }
+        try { PalletLayouts.replaceAll(await listPalletLayouts()); toolUi.onPalletLayoutsChanged(); toolUi.refreshSettingsData(); }
         catch (e) { console.warn('Saved pallet layouts were not loaded:', e); }
       };
 
@@ -7486,10 +7648,37 @@
       /* Writes into the live Excel workbook via COM automation on the listener side, not
          just the CSV overlay `save` above writes to. Slow (5-20s, a real Excel process has
          to start, open, write, save, close) by design - 30s timeout, well above `save`'s. */
-      const saveDimensionToExcel = async (type, payload) => {
+      const dimensionBody = (type, payload) => {
         const body = { type, id: payload.id, length_mm: payload.length_mm, width_mm: payload.width_mm, height_mm: payload.height_mm };
         if (type === 'carton' && payload.name) body.name = payload.name;
         if (type === 'product') for (const key of ['gross_weight_kg', 'net_weight_kg', 'carton_gross_weight_kg', 'carton_net_weight_kg']) { const value = payload[key]; if (Number.isFinite(value) && value > 0) body[key] = value; }
+        return body;
+      };
+
+      /* What the Save buttons use: the entry joins the helper's queue (pending_workbook_writes.csv)
+         and the launcher writes it into the workbook right before its next read of it. */
+      const queueDimension = async (type, payload) => call('/api/queue-dimension', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dimensionBody(type, payload))
+      }, 10000);
+
+      const listPendingWrites = async () => {
+        const res = await call('/api/pending-writes', {}, 5000);
+        if (!res.ok || !res.body || !Array.isArray(res.body.rows)) return [];
+        return res.body.rows;
+      };
+
+      const getLauncherSettings = async () => call('/api/launcher-settings', {}, 5000);
+      const saveLauncherSettings = async (updateData) => call('/api/launcher-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ update_data: updateData })
+      }, 10000);
+
+      /* The immediate write, kept for callers that must not wait for the next update. Not used by the Save buttons. */
+      const saveDimensionToExcel = async (type, payload) => {
+        const body = dimensionBody(type, payload);
         return call('/api/save-dimension', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -7551,7 +7740,7 @@
         }
       };
 
-      return { KINDS, isAvailable, probe, save, saveDimensionToExcel, list, stop, mergeInto, listPalletLayouts, savePalletLayout };
+      return { KINDS, isAvailable, probe, save, saveDimensionToExcel, queueDimension, listPendingWrites, getLauncherSettings, saveLauncherSettings, list, stop, mergeInto, listPalletLayouts, savePalletLayout };
     })();
 
     /* ---- wiring -----------------------------------------------------------------------------
@@ -7601,25 +7790,23 @@
             const savedLine = res.body.replaced ? t('savedReplaced') : t('savedOk');
             box.dataset.saveGen = String((Number(box.dataset.saveGen) || 0) + 1);
             const gen = box.dataset.saveGen;
-            say(box, savedLine + ' ' + t('excelSaveInProgress'), 'ok');
-            SavedEntries.saveDimensionToExcel('product', { id, length_mm: length, width_mm: width, height_mm: height, gross_weight_kg: weight, net_weight_kg: netWeight, carton_gross_weight_kg: cartonGross, carton_net_weight_kg: cartonNet })
-              .then(excelRes => {
+            // CSV first: the entry is already in the helper's CSV. The workbook write is queued and done by the launcher
+            // right before it next reads the workbook, so nothing here waits on Excel or fails because the file is open.
+            say(box, savedLine, 'ok');
+            SavedEntries.queueDimension('product', { id, length_mm: length, width_mm: width, height_mm: height, gross_weight_kg: weight, net_weight_kg: netWeight, carton_gross_weight_kg: cartonGross, carton_net_weight_kg: cartonNet })
+              .then(queueRes => {
                 if (box.dataset.saveGen !== gen) return;
-                if (excelRes.ok && excelRes.body && excelRes.body.success) {
-                  say(box, savedLine + ' ' + t('excelSaveOk'), 'ok');
-                  ToastNotificationQueue.show({ type: 'ok', title: t('excelSaveOk'), message: id });
-                } else {
-                  const excelDetail = (excelRes.body && excelRes.body.status === 503)
-                    ? t('excelSaveLocked')
-                    : t('excelSaveFailed') + ((excelRes.body && excelRes.body.error) || '');
-                  say(box, savedLine + ' ' + excelDetail, 'ok');
-                  ToastNotificationQueue.show({ type: 'error', title: excelDetail, message: id, trackId: excelRes.body && excelRes.body.track_id });
+                if (queueRes.ok && queueRes.body && queueRes.body.success) { say(box, savedLine + ' ' + t('excelQueued'), 'ok'); toolUi.refreshSettingsData(); }
+                else {
+                  const queueDetail = t('excelQueueFailed') + ((queueRes.body && (queueRes.body.error || queueRes.body.detail)) || ('HTTP ' + queueRes.status));
+                  say(box, savedLine + ' ' + queueDetail, 'ok');
+                  ToastNotificationQueue.show({ type: 'error', title: queueDetail, message: id });
                 }
               })
               .catch(() => {
                 if (box.dataset.saveGen !== gen) return;
-                say(box, savedLine + ' ' + t('excelSaveFailed'), 'ok');
-                ToastNotificationQueue.show({ type: 'error', title: t('excelSaveFailed'), message: id });
+                say(box, savedLine + ' ' + t('excelQueueFailed'), 'ok');
+                ToastNotificationQueue.show({ type: 'error', title: t('excelQueueFailed'), message: id });
               });
           } else {
             const detail = res.body && Array.isArray(res.body.details)
@@ -7656,25 +7843,23 @@
             const savedLine = cartonRes.body.replaced ? t('cartonSavedReplaced') : t('cartonSavedOk');
             box.dataset.saveGen = String((Number(box.dataset.saveGen) || 0) + 1);
             const gen = box.dataset.saveGen;
-            say(box, savedLine + ' ' + t('excelSaveInProgress'), 'ok');
-            SavedEntries.saveDimensionToExcel('carton', { id: cartonId, name: cartonName, length_mm: cartonLength, width_mm: cartonWidth, height_mm: cartonHeight })
-              .then(excelRes => {
+            // CSV first: the entry is already in the helper's CSV. The workbook write is queued and done by the launcher
+            // right before it next reads the workbook, so nothing here waits on Excel or fails because the file is open.
+            say(box, savedLine, 'ok');
+            SavedEntries.queueDimension('carton', { id: cartonId, name: cartonName, length_mm: cartonLength, width_mm: cartonWidth, height_mm: cartonHeight })
+              .then(queueRes => {
                 if (box.dataset.saveGen !== gen) return;
-                if (excelRes.ok && excelRes.body && excelRes.body.success) {
-                  say(box, savedLine + ' ' + t('excelSaveOk'), 'ok');
-                  ToastNotificationQueue.show({ type: 'ok', title: t('excelSaveOk'), message: cartonId });
-                } else {
-                  const excelDetail = (excelRes.body && excelRes.body.status === 503)
-                    ? t('excelSaveLocked')
-                    : t('excelSaveFailed') + ((excelRes.body && excelRes.body.error) || '');
-                  say(box, savedLine + ' ' + excelDetail, 'ok');
-                  ToastNotificationQueue.show({ type: 'error', title: excelDetail, message: cartonId, trackId: excelRes.body && excelRes.body.track_id });
+                if (queueRes.ok && queueRes.body && queueRes.body.success) { say(box, savedLine + ' ' + t('excelQueued'), 'ok'); toolUi.refreshSettingsData(); }
+                else {
+                  const queueDetail = t('excelQueueFailed') + ((queueRes.body && (queueRes.body.error || queueRes.body.detail)) || ('HTTP ' + queueRes.status));
+                  say(box, savedLine + ' ' + queueDetail, 'ok');
+                  ToastNotificationQueue.show({ type: 'error', title: queueDetail, message: cartonId });
                 }
               })
               .catch(() => {
                 if (box.dataset.saveGen !== gen) return;
-                say(box, savedLine + ' ' + t('excelSaveFailed'), 'ok');
-                ToastNotificationQueue.show({ type: 'error', title: t('excelSaveFailed'), message: cartonId });
+                say(box, savedLine + ' ' + t('excelQueueFailed'), 'ok');
+                ToastNotificationQueue.show({ type: 'error', title: t('excelQueueFailed'), message: cartonId });
               });
             /* Same object reference lives in both data.cartons and data.cartonById, so
                mutating it in place keeps both in sync without a full reload. */

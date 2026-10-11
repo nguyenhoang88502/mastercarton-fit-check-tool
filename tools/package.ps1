@@ -40,6 +40,8 @@ Copy-Item -LiteralPath (Join-Path $repo 'system\http-listener\listen.ps1') -Dest
 # script is a real runtime dependency and has to ship even though its neighbors do not.
 New-Item -ItemType Directory -Path (Join-Path $stage 'system\tools') -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $repo 'system\tools\update_dimension_excel.ps1') -Destination (Join-Path $stage 'system\tools')
+# The launcher runs this before every workbook read to write queued saves into the workbook.
+Copy-Item -LiteralPath (Join-Path $repo 'system\tools\apply_pending_writes.ps1') -Destination (Join-Path $stage 'system\tools')
 
 # Keep the empty folders in the zip so nothing has to be created by hand.
 foreach ($keep in @('system\logs', 'system\http-listener\system\generated', 'system\http-listener\system\logs')) {

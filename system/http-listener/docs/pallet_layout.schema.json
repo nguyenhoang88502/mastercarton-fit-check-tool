@@ -52,6 +52,13 @@
       "minimum": 100,
       "maximum": 5000
     },
+    "overhang_mm": {
+      "description": "How far, per side, cartons were allowed to hang over the pallet edge when the layout was built (the Settings tab's overhang allowance at that time). 0 or absent means every carton lies inside the deck. With an allowance, x and y may go down to -overhang_mm and a carton may end up to overhang_mm beyond the deck.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 200,
+      "default": 0
+    },
     "level_count": {
       "description": "Number of levels. Derived, written by the helper.",
       "type": "integer",
@@ -103,8 +110,8 @@
       "additionalProperties": false,
       "required": ["x", "y", "l", "w"],
       "properties": {
-        "x": { "type": "number", "minimum": 0 },
-        "y": { "type": "number", "minimum": 0 },
+        "x": { "description": "0 or more, or down to -overhang_mm when the layout allows overhang.", "type": "number" },
+        "y": { "description": "0 or more, or down to -overhang_mm when the layout allows overhang.", "type": "number" },
         "l": { "type": "number", "exclusiveMinimum": 0 },
         "w": { "type": "number", "exclusiveMinimum": 0 }
       }
@@ -119,6 +126,7 @@
       "pallet": { "length_mm": 1200, "width_mm": 1000 },
       "ship_method": "truck",
       "max_height_mm": 2200,
+      "overhang_mm": 0,
       "level_count": 2,
       "carton_count": 4,
       "origin": "suggested",

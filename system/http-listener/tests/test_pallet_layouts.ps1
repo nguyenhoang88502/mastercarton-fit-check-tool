@@ -69,13 +69,21 @@ Bad 'outside pallet' ($good -replace '"x":0.5,"y":0,"l":300,"w":400', '"x":950,"
 Bad 'overlap' ($good -replace '"x":400,"y":0,"l":400,"w":300', '"x":200,"y":0,"l":400,"w":300') 'overlaps'
 Bad 'too tall' ($good -replace '"max_height_mm":2200', '"max_height_mm":400') 'taller'
 Bad 'array body' ('[' + $good + ']') 'body'
+
+# overhang allowance: a carton may hang over the edge by up to overhang_mm, and no further
+$over = '{"schema_version":1,"carton_id":"OVER-1","carton":{"length_mm":400,"width_mm":300,"height_mm":250},"pallet":{"length_mm":1200,"width_mm":1000},"ship_method":"truck","max_height_mm":2200,"overhang_mm":30,"levels":[[{"x":-30,"y":-12.5,"l":400,"w":300},{"x":830,"y":725,"l":400,"w":300}]]}'
+$r = Post $over
+Check 'overhang within the allowance -> 200' ($r.code -eq 200 -and ($r.text | ConvertFrom-Json).layout.overhang_mm -eq 30) $r.text
+Bad 'overhang beyond the allowance' ($over -replace '"x":-30', '"x":-45') 'outside'
+Bad 'same layout without an allowance' ($over -replace '"overhang_mm":30,', '') 'outside'
+Bad 'overhang_mm out of range' ($over -replace '"overhang_mm":30', '"overhang_mm":500') 'overhang_mm'
 $r = Post '{not json'
 Check 'malformed JSON -> 400' ($r.code -eq 400 -and $r.text -match 'Invalid JSON')
 
 # a hand-broken file must not poison GET
 Set-Content -LiteralPath (Join-Path $sandbox 'data\pallet_layouts\BROKEN.json') -Value '{ oops' -Encoding ASCII
 $all = Invoke-RestMethod "$base/api/pallet-layouts" -TimeoutSec 10
-Check 'broken file skipped' ($all.count -eq 2)
+Check 'broken file skipped' ($all.count -eq 3)
 
 # existing routes untouched
 $h = Invoke-RestMethod "$base/api/health"

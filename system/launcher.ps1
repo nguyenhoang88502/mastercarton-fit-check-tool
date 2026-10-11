@@ -501,6 +501,12 @@ if (-not $manifestsOnly) {
     Where-Object { -not (Test-Path -LiteralPath (Join-Path $probeDir $_)) }
   $haveData = (Test-Path -LiteralPath $probeState) -and (@($missingOutputs).Count -eq 0)
   $mode = (Get-LauncherSetting 'UpdateData').ToLowerInvariant()
+  # Saves made in the tool wait in this queue until the next update writes them into the workbook.
+  $pendingWriteCount = 0
+  try {
+    $pendingWritesProbe = Join-Path $systemDir 'http-listener\system\generated\pending_workbook_writes.csv'
+    if (Test-Path -LiteralPath $pendingWritesProbe) { $pendingWriteCount = @(Import-Csv -LiteralPath $pendingWritesProbe).Count }
+  } catch { $pendingWriteCount = 0 }
   if ($forceRebuild) { Write-Log "Update data: full rebuild requested; skipping the prompt." }
   elseif ($updateArg) { Write-Log "Update data: --update given; updating without asking." }
   elseif (-not $haveData) { Write-Log "Update data: no previous generated data found, so the update is required." }
@@ -537,22 +543,73 @@ if (-not $manifestsOnly) {
       } catch { $status = 'could not be checked' }
       $lines.Add("${title}: $($entry['Filename']) - $status")
     }
-    if ($state.ContainsKey('DimensionWorkbook') -and $state['DimensionWorkbook']['PreprocessingVersion'] -ne 'BOM_LINKED_CA_AVERAGE_V4_WEIGHTS') {
+    $versionOld = $state.ContainsKey('DimensionWorkbook') -and $state['DimensionWorkbook']['PreprocessingVersion'] -ne 'BOM_LINKED_CA_AVERAGE_V4_WEIGHTS'
+    if ($versionOld) {
       $lines.Add('The saved data is from an older version of this tool, so an update is recommended (new columns such as weights will be missing).')
     } elseif ($anyChanged) { $lines.Add('The workbooks differ from the saved data, so an update is recommended.') }
     else { $lines.Add('The workbooks look the same as when the data was built, so skipping is safe.') }
+    if ($pendingWriteCount -gt 0) { $lines.Add("Saved in the tool and waiting to be written into the workbook: $pendingWriteCount (written first when you update).") }
     $lines.Add('')
     $lines.Add('Skipping opens the tool immediately; anything saved in the workbooks since then will not appear until you update.')
-    $choice = 'update'
-    try { $choice = Show-UpdateDataDialog -InfoText ($lines -join "`r`n") }
-    catch { Write-Log "Update data: could not show the dialog ($($_.Exception.Message)); updating." }
-    if ($choice -eq 'cancel') { Write-Log "Update data: cancelled by the user. Nothing was opened."; exit 0 }
-    if ($choice -eq 'skip') { $skipUpdate = $true; Write-Log "Update data: skipped by the user. Opening with the data from the last update." }
-    else { Write-Log "Update data: the user chose to update." }
+
+    # UpdateData=changed / daily / weekly decide without asking (set in the tool's Settings tab):
+    #   changed - only when a workbook differs from the data on disk, or saves are waiting to be written
+    #   daily   - the first launch of each calendar day
+    #   weekly  - once seven days have passed since the last update
+    $autoChoice = $null; $autoReason = ''
+    if ($mode -eq 'changed') {
+      if ($versionOld) { $autoChoice = 'update'; $autoReason = 'the saved data is from an older version of the tool' }
+      elseif ($anyChanged) { $autoChoice = 'update'; $autoReason = 'a workbook changed' }
+      elseif ($pendingWriteCount -gt 0) { $autoChoice = 'update'; $autoReason = "$pendingWriteCount saved entr$(if ($pendingWriteCount -eq 1) { 'y is' } else { 'ies are' }) waiting to be written" }
+      else { $autoChoice = 'skip'; $autoReason = 'the workbooks are unchanged' }
+    } elseif ($mode -eq 'daily' -or $mode -eq 'weekly') {
+      $dueDays = if ($mode -eq 'daily') { 1 } else { 7 }
+      if ($versionOld) { $autoChoice = 'update'; $autoReason = 'the saved data is from an older version of the tool' }
+      elseif (-not $generatedLocal) { $autoChoice = 'update'; $autoReason = 'the date of the last update is unknown' }
+      else {
+        $daysSince = [int]((Get-Date).Date - $generatedLocal.Date).TotalDays
+        if ($daysSince -ge $dueDays) { $autoChoice = 'update'; $autoReason = "the last update was $daysSince day(s) ago" }
+        else { $autoChoice = 'skip'; $autoReason = "the last update was $($generatedLocal.ToString('yyyy-MM-dd HH:mm'))" }
+      }
+    }
+
+    if ($autoChoice -eq 'skip') { $skipUpdate = $true; Write-Log "Update data: UpdateData=$mode; skipped because $autoReason. Opening with the data from the last update." }
+    elseif ($autoChoice -eq 'update') { Write-Log "Update data: UpdateData=$mode; updating because $autoReason." }
+    else {
+      $choice = 'update'
+      try { $choice = Show-UpdateDataDialog -InfoText ($lines -join "`r`n") }
+      catch { Write-Log "Update data: could not show the dialog ($($_.Exception.Message)); updating." }
+      if ($choice -eq 'cancel') { Write-Log "Update data: cancelled by the user. Nothing was opened."; exit 0 }
+      if ($choice -eq 'skip') { $skipUpdate = $true; Write-Log "Update data: skipped by the user. Opening with the data from the last update." }
+      else { Write-Log "Update data: the user chose to update." }
+    }
   }
 }
 
 if (-not $skipUpdate) {
+# Saves made in the tool (New Product: Save this product / Save carton) are kept in CSV and queued.
+# Write them into the dimension workbook now, before it is discovered, hashed and parsed, so this
+# update reads them back as ordinary workbook rows. Never allowed to stop the update: an entry that
+# cannot be written (workbook open elsewhere) simply stays queued for the next update.
+try {
+  $pendingScript = Join-Path $systemDir 'tools\apply_pending_writes.ps1'
+  $pendingFile = Join-Path $systemDir 'http-listener\system\generated\pending_workbook_writes.csv'
+  if ((Test-Path -LiteralPath $pendingScript) -and (Test-Path -LiteralPath $pendingFile)) {
+    Write-Log "Saved entries are waiting for the workbook; writing them before it is read."
+    $pendingOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $pendingScript 2>&1
+    $pendingJson = $pendingOutput | Where-Object { $_ -match '^\{.*\}$' } | Select-Object -Last 1
+    if ($pendingJson) {
+      $pendingResult = $pendingJson | ConvertFrom-Json
+      $pendingNote = if ($pendingResult.locked) { ' The workbook is open elsewhere; they stay queued for the next update.' } elseif ($pendingResult.failed -gt 0) { ' See system\logs\excel_writeback.log.' } else { '' }
+      Write-Log "Pending workbook writes: $($pendingResult.written) written, $($pendingResult.failed) still waiting.$pendingNote"
+    } else {
+      Write-Log "Pending workbook writes: no result returned; the entries stay queued. See system\logs\excel_writeback.log."
+    }
+  }
+} catch {
+  Write-Log "Pending workbook writes could not run: $($_.Exception.Message). Continuing with the update."
+}
+
 # Read configuration
 $configPath = Join-Path $systemDir 'config.ini'
 $config = Read-IniFile -FilePath $configPath

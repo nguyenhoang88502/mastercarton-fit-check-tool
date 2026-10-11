@@ -462,6 +462,126 @@ function Invoke-Insert {
 }
 
 # ---------------------------------------------------------------------------------------------
+# One product / carton dimension request, validated. Shared by the immediate Excel write and by
+# the queue of writes that wait for the next workbook update.
+# ---------------------------------------------------------------------------------------------
+$DimensionWeightFields = @(
+    @{ field = 'gross_weight_kg';        arg = '-GrossWeightKg';       column = 'Gross_Weight_kg' },
+    @{ field = 'net_weight_kg';          arg = '-NetWeightKg';         column = 'Net_Weight_kg' },
+    @{ field = 'carton_gross_weight_kg'; arg = '-CartonGrossWeightKg'; column = 'Carton_Gross_Weight_kg' },
+    @{ field = 'carton_net_weight_kg';   arg = '-CartonNetWeightKg';   column = 'Carton_Net_Weight_kg' }
+)
+
+function Resolve-DimensionRequest {
+    param($parsed)
+
+    $dimErrors = New-Object System.Collections.ArrayList
+    $dimType = Resolve-Enum (Get-Field $parsed 'type') 'type' @('PRODUCT', 'CARTON') '' $dimErrors
+    $dimId = Resolve-IdField (Get-Field $parsed 'id') 'id' $dimErrors
+    $dimLength = Resolve-Dimension (Get-Field $parsed 'length_mm') 'length_mm' $dimErrors
+    $dimWidth = Resolve-Dimension (Get-Field $parsed 'width_mm') 'width_mm' $dimErrors
+    $dimHeight = Resolve-Dimension (Get-Field $parsed 'height_mm') 'height_mm' $dimErrors
+
+    # Optional weights (kg) - product saves only. The Dimension sheet keeps four per FG: FG gross / FG net on its
+    # EA row and carton gross / carton net on its CA row. Blank means "leave the workbook cell alone";
+    # anything supplied must be a sensible positive number and a net weight may not exceed its gross.
+    $dimWeights = [ordered]@{}
+    if ($dimType -eq 'PRODUCT') {
+        foreach ($wf in $DimensionWeightFields) {
+            $weightRaw = Get-Field $parsed $wf.field
+            if (Test-Blank $weightRaw) { continue }
+            $weightParsed = 0.0
+            $weightOk = [double]::TryParse([string]$weightRaw, [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$weightParsed)
+            if (-not $weightOk) { [void]$dimErrors.Add((New-FieldError $wf.field 'Must be numeric')) }
+            elseif ($weightParsed -le 0 -or $weightParsed -gt 1000) { [void]$dimErrors.Add((New-FieldError $wf.field 'Must be greater than 0 and at most 1000 kg')) }
+            else { $dimWeights[$wf.field] = $weightParsed }
+        }
+        if ($dimWeights.Contains('gross_weight_kg') -and $dimWeights.Contains('net_weight_kg') -and $dimWeights['net_weight_kg'] -gt $dimWeights['gross_weight_kg']) {
+            [void]$dimErrors.Add((New-FieldError 'net_weight_kg' 'Net weight cannot exceed the gross weight'))
+        }
+        if ($dimWeights.Contains('carton_gross_weight_kg') -and $dimWeights.Contains('carton_net_weight_kg') -and $dimWeights['carton_net_weight_kg'] -gt $dimWeights['carton_gross_weight_kg']) {
+            [void]$dimErrors.Add((New-FieldError 'carton_net_weight_kg' 'Net weight cannot exceed the gross weight'))
+        }
+    }
+
+    $dimNameRaw = Get-Field $parsed 'name'
+    $dimName = ''
+    if (-not (Test-Blank $dimNameRaw)) {
+        $dimName = ([string]$dimNameRaw).Trim()
+        if ($dimName.Length -gt 100) { $dimName = $dimName.Substring(0, 100) }
+    }
+
+    return @{ Errors = $dimErrors; Type = $dimType; Id = $dimId; Length = $dimLength; Width = $dimWidth; Height = $dimHeight; Weights = $dimWeights; Name = $dimName }
+}
+
+# Saves made in the tool that still have to be written into the dimension workbook. The launcher
+# writes them (tools\apply_pending_writes.ps1) right before it next reads the workbook.
+$PendingWritesFile = 'pending_workbook_writes.csv'
+$PendingWritesColumns = @('Type', 'ID', 'Name', 'Length_mm', 'Width_mm', 'Height_mm', 'Gross_Weight_kg', 'Net_Weight_kg', 'Carton_Gross_Weight_kg', 'Carton_Net_Weight_kg', 'Queued_At', 'Attempts', 'Last_Error')
+
+function Format-InvariantNumber {
+    param($Value)
+    return ([double]$Value).ToString([Globalization.CultureInfo]::InvariantCulture)
+}
+
+# ---------------------------------------------------------------------------------------------
+# Launcher preference kept in system\config.local.ini (per PC, overrides config.ini): how often
+# the launcher re-reads the Excel workbooks.
+# ---------------------------------------------------------------------------------------------
+$UpdateDataModes = @('ask', 'always', 'daily', 'weekly', 'changed', 'skip')
+$ConfigDir = Split-Path -Parent $ScriptRoot
+
+function Get-IniValue {
+    param([string]$Path, [string]$Section, [string]$Key)
+    if (-not (Test-Path -LiteralPath $Path)) { return '' }
+    $inSection = $false
+    foreach ($line in [IO.File]::ReadAllLines($Path)) {
+        $t = $line.Trim()
+        if ($t -match '^\[(.+)\]$') { $inSection = ($Matches[1].Trim() -ieq $Section); continue }
+        if ($inSection -and $t -notmatch '^[;#]' -and $t -match '^([^=]+)=(.*)$' -and $Matches[1].Trim() -ieq $Key) { return $Matches[2].Trim() }
+    }
+    return ''
+}
+
+function Set-IniValue {
+    <# Rewrites one key and leaves every other line of the file exactly as it was. #>
+    param([string]$Path, [string]$Section, [string]$Key, [string]$Value)
+    $lines = New-Object System.Collections.Generic.List[string]
+    if (Test-Path -LiteralPath $Path) { foreach ($line in [IO.File]::ReadAllLines($Path)) { $lines.Add($line) } }
+    $sectionAt = -1; $sectionEnd = $lines.Count; $keyAt = -1; $inSection = $false
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        $t = $lines[$i].Trim()
+        if ($t -match '^\[(.+)\]$') {
+            if ($inSection) { $sectionEnd = $i; break }
+            if ($Matches[1].Trim() -ieq $Section) { $inSection = $true; $sectionAt = $i }
+            continue
+        }
+        if ($inSection -and $t -notmatch '^[;#]' -and $t -match '^([^=]+)=' -and $Matches[1].Trim() -ieq $Key) { $keyAt = $i; break }
+    }
+    $entry = '{0}={1}' -f $Key, $Value
+    if ($keyAt -ge 0) { $lines[$keyAt] = $entry }
+    elseif ($sectionAt -ge 0) {
+        $at = $sectionEnd
+        while ($at -gt $sectionAt + 1 -and [string]::IsNullOrWhiteSpace($lines[$at - 1])) { $at-- }
+        $lines.Insert($at, $entry)
+    }
+    else {
+        if ($lines.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($lines[$lines.Count - 1])) { $lines.Add('') }
+        $lines.Add('[{0}]' -f $Section)
+        $lines.Add($entry)
+    }
+    Write-TextReplace -Path $Path -Text (($lines -join [Environment]::NewLine) + [Environment]::NewLine)
+}
+
+function Get-UpdateDataMode {
+    foreach ($file in @('config.local.ini', 'config.ini')) {
+        $value = (Get-IniValue (Join-Path $ConfigDir $file) 'Launcher' 'UpdateData').ToLowerInvariant()
+        if ($UpdateDataModes -contains $value) { return @{ Mode = $value; Source = $file } }
+    }
+    return @{ Mode = 'ask'; Source = 'default' }
+}
+
+# ---------------------------------------------------------------------------------------------
 # Saved pallet layouts - one JSON document per carton (docs\pallet_layout.schema.json)
 # ---------------------------------------------------------------------------------------------
 function ConvertTo-JsonString {
@@ -560,6 +680,18 @@ function Build-PalletLayout {
         [void]$errors.Add((New-FieldError 'max_height_mm' 'max_height_mm must be a number between 100 and 5000'))
     }
 
+    # Optional: how far (mm, per side) cartons were allowed to hang over the pallet edge when the
+    # layout was built. Absent means 0 - the layout stays inside the deck.
+    $overhang = 0.0
+    $rawOverhang = Get-Field $Body 'overhang_mm'
+    if ($null -ne $rawOverhang) {
+        $overhangNum = Get-JsonNumber $rawOverhang
+        if ($null -eq $overhangNum -or $overhangNum -lt 0 -or $overhangNum -gt 200) {
+            [void]$errors.Add((New-FieldError 'overhang_mm' 'overhang_mm must be a number between 0 and 200'))
+        }
+        else { $overhang = $overhangNum }
+    }
+
     $origin = 'manual'
     $rawOrigin = Get-Field $Body 'origin'
     if ($null -ne $rawOrigin) {
@@ -623,8 +755,8 @@ function Build-PalletLayout {
                 [void]$errors.Add((New-FieldError $at ("l x w must be the carton footprint {0} x {1} or {1} x {0}" -f $cl, $cw)))
                 continue
             }
-            if ($x -lt (0 - $tol) -or $y -lt (0 - $tol) -or ($x + $l) -gt ($pl + $tol) -or ($y + $w) -gt ($pw + $tol)) {
-                [void]$errors.Add((New-FieldError $at ("carton lies outside the {0} x {1} pallet" -f $pl, $pw)))
+            if ($x -lt (0 - $overhang - $tol) -or $y -lt (0 - $overhang - $tol) -or ($x + $l) -gt ($pl + $overhang + $tol) -or ($y + $w) -gt ($pw + $overhang + $tol)) {
+                [void]$errors.Add((New-FieldError $at ("carton lies outside the {0} x {1} pallet (overhang allowed: {2} mm)" -f $pl, $pw, $overhang)))
                 continue
             }
             $clash = $false
@@ -657,6 +789,7 @@ function Build-PalletLayout {
         ('  "pallet": {{ "length_mm": {0}, "width_mm": {1} }},' -f (Format-JsonNumber $pl), (Format-JsonNumber $pw)),
         ('  "ship_method": {0},' -f (ConvertTo-JsonString $method)),
         ('  "max_height_mm": {0},' -f (Format-JsonNumber $maxHeight)),
+        ('  "overhang_mm": {0},' -f (Format-JsonNumber $overhang)),
         ('  "level_count": {0},' -f $levels.Count),
         ('  "carton_count": {0},' -f $cartonCount),
         ('  "origin": {0},' -f (ConvertTo-JsonString $origin)),
@@ -879,47 +1012,10 @@ try {
                     continue
                 }
 
-                $dimErrors = New-Object System.Collections.ArrayList
-                $dimType = Resolve-Enum (Get-Field $parsed 'type') 'type' @('PRODUCT', 'CARTON') '' $dimErrors
-                $dimId = Resolve-IdField (Get-Field $parsed 'id') 'id' $dimErrors
-                $dimLength = Resolve-Dimension (Get-Field $parsed 'length_mm') 'length_mm' $dimErrors
-                $dimWidth = Resolve-Dimension (Get-Field $parsed 'width_mm') 'width_mm' $dimErrors
-                $dimHeight = Resolve-Dimension (Get-Field $parsed 'height_mm') 'height_mm' $dimErrors
-
-                # Optional weights (kg) - product saves only. The Dimension sheet keeps four per FG: FG gross / FG net on its
-                # EA row and carton gross / carton net on its CA row. Blank means "leave the workbook cell alone";
-                # anything supplied must be a sensible positive number and a net weight may not exceed its gross.
-                $dimWeights = [ordered]@{}
-                $weightFields = @(
-                    @{ field = 'gross_weight_kg';        arg = '-GrossWeightKg' },
-                    @{ field = 'net_weight_kg';          arg = '-NetWeightKg' },
-                    @{ field = 'carton_gross_weight_kg'; arg = '-CartonGrossWeightKg' },
-                    @{ field = 'carton_net_weight_kg';   arg = '-CartonNetWeightKg' }
-                )
-                if ($dimType -eq 'PRODUCT') {
-                    foreach ($wf in $weightFields) {
-                        $weightRaw = Get-Field $parsed $wf.field
-                        if (Test-Blank $weightRaw) { continue }
-                        $weightParsed = 0.0
-                        $weightOk = [double]::TryParse([string]$weightRaw, [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$weightParsed)
-                        if (-not $weightOk) { [void]$dimErrors.Add((New-FieldError $wf.field 'Must be numeric')) }
-                        elseif ($weightParsed -le 0 -or $weightParsed -gt 1000) { [void]$dimErrors.Add((New-FieldError $wf.field 'Must be greater than 0 and at most 1000 kg')) }
-                        else { $dimWeights[$wf.field] = $weightParsed }
-                    }
-                    if ($dimWeights.Contains('gross_weight_kg') -and $dimWeights.Contains('net_weight_kg') -and $dimWeights['net_weight_kg'] -gt $dimWeights['gross_weight_kg']) {
-                        [void]$dimErrors.Add((New-FieldError 'net_weight_kg' 'Net weight cannot exceed the gross weight'))
-                    }
-                    if ($dimWeights.Contains('carton_gross_weight_kg') -and $dimWeights.Contains('carton_net_weight_kg') -and $dimWeights['carton_net_weight_kg'] -gt $dimWeights['carton_gross_weight_kg']) {
-                        [void]$dimErrors.Add((New-FieldError 'carton_net_weight_kg' 'Net weight cannot exceed the gross weight'))
-                    }
-                }
-
-                $dimNameRaw = Get-Field $parsed 'name'
-                $dimName = ''
-                if (-not (Test-Blank $dimNameRaw)) {
-                    $dimName = ([string]$dimNameRaw).Trim()
-                    if ($dimName.Length -gt 100) { $dimName = $dimName.Substring(0, 100) }
-                }
+                $dim = Resolve-DimensionRequest $parsed
+                $dimErrors = $dim.Errors; $dimType = $dim.Type; $dimId = $dim.Id; $dimName = $dim.Name
+                $dimLength = $dim.Length; $dimWidth = $dim.Width; $dimHeight = $dim.Height; $dimWeights = $dim.Weights
+                $weightFields = $DimensionWeightFields
 
                 if ($dimErrors.Count -gt 0) {
                     Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Validation failed'; details = @($dimErrors); track_id = $trackId })
@@ -985,7 +1081,7 @@ try {
                 }
                 else {
                     $lockStatus = 502
-                    if ($writerResult.error -match 'already open elsewhere|locked') { $lockStatus = 503 }
+                    if ($writerResult.error -match 'open elsewhere|locked|used by another process') { $lockStatus = 503 }
                     Send-Json $res $lockStatus ([ordered]@{
                             success     = $false
                             status      = $lockStatus
@@ -995,6 +1091,95 @@ try {
                         })
                     Write-Log ('[POST] {0} [{1}] [{2}] excel write failed: {3}' -f $path, $lockStatus, $trackId, $writerResult.error)
                 }
+                continue
+            }
+
+            # ---- saves waiting for the workbook -----------------------------------------
+            if ($path -eq '/api/pending-writes' -and $method -eq 'GET') {
+                $rows = @(Read-CsvSafe (Join-Path $DataPath $PendingWritesFile))
+                Send-Json $res 200 ([ordered]@{ success = $true; count = $rows.Count; rows = $rows })
+                continue
+            }
+            if ($path -eq '/api/queue-dimension') {
+                if ($method -ne 'POST') {
+                    Send-Json $res 405 ([ordered]@{ success = $false; status = 405; error = 'Method not allowed' })
+                    continue
+                }
+                $requestCount++
+                if ([string]::IsNullOrWhiteSpace($body)) {
+                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Request body is empty' })
+                    continue
+                }
+                try { $parsed = $body | ConvertFrom-Json }
+                catch {
+                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Invalid JSON'; detail = $_.Exception.Message })
+                    Write-Log ('[POST] {0} [400] malformed JSON' -f $path)
+                    continue
+                }
+                $dim = Resolve-DimensionRequest $parsed
+                if ($dim.Errors.Count -gt 0) {
+                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Validation failed'; details = @($dim.Errors) })
+                    Write-Log ('[POST] {0} [400] validation failed' -f $path)
+                    continue
+                }
+                $record = @{
+                    Type = $dim.Type.ToLowerInvariant(); ID = $dim.Id; Name = $dim.Name
+                    Length_mm = (Format-InvariantNumber $dim.Length); Width_mm = (Format-InvariantNumber $dim.Width); Height_mm = (Format-InvariantNumber $dim.Height)
+                    Queued_At = (Get-UtcStamp); Attempts = '0'; Last_Error = ''
+                }
+                foreach ($wf in $DimensionWeightFields) {
+                    $record[$wf.column] = ''
+                    if ($dim.Weights.Contains($wf.field)) { $record[$wf.column] = (Format-InvariantNumber $dim.Weights[$wf.field]) }
+                }
+                $pendingPath = Join-Path $DataPath $PendingWritesFile
+                try {
+                    # A newer save of the same item replaces the one still waiting.
+                    $kept = New-Object System.Collections.ArrayList
+                    $replacedPending = $false
+                    foreach ($r in @(Read-CsvSafe $pendingPath)) {
+                        if (([string]$r.Type -ieq $record.Type) -and ([string]$r.ID -ieq $record.ID)) { $replacedPending = $true } else { [void]$kept.Add($r) }
+                    }
+                    [void]$kept.Add($record)
+                    Write-CsvAll -Path $pendingPath -Columns $PendingWritesColumns -Rows $kept
+                }
+                catch [System.IO.IOException] {
+                    Send-Json $res 503 ([ordered]@{ success = $false; status = 503; error = ('CSV file locked. Close Excel and retry. ({0})' -f $PendingWritesFile) })
+                    Write-Log ('[POST] {0} [503] csv locked' -f $path)
+                    continue
+                }
+                Send-Json $res 200 ([ordered]@{ success = $true; queued = $true; replaced = $replacedPending; pending = $kept.Count; type = $record.Type; id = $record.ID })
+                Write-Log ('[POST] {0} [200] {1} {2} queued for the workbook ({3} waiting)' -f $path, $record.Type, $record.ID, $kept.Count)
+                continue
+            }
+
+            # ---- launcher preference: how often the workbooks are re-read ----------------
+            if ($path -eq '/api/launcher-settings') {
+                if ($method -eq 'GET') {
+                    $current = Get-UpdateDataMode
+                    Send-Json $res 200 ([ordered]@{ success = $true; update_data = $current.Mode; source = $current.Source; options = $UpdateDataModes })
+                    continue
+                }
+                if ($method -ne 'POST') {
+                    Send-Json $res 405 ([ordered]@{ success = $false; status = 405; error = 'Method not allowed' })
+                    continue
+                }
+                $requestCount++
+                $parsed = $null
+                try { $parsed = $body | ConvertFrom-Json } catch { }
+                $requested = [string](Get-Field $parsed 'update_data')
+                if ($UpdateDataModes -cnotcontains $requested) {
+                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = ('update_data must be one of: {0}' -f ($UpdateDataModes -join ', ')) })
+                    Write-Log ('[POST] {0} [400] bad update_data' -f $path)
+                    continue
+                }
+                try { Set-IniValue (Join-Path $ConfigDir 'config.local.ini') 'Launcher' 'UpdateData' $requested }
+                catch {
+                    Send-Json $res 503 ([ordered]@{ success = $false; status = 503; error = ('Could not write config.local.ini: {0}' -f $_.Exception.Message) })
+                    Write-Log ('[POST] {0} [503] {1}' -f $path, $_.Exception.Message)
+                    continue
+                }
+                Send-Json $res 200 ([ordered]@{ success = $true; update_data = $requested; source = 'config.local.ini' })
+                Write-Log ('[POST] {0} [200] UpdateData={1}' -f $path, $requested)
                 continue
             }
 

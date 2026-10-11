@@ -41,7 +41,10 @@ param(
     [double]$NetWeightKg = 0,
     [double]$CartonGrossWeightKg = 0,
     [double]$CartonNetWeightKg = 0,
-    [string]$TrackId = ''
+    [string]$TrackId = '',
+    # Skip the background cache rebuild. Used when the caller is about to rebuild anyway (the launcher
+    # applying queued saves right before it reads the workbook) or is writing several items in a row.
+    [switch]$NoRebuild
 )
 
 $ErrorActionPreference = 'Stop'
@@ -784,6 +787,8 @@ finally {
 # ---------------------------------------------------------------------------------------------
 $cacheRebuildStarted = $false
 $rebuildError = ''
+if ($NoRebuild) { Write-WbLog 'Cache rebuild skipped (-NoRebuild): the caller rebuilds.' }
+else {
 try {
     $launcherPath = Join-Path $SystemDir 'launcher.ps1'
     Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList @(
@@ -795,6 +800,7 @@ try {
 catch {
     $rebuildError = $_.Exception.Message
     Write-WbLog "Could not start the cache rebuild: $rebuildError"
+}
 }
 
 Send-Result -Ok $true -Fields @{
