@@ -86,6 +86,12 @@ Do not edit these files manually.
 
 `fg_dimensions.csv` also carries four weights in kg read from the `Dimension` sheet: `gross_weight_kg` / `net_weight_kg` (the FG's `EA` row, columns `Gross weight` / `Net Weight`) and `carton_gross_weight_kg` / `carton_net_weight_kg` (the FG's `CA` row, same columns). Where the `CA` row leaves a carton weight blank, the `Master list` sheet's `GW` / `NW` for the same item number fills it; `carton_weight_source` records which sheet supplied the values. A net weight larger than its own gross weight is dropped and listed in `data_quality.csv`.
 
+### Saved pallet layouts
+
+**Manual Pallet Layout → Save layout** stores the layout on screen for its carton, one file per carton: `system\http-listener\system\generated\pallet_layouts\<CARTON_ID>.json` (format: `system\http-listener\docs\pallet_layout.schema.json`). Saving again for the same carton replaces it. **Carton Lookup** then shows the saved layout for that carton (with a Saved / Suggested switch), and **Load saved** brings it back into the manual builder. These files are not rebuilt from the workbooks and are not part of the package - copy the `pallet_layouts` folder across when moving to a new copy of the tool. Saving needs the tool to have been opened with `Open_WVN_Master_Carton_Fit_Tool.cmd`.
+
+A layout is only applied while the carton still has the size it was saved for; after a dimension change the tool shows the suggested layout and says the saved one no longer fits.
+
 ## 7. Carton dimension preparation
 
 The BOM maps each FG to a carton. Valid CA measurement rows are linked through their FG, source values are multiplied by 10 to convert centimetres to millimetres, axes are normalized, and measurements are averaged by resolved carton ID. The dimension source is `BOM_LINKED_CA_AVERAGE`. Conflicting or missing records are reported in `data_quality.csv`.

@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wvn.pallet-layout/1",
+  "title": "Saved pallet layout",
+  "description": "How one master carton is stacked on a pallet, level by level. One document per carton ID, stored by the saving helper as system/http-listener/system/generated/pallet_layouts/<CARTON_ID>.json. All lengths are millimetres. The origin (0, 0) is one corner of the pallet; x runs along the pallet length, y along the pallet width. Every level is one carton height tall, so level k sits at z = k * carton.height_mm above the pallet deck.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "carton_id", "carton", "pallet", "ship_method", "max_height_mm", "levels"],
+  "properties": {
+    "schema": {
+      "description": "Document type marker, written by the helper.",
+      "const": "wvn.pallet-layout"
+    },
+    "schema_version": {
+      "description": "Version of this schema. Bump it (and teach the page and the helper the new shape) when a field changes meaning.",
+      "const": 1
+    },
+    "carton_id": {
+      "description": "Master carton ID exactly as it appears in the tool. The key: saving again for the same ID (compared without regard to upper/lower case) replaces the document.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "carton": {
+      "description": "Outside size of the carton the layout was built for. The tool only applies a saved layout while the carton still has this size (within 0.6 mm); otherwise it falls back to the suggested layout and says so.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["length_mm", "width_mm", "height_mm"],
+      "properties": {
+        "length_mm": { "type": "number", "minimum": 1, "maximum": 5000 },
+        "width_mm": { "type": "number", "minimum": 1, "maximum": 5000 },
+        "height_mm": { "type": "number", "minimum": 1, "maximum": 5000 }
+      }
+    },
+    "pallet": {
+      "description": "Deck size of the pallet the layout was built on.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["length_mm", "width_mm"],
+      "properties": {
+        "length_mm": { "type": "number", "minimum": 100, "maximum": 5000 },
+        "width_mm": { "type": "number", "minimum": 100, "maximum": 5000 }
+      }
+    },
+    "ship_method": {
+      "description": "Shipment method the stack height was limited for.",
+      "enum": ["air", "truck"]
+    },
+    "max_height_mm": {
+      "description": "Stack height limit that applied (cartons only, pallet deck excluded): 1600 for air, 2200 for truck. level_count * carton.height_mm never exceeds it.",
+      "type": "number",
+      "minimum": 100,
+      "maximum": 5000
+    },
+    "level_count": {
+      "description": "Number of levels. Derived, written by the helper.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "carton_count": {
+      "description": "Total cartons on the pallet. Derived, written by the helper.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "origin": {
+      "description": "Where the layout started: built by hand from an empty pallet, or taken from the tool's suggested layout (and possibly edited).",
+      "enum": ["manual", "suggested"],
+      "default": "manual"
+    },
+    "source_fg_id": {
+      "description": "FG the layout was opened from in FG Lookup, when there was one. Informational only.",
+      "type": "string",
+      "maxLength": 80,
+      "default": ""
+    },
+    "saved_at": {
+      "description": "UTC time of the save, written by the helper.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "saved_by": {
+      "description": "Windows user name of whoever saved it, written by the helper.",
+      "type": "string"
+    },
+    "levels": {
+      "description": "Levels from the bottom up: levels[0] rests on the pallet. Empty levels are not stored.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "description": "The cartons on one level. They must not overlap each other and must lie inside the pallet.",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 400,
+        "items": { "$ref": "#/$defs/box" }
+      }
+    }
+  },
+  "$defs": {
+    "box": {
+      "description": "One carton seen from above. x, y is the corner nearest the pallet origin; l is its extent along the pallet length and w along the pallet width. l x w is either carton.length_mm x carton.width_mm or the same turned 90 degrees.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "l", "w"],
+      "properties": {
+        "x": { "type": "number", "minimum": 0 },
+        "y": { "type": "number", "minimum": 0 },
+        "l": { "type": "number", "exclusiveMinimum": 0 },
+        "w": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    }
+  },
+  "examples": [
+    {
+      "schema": "wvn.pallet-layout",
+      "schema_version": 1,
+      "carton_id": "1008609",
+      "carton": { "length_mm": 400, "width_mm": 300, "height_mm": 250 },
+      "pallet": { "length_mm": 1200, "width_mm": 1000 },
+      "ship_method": "truck",
+      "max_height_mm": 2200,
+      "level_count": 2,
+      "carton_count": 4,
+      "origin": "suggested",
+      "source_fg_id": "1000299",
+      "saved_at": "2026-10-11T09:24:33Z",
+      "saved_by": "packaging.engineer",
+      "levels": [
+        [{ "x": 0, "y": 0, "l": 400, "w": 300 }, { "x": 400, "y": 0, "l": 400, "w": 300 }, { "x": 0, "y": 300, "l": 300, "w": 400 }],
+        [{ "x": 0, "y": 0, "l": 300, "w": 400 }]
+      ]
+    }
+  ]
+}

@@ -73,6 +73,15 @@ $Datasets = [ordered]@{
     }
 }
 
+# Saved pallet layouts are not rows in a CSV: each carton gets one JSON document (schema in
+# docs\pallet_layout.schema.json) under <DataPath>\pallet_layouts\. One file per carton keeps a
+# save atomic and independent of every other carton, and the files can be copied or backed up as-is.
+$PalletLayoutSchemaVersion = 1
+$PalletLayoutDir = Join-Path $DataPath 'pallet_layouts'
+$PalletLayoutMaxLevels = 100
+$PalletLayoutMaxBoxesPerLevel = 400
+$PalletLayoutMaxBodyChars = 2000000
+
 $SourceEnum = @('MANUAL_ENTRY', 'D365_IMPORT', 'MOBILE_APP', 'BATCH_IMPORT')
 $DimensionSourceEnum = @('BOM_LINKED_CA_AVERAGE', 'MANUAL_MEASUREMENT', 'SUPPLIER_SPEC')
 $ConfidenceEnum = @('HIGH', 'MEDIUM', 'LOW')
@@ -453,6 +462,241 @@ function Invoke-Insert {
 }
 
 # ---------------------------------------------------------------------------------------------
+# Saved pallet layouts - one JSON document per carton (docs\pallet_layout.schema.json)
+# ---------------------------------------------------------------------------------------------
+function ConvertTo-JsonString {
+    <# A JSON string literal, escaped by hand. The stored document is assembled as text so it
+       never goes through ConvertTo-Json, which in PowerShell 5.1 mangles nested arrays that
+       came out of ConvertFrom-Json. Everything outside printable ASCII becomes \uXXXX. #>
+    param([string]$Text)
+    $sb = New-Object System.Text.StringBuilder
+    [void]$sb.Append('"')
+    foreach ($ch in $Text.ToCharArray()) {
+        $code = [int]$ch
+        if ($code -eq 34) { [void]$sb.Append('\"') }
+        elseif ($code -eq 92) { [void]$sb.Append('\\') }
+        elseif ($code -lt 32 -or $code -gt 126) { [void]$sb.Append(('\u{0:x4}' -f $code)) }
+        else { [void]$sb.Append($ch) }
+    }
+    [void]$sb.Append('"')
+    return $sb.ToString()
+}
+
+function Format-JsonNumber {
+    <# Millimetres to one decimal, always with a '.' whatever the PC's regional settings are. #>
+    param([double]$Value)
+    $rounded = [Math]::Round($Value, 1, [MidpointRounding]::AwayFromZero)
+    if ($rounded -eq 0) { return '0' }
+    return $rounded.ToString('0.#', [Globalization.CultureInfo]::InvariantCulture)
+}
+
+function Get-JsonNumber {
+    <# $null unless the value is a real JSON number - "12" or true must not pass as 12 or 1. #>
+    param($Value)
+    if ($null -eq $Value) { return $null }
+    if (-not ($Value -is [int] -or $Value -is [long] -or $Value -is [decimal] -or $Value -is [double] -or $Value -is [single])) { return $null }
+    $d = [double]$Value
+    if ([double]::IsNaN($d) -or [double]::IsInfinity($d)) { return $null }
+    return $d
+}
+
+function Get-PalletLayoutPath {
+    <# Carton IDs are free text in the workbook, so anything outside A-Z 0-9 - _ is written
+       as %XX. Upper-cased first: "ab-1" and "AB-1" are the same carton and share one file. #>
+    param([string]$CartonId)
+    $sb = New-Object System.Text.StringBuilder
+    foreach ($b in [Text.Encoding]::UTF8.GetBytes($CartonId.Trim().ToUpperInvariant())) {
+        if (($b -ge 48 -and $b -le 57) -or ($b -ge 65 -and $b -le 90) -or $b -eq 45 -or $b -eq 95) { [void]$sb.Append([char]$b) }
+        else { [void]$sb.Append(('%{0:X2}' -f $b)) }
+    }
+    return (Join-Path $PalletLayoutDir ($sb.ToString() + '.json'))
+}
+
+function Build-PalletLayout {
+    <# Validates one layout and returns the canonical document text. Geometry is checked here
+       as well as in the page: every carton must be the carton's own footprint (either way
+       round), sit inside the pallet, and not overlap another carton on its level. #>
+    param($Body)
+
+    $errors = New-Object System.Collections.ArrayList
+    $tol = 0.6
+
+    if ($null -eq $Body -or $Body -is [System.Array] -or $Body -isnot [System.Management.Automation.PSCustomObject]) {
+        [void]$errors.Add((New-FieldError 'body' 'Expected one JSON object'))
+        return @{ Ok = $false; Errors = $errors }
+    }
+
+    $version = Get-JsonNumber (Get-Field $Body 'schema_version')
+    if ($null -eq $version -or $version -ne $PalletLayoutSchemaVersion) {
+        [void]$errors.Add((New-FieldError 'schema_version' ("schema_version must be {0}" -f $PalletLayoutSchemaVersion)))
+    }
+
+    $cartonId = ''
+    $rawId = Get-Field $Body 'carton_id'
+    if ($rawId -is [string]) { $cartonId = $rawId.Trim() }
+    if ($cartonId.Length -lt 1 -or $cartonId.Length -gt 80 -or $cartonId -match '[\x00-\x1F]') {
+        [void]$errors.Add((New-FieldError 'carton_id' 'carton_id is required (text, up to 80 characters)'))
+    }
+
+    $dims = @{}
+    foreach ($spec in @(
+            @('carton', 'length_mm', 1, 5000), @('carton', 'width_mm', 1, 5000), @('carton', 'height_mm', 1, 5000),
+            @('pallet', 'length_mm', 100, 5000), @('pallet', 'width_mm', 100, 5000))) {
+        $name = '{0}.{1}' -f $spec[0], $spec[1]
+        $n = Get-JsonNumber (Get-Field (Get-Field $Body $spec[0]) $spec[1])
+        if ($null -eq $n -or $n -lt $spec[2] -or $n -gt $spec[3]) {
+            [void]$errors.Add((New-FieldError $name ("{0} must be a number between {1} and {2}" -f $name, $spec[2], $spec[3])))
+        }
+        else { $dims[$name] = $n }
+    }
+
+    $method = Get-Field $Body 'ship_method'
+    if (-not ($method -is [string]) -or @('air', 'truck') -cnotcontains $method) {
+        [void]$errors.Add((New-FieldError 'ship_method' "ship_method must be 'air' or 'truck'"))
+    }
+
+    $maxHeight = Get-JsonNumber (Get-Field $Body 'max_height_mm')
+    if ($null -eq $maxHeight -or $maxHeight -lt 100 -or $maxHeight -gt 5000) {
+        [void]$errors.Add((New-FieldError 'max_height_mm' 'max_height_mm must be a number between 100 and 5000'))
+    }
+
+    $origin = 'manual'
+    $rawOrigin = Get-Field $Body 'origin'
+    if ($null -ne $rawOrigin) {
+        if (-not ($rawOrigin -is [string]) -or @('manual', 'suggested') -cnotcontains $rawOrigin) {
+            [void]$errors.Add((New-FieldError 'origin' "origin must be 'manual' or 'suggested'"))
+        }
+        else { $origin = $rawOrigin }
+    }
+
+    $sourceFg = ''
+    $rawFg = Get-Field $Body 'source_fg_id'
+    if ($null -ne $rawFg) {
+        if (-not ($rawFg -is [string]) -or $rawFg.Trim().Length -gt 80 -or $rawFg -match '[\x00-\x1F]') {
+            [void]$errors.Add((New-FieldError 'source_fg_id' 'source_fg_id must be text, up to 80 characters'))
+        }
+        else { $sourceFg = $rawFg.Trim() }
+    }
+
+    # Property access, not Get-Field: returning an array from a function unrolls it, and a
+    # one-level layout would arrive here as that level instead of as a list of levels.
+    $levels = $null
+    $levelsProp = $Body.PSObject.Properties['levels']
+    if ($null -ne $levelsProp) { $levels = $levelsProp.Value }
+    if ($levels -isnot [System.Array] -or $levels.Count -lt 1 -or $levels.Count -gt $PalletLayoutMaxLevels) {
+        [void]$errors.Add((New-FieldError 'levels' ("levels must be a list of 1 to {0} levels" -f $PalletLayoutMaxLevels)))
+    }
+
+    if ($errors.Count -gt 0) { return @{ Ok = $false; Errors = $errors } }
+
+    $cl = $dims['carton.length_mm']; $cw = $dims['carton.width_mm']; $ch = $dims['carton.height_mm']
+    $pl = $dims['pallet.length_mm']; $pw = $dims['pallet.width_mm']
+
+    if ($levels.Count * $ch -gt $maxHeight + $tol) {
+        [void]$errors.Add((New-FieldError 'levels' ("{0} levels of {1} mm are taller than max_height_mm {2}" -f $levels.Count, $ch, $maxHeight)))
+        return @{ Ok = $false; Errors = $errors }
+    }
+
+    $levelText = New-Object System.Collections.ArrayList
+    $cartonCount = 0
+    for ($k = 0; $k -lt $levels.Count -and $errors.Count -lt 10; $k++) {
+        $level = $levels[$k]
+        $where = 'levels[{0}]' -f $k
+        if ($level -isnot [System.Array] -or $level.Count -lt 1 -or $level.Count -gt $PalletLayoutMaxBoxesPerLevel) {
+            [void]$errors.Add((New-FieldError $where ("each level must hold 1 to {0} cartons" -f $PalletLayoutMaxBoxesPerLevel)))
+            continue
+        }
+        $rects = New-Object System.Collections.ArrayList
+        $parts = New-Object System.Collections.ArrayList
+        for ($i = 0; $i -lt $level.Count -and $errors.Count -lt 10; $i++) {
+            $box = $level[$i]
+            $at = '{0}[{1}]' -f $where, $i
+            $x = Get-JsonNumber (Get-Field $box 'x'); $y = Get-JsonNumber (Get-Field $box 'y')
+            $l = Get-JsonNumber (Get-Field $box 'l'); $w = Get-JsonNumber (Get-Field $box 'w')
+            if ($null -eq $x -or $null -eq $y -or $null -eq $l -or $null -eq $w) {
+                [void]$errors.Add((New-FieldError $at 'a carton needs numeric x, y, l and w (mm)'))
+                continue
+            }
+            $asIs = ([Math]::Abs($l - $cl) -le $tol) -and ([Math]::Abs($w - $cw) -le $tol)
+            $turned = ([Math]::Abs($l - $cw) -le $tol) -and ([Math]::Abs($w - $cl) -le $tol)
+            if (-not ($asIs -or $turned)) {
+                [void]$errors.Add((New-FieldError $at ("l x w must be the carton footprint {0} x {1} or {1} x {0}" -f $cl, $cw)))
+                continue
+            }
+            if ($x -lt (0 - $tol) -or $y -lt (0 - $tol) -or ($x + $l) -gt ($pl + $tol) -or ($y + $w) -gt ($pw + $tol)) {
+                [void]$errors.Add((New-FieldError $at ("carton lies outside the {0} x {1} pallet" -f $pl, $pw)))
+                continue
+            }
+            $clash = $false
+            foreach ($o in $rects) {
+                $ox = [Math]::Min($x + $l, $o[0] + $o[2]) - [Math]::Max($x, $o[0])
+                $oy = [Math]::Min($y + $w, $o[1] + $o[3]) - [Math]::Max($y, $o[1])
+                if ($ox -gt 1.0 -and $oy -gt 1.0) { $clash = $true; break }
+            }
+            if ($clash) {
+                [void]$errors.Add((New-FieldError $at 'carton overlaps another carton on the same level'))
+                continue
+            }
+            [void]$rects.Add(@($x, $y, $l, $w))
+            [void]$parts.Add(('{{"x":{0},"y":{1},"l":{2},"w":{3}}}' -f (Format-JsonNumber $x), (Format-JsonNumber $y), (Format-JsonNumber $l), (Format-JsonNumber $w)))
+        }
+        $cartonCount += $rects.Count
+        [void]$levelText.Add('    [' + ($parts -join ',') + ']')
+    }
+
+    if ($errors.Count -gt 0) { return @{ Ok = $false; Errors = $errors } }
+
+    $savedAt = Get-UtcStamp
+    $nl = [Environment]::NewLine
+    $lines = @(
+        '{',
+        '  "schema": "wvn.pallet-layout",',
+        ('  "schema_version": {0},' -f $PalletLayoutSchemaVersion),
+        ('  "carton_id": {0},' -f (ConvertTo-JsonString $cartonId)),
+        ('  "carton": {{ "length_mm": {0}, "width_mm": {1}, "height_mm": {2} }},' -f (Format-JsonNumber $cl), (Format-JsonNumber $cw), (Format-JsonNumber $ch)),
+        ('  "pallet": {{ "length_mm": {0}, "width_mm": {1} }},' -f (Format-JsonNumber $pl), (Format-JsonNumber $pw)),
+        ('  "ship_method": {0},' -f (ConvertTo-JsonString $method)),
+        ('  "max_height_mm": {0},' -f (Format-JsonNumber $maxHeight)),
+        ('  "level_count": {0},' -f $levels.Count),
+        ('  "carton_count": {0},' -f $cartonCount),
+        ('  "origin": {0},' -f (ConvertTo-JsonString $origin)),
+        ('  "source_fg_id": {0},' -f (ConvertTo-JsonString $sourceFg)),
+        ('  "saved_at": {0},' -f (ConvertTo-JsonString $savedAt)),
+        ('  "saved_by": {0},' -f (ConvertTo-JsonString ([string]$env:USERNAME))),
+        '  "levels": [',
+        ($levelText -join (',' + $nl)),
+        '  ]',
+        '}'
+    )
+    return @{
+        Ok          = $true
+        Json        = ($lines -join $nl)
+        CartonId    = $cartonId
+        LevelCount  = $levels.Count
+        CartonCount = $cartonCount
+        SavedAt     = $savedAt
+    }
+}
+
+function Read-PalletLayouts {
+    <# Every stored document as text. A file someone edited by hand into invalid JSON is
+       skipped (and logged) rather than allowed to break the whole response. #>
+    $docs = New-Object System.Collections.ArrayList
+    if (Test-Path -LiteralPath $PalletLayoutDir) {
+        foreach ($file in @(Get-ChildItem -LiteralPath $PalletLayoutDir -Filter '*.json' -File | Sort-Object Name)) {
+            try {
+                $text = [IO.File]::ReadAllText($file.FullName, [Text.Encoding]::UTF8).Trim()
+                if ([string]::IsNullOrWhiteSpace($text)) { continue }
+                $null = $text | ConvertFrom-Json
+                [void]$docs.Add($text)
+            }
+            catch { Write-Log ('[WARN] Skipped unreadable pallet layout {0}: {1}' -f $file.Name, $_.Exception.Message) }
+        }
+    }
+    return , $docs
+}
+
+# ---------------------------------------------------------------------------------------------
 # HTTP plumbing
 # ---------------------------------------------------------------------------------------------
 function Send-Json {
@@ -751,6 +995,72 @@ try {
                         })
                     Write-Log ('[POST] {0} [{1}] [{2}] excel write failed: {3}' -f $path, $lockStatus, $trackId, $writerResult.error)
                 }
+                continue
+            }
+
+            # ---- saved pallet layouts ---------------------------------------------------
+            if ($path -eq '/api/pallet-layouts') {
+                $jsonType = 'application/json; charset=utf-8'
+
+                if ($method -eq 'GET') {
+                    $docs = Read-PalletLayouts
+                    $text = '{{"success":true,"schema_version":{0},"count":{1},"layouts":[{2}]}}' -f $PalletLayoutSchemaVersion, $docs.Count, ($docs -join ',')
+                    Send-Bytes $res 200 ([Text.Encoding]::UTF8.GetBytes($text)) $jsonType
+                    Write-Log ('[GET] {0} [200] {1} layouts' -f $path, $docs.Count)
+                    continue
+                }
+
+                if ($method -ne 'POST') {
+                    Send-Json $res 405 ([ordered]@{ success = $false; status = 405; error = 'Method not allowed' })
+                    continue
+                }
+
+                $requestCount++
+
+                if ([string]::IsNullOrWhiteSpace($body)) {
+                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Request body is empty' })
+                    Write-Log ('[POST] {0} [400] empty body' -f $path)
+                    continue
+                }
+                if ($body.Length -gt $PalletLayoutMaxBodyChars) {
+                    Send-Json $res 413 ([ordered]@{ success = $false; status = 413; error = 'Layout is too large' })
+                    Write-Log ('[POST] {0} [413] {1} chars' -f $path, $body.Length)
+                    continue
+                }
+
+                try { $parsed = $body | ConvertFrom-Json }
+                catch {
+                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Invalid JSON'; detail = $_.Exception.Message })
+                    Write-Log ('[POST] {0} [400] malformed JSON' -f $path)
+                    continue
+                }
+
+                $built = Build-PalletLayout $parsed
+                if (-not $built.Ok) {
+                    Send-Json $res 400 ([ordered]@{ success = $false; status = 400; error = 'Validation failed'; details = @($built.Errors) })
+                    Write-Log ('[POST] {0} [400] validation failed: {1}' -f $path, (($built.Errors | ForEach-Object { $_.field }) -join ', '))
+                    continue
+                }
+
+                $layoutPath = Get-PalletLayoutPath $built.CartonId
+                $replaced = Test-Path -LiteralPath $layoutPath
+                try {
+                    if (-not (Test-Path -LiteralPath $PalletLayoutDir)) { New-Item -ItemType Directory -Path $PalletLayoutDir -Force | Out-Null }
+                    Write-TextReplace -Path $layoutPath -Text ($built.Json + [Environment]::NewLine)
+                }
+                catch [System.IO.IOException] {
+                    Send-Json $res 503 ([ordered]@{ success = $false; status = 503; error = 'The layout file is locked. Close whatever has it open and retry.' })
+                    Write-Log ('[POST] {0} [503] layout file locked' -f $path)
+                    continue
+                }
+
+                $replacedText = 'false'
+                if ($replaced) { $replacedText = 'true' }
+                $text = '{{"success":true,"replaced":{0},"layout":{1}}}' -f $replacedText, $built.Json
+                Send-Bytes $res 200 ([Text.Encoding]::UTF8.GetBytes($text)) $jsonType
+                $verb = 'saved'
+                if ($replaced) { $verb = 'replaced' }
+                Write-Log ('[POST] {0} [200] {1} {2} ({3} levels, {4} cartons)' -f $path, $built.CartonId, $verb, $built.LevelCount, $built.CartonCount)
                 continue
             }
 

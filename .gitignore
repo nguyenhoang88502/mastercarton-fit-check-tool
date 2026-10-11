@@ -22,6 +22,7 @@ Thumbs.db
 
 # HTTP listener runtime artifacts
 system/http-listener/system/generated/*.csv
+system/http-listener/system/generated/pallet_layouts/
 system/http-listener/tests/_run/
 system/http-listener/tools/worker-output/*.raw.json
 system/tools/worker-output/*.raw.json
