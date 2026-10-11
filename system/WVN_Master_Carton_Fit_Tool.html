@@ -1938,7 +1938,8 @@
         </div>
         <div class="tool-group">
           <button id="manualPalletSelectAllButton" type="button" data-i18n="manualPalletSelectAll">Select all</button>
-          <button id="manualPalletRotateSelButton" type="button" data-i18n="manualPalletRotateSel" disabled>Rotate selected</button>
+          <button id="manualPalletRotateSelButton" type="button" data-i18n="manualPalletRotateSel" disabled>Rotate block 90°</button>
+          <button id="manualPalletRotate180Button" type="button" data-i18n="manualPalletRotate180" disabled>Rotate block 180°</button>
           <button id="manualPalletDeleteSelButton" type="button" data-i18n="manualPalletDeleteSel" disabled>Delete selected</button>
           <button id="manualPalletCopySelButton" type="button" data-i18n="manualPalletCopySel" disabled>Copy</button>
           <button id="manualPalletPasteButton" type="button" data-i18n="manualPalletPasteSel" disabled>Paste</button>
@@ -2459,7 +2460,7 @@
       // Final overrides - keep this block last: short, self-explanatory labels and the current manual-layout hint.
       static { Object.assign(this.text.en, {
         detailsToggle: 'Details', manualPalletModePlace: 'Place', manualPalletModeSelectShort: 'Select', manualPalletModeRemoveShort: 'Remove',
-        manualPalletFlipOrientation: 'Rotate carton', manualPalletTrayLabel: 'Drag onto pallet', manualPalletRotateSel: 'Rotate selected', manualPalletSnapOn: 'Snap on', manualPalletSnapOff: 'Snap off',
+        manualPalletFlipOrientation: 'Rotate carton', manualPalletTrayLabel: 'Drag onto pallet', manualPalletRotateSel: 'Rotate block 90°', manualPalletRotate180: 'Rotate block 180°', manualPalletRotateBlocked: 'A 90° turn does not fit here. Use Rotate block 180°, or move the block first.', manualPalletRotate180Blocked: 'Another carton is in the way of the turned block.', manualPalletSnapOn: 'Snap on', manualPalletSnapOff: 'Snap off',
         manualPalletUndo: 'Undo', manualPalletCopyPrev: 'Copy level below', manualPalletRepeat: 'Repeat to top',
         manualPalletCopySel: 'Copy', manualPalletPasteSel: 'Paste', manualPalletPasteNoRoom: 'No room on this level for the copied cartons.',
         palletEditInManual: 'Edit in Manual Pallet Layout', cartonSelectLabel: 'Existing carton', cartonSelectPrompt: '— Select carton —',
@@ -2477,10 +2478,10 @@
         manualPalletSave: 'Save layout', manualPalletLoadSaved: 'Load saved', manualPalletSaved: 'Saved {date}', manualPalletSaving: 'Saving…',
         manualPalletSaveOffline: 'Saving is off. Open the tool with Open_WVN_Master_Carton_Fit_Tool.cmd.', manualPalletSaveNeedCarton: 'Choose a carton ID first — a layout is saved for a carton.',
         manualPalletSaveOverwrite: 'Carton {id} already has a saved layout ({date}). Replace it?', manualPalletSaveFailed: 'Not saved: {error}', manualPalletSaveOldHelper: 'Not saved: an older copy of the tool is still running. Close every tool window, then open it again.', manualPalletLoadConfirm: 'Replace the layout on screen with the saved one?',
-        manualPalletGridHint: 'Press and hold a carton (or the empty pallet), drag, and release to drop it. Drag a placed carton to move it. Select mode: drag across empty space to box-select (Shift/Ctrl adds or removes one), then drag any selected carton to move them all; R rotates, Delete removes, Ctrl+C / Ctrl+V copy and paste the selection (also onto another level). Right-click removes one.'
+        manualPalletGridHint: 'Press and hold a carton (or the empty pallet), drag, and release to drop it. Drag a placed carton to move it. Select mode: drag across empty space to box-select (Shift/Ctrl adds or removes one), then drag any selected carton to move them all; R turns the block 90° (Shift+R 180°), Delete removes, Ctrl+C / Ctrl+V copy and paste the selection (also onto another level). Right-click removes one.'
       }); Object.assign(this.text.vi, {
         detailsToggle: 'Chi tiết', manualPalletModePlace: 'Đặt', manualPalletModeSelectShort: 'Chọn', manualPalletModeRemoveShort: 'Bỏ',
-        manualPalletFlipOrientation: 'Xoay thùng', manualPalletTrayLabel: 'Kéo vào pallet', manualPalletRotateSel: 'Xoay thùng đã chọn', manualPalletSnapOn: 'Hít: bật', manualPalletSnapOff: 'Hít: tắt',
+        manualPalletFlipOrientation: 'Xoay thùng', manualPalletTrayLabel: 'Kéo vào pallet', manualPalletRotateSel: 'Xoay khối 90°', manualPalletRotate180: 'Xoay khối 180°', manualPalletRotateBlocked: 'Không đủ chỗ để xoay 90°. Hãy dùng Xoay khối 180° hoặc di chuyển khối trước.', manualPalletRotate180Blocked: 'Có thùng khác chắn chỗ của khối sau khi xoay.', manualPalletSnapOn: 'Hít: bật', manualPalletSnapOff: 'Hít: tắt',
         manualPalletUndo: 'Hoàn tác', manualPalletCopyPrev: 'Sao chép lớp dưới', manualPalletRepeat: 'Lặp đến đỉnh',
         manualPalletCopySel: 'Sao chép', manualPalletPasteSel: 'Dán', manualPalletPasteNoRoom: 'Không còn chỗ trên lớp này cho các thùng đã sao chép.',
         palletEditInManual: 'Chỉnh trong Xếp Pallet Thủ công', cartonSelectLabel: 'Thùng hiện có', cartonSelectPrompt: '— Chọn thùng —',
@@ -2498,7 +2499,7 @@
         manualPalletSave: 'Lưu bố trí', manualPalletLoadSaved: 'Mở bố trí đã lưu', manualPalletSaved: 'Đã lưu {date}', manualPalletSaving: 'Đang lưu…',
         manualPalletSaveOffline: 'Chức năng lưu đang tắt. Hãy mở công cụ bằng Open_WVN_Master_Carton_Fit_Tool.cmd.', manualPalletSaveNeedCarton: 'Hãy chọn mã thùng trước — bố trí được lưu theo thùng.',
         manualPalletSaveOverwrite: 'Thùng {id} đã có bố trí được lưu ({date}). Thay thế?', manualPalletSaveFailed: 'Chưa lưu được: {error}', manualPalletSaveOldHelper: 'Chưa lưu được: một bản cũ của công cụ vẫn đang chạy. Hãy đóng mọi cửa sổ công cụ rồi mở lại.', manualPalletLoadConfirm: 'Thay bố trí đang hiển thị bằng bố trí đã lưu?',
-        manualPalletGridHint: 'Nhấn giữ một thùng (hoặc vùng trống của pallet), kéo rồi thả để đặt. Kéo thùng đã đặt để di chuyển. Chế độ chọn: kéo trên vùng trống để quét chọn (Shift/Ctrl để thêm hoặc bớt một thùng), rồi kéo một thùng đã chọn để di chuyển tất cả; phím R xoay, Delete xóa, Ctrl+C / Ctrl+V sao chép và dán các thùng đã chọn (kể cả sang lớp khác). Bấm chuột phải để bỏ một thùng.'
+        manualPalletGridHint: 'Nhấn giữ một thùng (hoặc vùng trống của pallet), kéo rồi thả để đặt. Kéo thùng đã đặt để di chuyển. Chế độ chọn: kéo trên vùng trống để quét chọn (Shift/Ctrl để thêm hoặc bớt một thùng), rồi kéo một thùng đã chọn để di chuyển tất cả; phím R xoay khối 90° (Shift+R: 180°), Delete xóa, Ctrl+C / Ctrl+V sao chép và dán các thùng đã chọn (kể cả sang lớp khác). Bấm chuột phải để bỏ một thùng.'
       }) }
       // Text that quotes an adjustable assumption (growth %, wall, clearance, stack height limits) follows the Settings tab.
       static {
@@ -4574,6 +4575,16 @@
       }
       return null;
     }
+    // Turns the block 180 degrees about its own centre. Its footprint stays exactly where it is, so - unlike the 90 degree
+    // turn - this always fits on the pallet: it is the way to turn a whole level pattern that is too long to go round a
+    // quarter. Null only when a carton outside the block sits in a pocket the turned block needs.
+    function manualTurnGroup180(boxes, indices) {
+      const selected = new Set(indices), group = indices.map(i => boxes[i]).filter(Boolean), others = boxes.filter((_, i) => !selected.has(i));
+      if (!group.length) return null;
+      const { x0, x1, y0, y1 } = manualGroupBounds(group);
+      const rects = group.map(o => ({ x: manualRound1(x0 + x1 - o.x - o.l), y: manualRound1(y0 + y1 - o.y - o.w), l: o.l, w: o.w }));
+      return rects.every(r => !manualOverlaps(others, r)) ? rects : null;
+    }
     // Where a copied block can land on this level: exactly where it was copied from when that spot is free (the usual
     // case when pasting onto another level), otherwise the free spot nearest to it. Candidate corners are the pallet
     // edges and the edges of the cartons already on the level, so a pasted block always lands flush against something.
@@ -5203,6 +5214,7 @@
         document.querySelector('#manualPalletSnapButton')?.addEventListener('click', () => this.toggleManualPalletSnap());
         document.querySelector('#manualPalletSelectAllButton')?.addEventListener('click', () => this.manualSelectAll());
         document.querySelector('#manualPalletRotateSelButton')?.addEventListener('click', () => this.manualRotateSelected());
+        document.querySelector('#manualPalletRotate180Button')?.addEventListener('click', () => this.manualRotateSelected(true));
         document.querySelector('#manualPalletDeleteSelButton')?.addEventListener('click', () => this.manualDeleteSelected());
         document.querySelector('#manualPalletCopySelButton')?.addEventListener('click', () => this.manualCopySelected());
         document.querySelector('#manualPalletPasteButton')?.addEventListener('click', () => this.manualPasteClipboard());
@@ -5818,10 +5830,13 @@
         b.levels[b.activeLevel] = this.manualActiveBoxes().filter((_, i) => !chosen.has(i));
         this.manualClearSelection(); this.renderManualPalletBuilder();
       }
-      manualRotateSelected() {
-        const b = this.manualBuilder, indices = this.manualSelection(); if (!b || !indices.length) return;
-        const boxes = this.manualActiveBoxes(), rects = manualRotateGroup(b, boxes, indices);
-        if (!rects) { this.manualNotice('manualPalletRotateBlocked'); return }
+      // Turns a block of cartons as one rigid piece, so the pattern inside it survives: 90 degrees clockwise, or 180 degrees
+      // when `half` is set. The block is the selection, or every carton on the level when nothing is selected.
+      manualRotateSelected(half = false) {
+        const b = this.manualBuilder; if (!b) return;
+        const boxes = this.manualActiveBoxes(), chosen = this.manualSelection(), indices = chosen.length ? chosen : boxes.map((_, i) => i); if (!indices.length) return;
+        const rects = half ? manualTurnGroup180(boxes, indices) : manualRotateGroup(b, boxes, indices);
+        if (!rects) { this.manualNotice(half ? 'manualPalletRotate180Blocked' : 'manualPalletRotateBlocked'); return }
         indices.forEach((index, k) => { boxes[index] = rects[k] });
         this.renderManualPalletBuilder();
       }
@@ -5988,7 +6003,7 @@
         const tag = (event.target?.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
         if ((event.key === 'r' || event.key === 'R') && !event.ctrlKey && !event.metaKey) {
           event.preventDefault();
-          if (this.manualSelection().length) this.manualRotateSelected(); else this.toggleManualPalletOrientation();   // selection first, else the carton in hand
+          if (this.manualSelection().length) this.manualRotateSelected(event.shiftKey); else this.toggleManualPalletOrientation();   // selection first (Shift+R: 180 degrees), else the carton in hand
         }
         else if (event.key === 'Delete' || event.key === 'Backspace') { if (this.manualSelection().length) { event.preventDefault(); this.manualDeleteSelected() } }
         else if ((event.ctrlKey || event.metaKey) && (event.key === 'a' || event.key === 'A')) { event.preventDefault(); this.manualSelectAll() }
@@ -6018,7 +6033,7 @@
         disable('#manualPalletDeleteLevelButton', b.levels.length < 2 && !active.length);
         disable('#manualPalletRepeatButton', !b.levels.some(l => l.length) || b.levels.filter(l => l.length).length >= b.maxLayers);
         const selectedCount = this.manualSelection().length;
-        disable('#manualPalletSelectAllButton', !active.length); disable('#manualPalletRotateSelButton', !selectedCount); disable('#manualPalletDeleteSelButton', !selectedCount); disable('#manualPalletCopySelButton', !selectedCount); disable('#manualPalletPasteButton', !this.manualClipboard?.length);
+        disable('#manualPalletSelectAllButton', !active.length); disable('#manualPalletRotateSelButton', !active.length); disable('#manualPalletRotate180Button', !active.length); disable('#manualPalletDeleteSelButton', !selectedCount); disable('#manualPalletCopySelButton', !selectedCount); disable('#manualPalletPasteButton', !this.manualClipboard?.length);
         set('#manualPalletSelCount', selectedCount ? this.t('manualPalletSelCount', { n: selectedCount }) : '');
         disable('#manualPalletSaveButton', this.manualSaving || !b.levels.some(level => level.length));
         const loadSaved = document.querySelector('#manualPalletLoadSavedButton'); if (loadSaved) loadSaved.hidden = !this.manualSavedLayout(b);
