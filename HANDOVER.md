@@ -101,7 +101,7 @@ Classes prefixed `DisabledLegacy` or `DisabledFixed`/`DisabledContinuous` are re
 
 ## 7. Calculation contract
 
-Quick Mode uses the active FG, fixed carton dimensions, six orthogonal orientations, and rigid rectangular-grid packing. Optimized Mode tests FG ratios `0.90–1.10` in 0.05 steps: five values on each of three axes, 125 combinations, six orientations, and 750 checks. All carton ratios remain `1.00`.
+Quick Mode uses the active FG, fixed carton dimensions, six orthogonal orientations, and rigid rectangular-grid packing. Optimized Mode keeps the FG fixed and lets each carton axis grow by up to 3 % (`1.00–1.03` in 0.01 steps: four values on each of three axes, 64 combinations, six orientations, 384 checks). The range is one constant, `FIT_TOLERANCE = 0.03`; the legacy closest-fit search applies the same ±3 % to FG ratios (`0.97–1.03`, 0.01 steps).
 
 Outside carton dimensions receive a 10 mm deduction per axis exactly once.
 

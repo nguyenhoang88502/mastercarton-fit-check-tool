@@ -30,6 +30,9 @@ param(
     [Parameter(Mandatory = $true)][double]$LengthMm,
     [Parameter(Mandatory = $true)][double]$WidthMm,
     [Parameter(Mandatory = $true)][double]$HeightMm,
+    # Optional. Product only: written to the 'Gross weight' (kg) column of the EA row on the Dimension sheet.
+    # 0 (the default) means "not supplied" and leaves the cell exactly as it was.
+    [double]$GrossWeightKg = 0,
     [string]$TrackId = ''
 )
 
@@ -499,6 +502,11 @@ try {
         $heightCol = Resolve-Col $headerMap 'Height' $sheetName
         $volCol = 0
         if ($headerMap.ContainsKey('Volume')) { $volCol = $headerMap['Volume'] }
+        # First 'Gross weight' header wins (same rule as every other column on this sheet), which is the kg
+        # column beside Unit - the later 'Gross weight' headers belong to the pallet helper block.
+        $weightCol = 0
+        if ($GrossWeightKg -gt 0) { $weightCol = Resolve-Col $headerMap 'Gross weight' $sheetName }
+        $eaWeightKg = [Math]::Round($GrossWeightKg, 3)
         $idLetter = Get-ColumnLetter $idCol
         $unitLetter = Get-ColumnLetter $unitCol
         $maxCol = ($headerMap.Values | Measure-Object -Maximum).Maximum
@@ -566,6 +574,7 @@ try {
             Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $widthCol)$row" $null) $eaWidthCm
             Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $depthCol)$row" $null) $eaDepthCm
             Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $heightCol)$row" $null) $eaHeightCm
+            if ($weightCol) { Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $weightCol)$row" $null) $eaWeightKg }
             if ($volCol) {
                 $volLetter = Get-ColumnLetter $volCol
                 $wL = Get-ColumnLetter $widthCol; $dL = Get-ColumnLetter $depthCol; $hL = Get-ColumnLetter $heightCol
@@ -593,6 +602,7 @@ try {
             Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $widthCol)$row" $null) $eaWidthCm
             Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $depthCol)$row" $null) $eaDepthCm
             Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $heightCol)$row" $null) $eaHeightCm
+            if ($weightCol) { Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $weightCol)$row" $null) $eaWeightKg }
             if ($volCol) {
                 $volLetter = Get-ColumnLetter $volCol
                 $wL = Get-ColumnLetter $widthCol; $dL = Get-ColumnLetter $depthCol; $hL = Get-ColumnLetter $heightCol
@@ -757,6 +767,7 @@ Send-Result -Ok $true -Fields @{
     sheet                 = $sheetName
     backup_path           = $backupPath
     write_ms              = $writeSw.ElapsedMilliseconds
+    gross_weight_kg       = $(if ($Type -eq 'product' -and $GrossWeightKg -gt 0) { [Math]::Round($GrossWeightKg, 3) } else { $null })
     cache_rebuild_started = $cacheRebuildStarted
     rebuild_error         = $rebuildError
 }

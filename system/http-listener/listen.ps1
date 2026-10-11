@@ -642,6 +642,18 @@ try {
                 $dimWidth = Resolve-Dimension (Get-Field $parsed 'width_mm') 'width_mm' $dimErrors
                 $dimHeight = Resolve-Dimension (Get-Field $parsed 'height_mm') 'height_mm' $dimErrors
 
+                # Optional gross weight (kg) of one finished good - product saves only. Blank means "leave the
+                # workbook cell alone"; anything supplied must be a sensible positive number.
+                $dimWeight = $null
+                $weightRaw = Get-Field $parsed 'gross_weight_kg'
+                if ($dimType -eq 'PRODUCT' -and -not (Test-Blank $weightRaw)) {
+                    $weightParsed = 0.0
+                    $weightOk = [double]::TryParse([string]$weightRaw, [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$weightParsed)
+                    if (-not $weightOk) { [void]$dimErrors.Add((New-FieldError 'gross_weight_kg' 'Must be numeric')) }
+                    elseif ($weightParsed -le 0 -or $weightParsed -gt 1000) { [void]$dimErrors.Add((New-FieldError 'gross_weight_kg' 'Must be greater than 0 and at most 1000 kg')) }
+                    else { $dimWeight = $weightParsed }
+                }
+
                 $dimNameRaw = Get-Field $parsed 'name'
                 $dimName = ''
                 if (-not (Test-Blank $dimNameRaw)) {
@@ -671,6 +683,7 @@ try {
                     '-TrackId', $trackId
                 )
                 if ($dimName) { $writerArgs += @('-Name', $dimName) }
+                if ($null -ne $dimWeight) { $writerArgs += @('-GrossWeightKg', $dimWeight.ToString([Globalization.CultureInfo]::InvariantCulture)) }
 
                 $writerOutput = & powershell.exe @writerArgs 2>&1
                 $jsonLine = ($writerOutput | Where-Object { $_ -match '^\{.*\}$' } | Select-Object -Last 1)

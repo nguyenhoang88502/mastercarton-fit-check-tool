@@ -16,7 +16,7 @@ No installation, administrator rights, Node.js, Python, internet connection, or 
 
 **Quick Mode** uses the active FG dimensions, including a session remeasurement when present; otherwise it uses source FG dimensions. Carton dimensions remain fixed. It tests six orthogonal orientations using a rigid rectangular grid, with no compression, nesting, diagonal placement, or ratio adjustment.
 
-**Optimized Mode** keeps launcher-prepared carton dimensions fixed and independently tests FG length, width, and height ratios of `0.90`, `0.95`, `1.00`, `1.05`, and `1.10`. This produces 125 FG combinations and six orientations, or 750 checks per FG-carton pair. Carton ratios remain fixed at `1.00`.
+**Optimized Mode** keeps the active FG dimensions fixed and, only when the nominal dimensions do not fit, lets each launcher-prepared carton axis grow by up to **3 %** (ratios `1.00`, `1.01`, `1.02`, `1.03`: 64 carton combinations × six orientations). The whole tolerance range is the single constant `FIT_TOLERANCE = 0.03` in the HTML; the legacy closest-fit search uses the same range for FG ratios (`0.97`–`1.03` in 0.01 steps).
 
 ## 3. Required folder structure
 

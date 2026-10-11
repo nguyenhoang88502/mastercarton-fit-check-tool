@@ -689,6 +689,12 @@
       cursor: grabbing
     }
 
+    .manual-level-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0 }
+    .manual-level-tabs { display: flex; flex-wrap: wrap; gap: 4px }
+    .manual-level-tab.active { background: var(--blue, #0b5ea8); color: #fff; border-color: var(--blue, #0b5ea8) }
+    .manual-tray { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border: 1px dashed var(--line, #9bb); border-radius: 6px; cursor: grab; touch-action: none; user-select: none; font-size: 12px }
+    .manual-tray-box { display: inline-block; background: rgba(23, 100, 143, .28); border: 2px solid #17648f; border-radius: 2px }
+    #manualPalletGridWrap { touch-action: none; user-select: none; flex: 1 1 auto; min-width: 0 }
     .visual-summary {
       font-size: 12px
     }
@@ -1393,7 +1399,7 @@
         <label><span data-i18n="clearance">Clearance (mm)</span><input id="settingClearance" type="number" min="0" step="0.5" value="5"></label>
         <label><span data-i18n="roundingIncrement">Rounding increment (mm)</span><input id="settingRounding" type="number" min="1" step="1" value="5"></label>
       </div>
-      <p class="footnote" data-i18n="scenarioModelNote" data-optimized-mode-only>FG fixed at 1.00 (exact dimensions), never adjusted · carton starts at the maximum measured dimension per axis and may grow up to 10% larger per axis to fit</p>
+      <p class="footnote" data-i18n="scenarioModelNote" data-optimized-mode-only>FG fixed at 1.00 (exact dimensions), never adjusted · carton starts at the maximum measured dimension per axis and may grow up to 3% larger per axis to fit</p>
       <p class="quick-assumptions" data-quick-mode-only data-i18n="quickModeAssumptions">Exact active FG dimensions · Exact source carton dimensions · Six orthogonal orientations · Rigid rectangular grid · No compression · No nesting · No diagonal placement</p>
       <p class="notice" data-i18n="engineeringAdvisory">Engineering advisory only — physical sample validation required.</p>
       </div>
@@ -1431,6 +1437,9 @@
                 placeholder="mm"><span class="unit">mm</span></label><label><span data-i18n="height">Height</span><input
                 id="manualHeight" type="number" min="0.1" step="0.1" required placeholder="mm"><span
                 class="unit">mm</span></label></div>
+          <label><span data-i18n="fgWeightOptional">FG weight (optional)</span><input id="manualWeightKg" type="number"
+              min="0.001" step="0.001" data-i18n-placeholder="fgWeightPlaceholder" placeholder="kg per piece"><span
+              class="unit">kg</span></label>
           <label><span data-i18n="packingOrientationLabel">Packing orientation</span><select id="manualOrientation">
               <option value="" data-i18n="orientationAuto">Auto (best fit)</option>
               <option value="height" data-i18n="orientationHeightUp">Standard — height up</option>
@@ -1462,7 +1471,7 @@
           <div id="cartonSourceMessage" class="save-msg" role="status" aria-live="polite"></div>
         </div>
         <div class="form-block carton-source-block carton-spacer-block save-feature" aria-hidden="true"></div>
-        <div class="form-block allowance-summary hidden-fit-scenario-summary" data-optimized-mode-only><span data-i18n="fitScenarios">Fit scenarios</span><output id="manualAllowanceSummary">FG fixed at 1.00 (exact dimensions), never adjusted · carton starts at the maximum measured dimension per axis and may grow up to 10% larger per axis to fit</output><button id="openEngineeringSettings" type="button" data-i18n="engineeringAssumptions">Engineering assumptions</button></div>
+        <div class="form-block allowance-summary hidden-fit-scenario-summary" data-optimized-mode-only><span data-i18n="fitScenarios">Fit scenarios</span><output id="manualAllowanceSummary">FG fixed at 1.00 (exact dimensions), never adjusted · carton starts at the maximum measured dimension per axis and may grow up to 3% larger per axis to fit</output><button id="openEngineeringSettings" type="button" data-i18n="engineeringAssumptions">Engineering assumptions</button></div>
         <div class="manual-actions"><button class="primary" type="submit" data-i18n="checkCartons">Check
             cartons</button><button id="suggestSharedCartonBtn" type="button" data-i18n="suggestSharedCarton">Suggest
             shared carton line</button><button id="saveProductButton" class="save-feature" type="button"
@@ -1631,7 +1640,7 @@
       </div>
       <details id="fgCalculationSettings" class="section expandable-panel" data-optimized-mode-only hidden>
         <summary><span data-i18n="calculationAndMeasurement">Calculation and measurement settings</span><span id="calculationSettingsSummary" class="source-note">Optimized Mode</span></summary>
-        <div class="expandable-panel-body"><div id="optimizedSettingsMount"></div><div class="note" data-i18n="optimizedModeDescription">Multi-axis utilization optimization enabled.</div><div class="source-note">FG fixed at 1.00 (exact dimensions), never adjusted · carton starts at the maximum measured dimension per axis and may grow up to 10% larger per axis to fit</div></div>
+        <div class="expandable-panel-body"><div id="optimizedSettingsMount"></div><div class="note" data-i18n="optimizedModeDescription">Multi-axis utilization optimization enabled.</div><div class="source-note">FG fixed at 1.00 (exact dimensions), never adjusted · carton starts at the maximum measured dimension per axis and may grow up to 3% larger per axis to fit</div></div>
       </details>
     </section>
     <section id="linkagePanel" class="section linkage-panel workflow-panel" data-workflow-panel="fg-lookup" hidden>
@@ -1756,14 +1765,25 @@
         <div class="workflow-actions"><button id="manualPalletBuildGridButton" class="primary" type="submit" data-i18n="manualPalletBuildGrid">Build grid</button><button id="manualPalletOrientationButton" type="button" hidden data-i18n="manualPalletFlipOrientation">Rotate carton 90°</button></div>
       </form>
       <div id="manualPalletSummary"></div>
+      <div id="manualPalletLevelBar" class="manual-level-bar" hidden>
+        <div id="manualPalletLevelTabs" class="manual-level-tabs"></div>
+        <button id="manualPalletAddLevelButton" type="button" data-i18n="manualPalletAddLevel">+ Add level</button>
+        <button id="manualPalletDeleteLevelButton" type="button" data-i18n="manualPalletDeleteLevel">Delete top level</button>
+      </div>
       <div id="manualPalletGridBody" class="visual-body" hidden>
         <div id="manualPalletGridWrap"></div>
         <div id="manualPalletGridSummary" class="visual-summary"></div>
       </div>
       <div id="manualPalletGridControls" class="visual-controls" hidden>
-        <button id="manualPalletModeButton" type="button" data-i18n="manualPalletModeAdd">Click to place</button>
-        <button id="manualPalletClearButton" type="button" data-i18n="clearAll">Clear all</button>
-        <span class="source-note" data-i18n="manualPalletGridHint">Click a cell to stack one carton there; click again to keep stacking.</span>
+        <div id="manualPalletTray" class="manual-tray" role="button" tabindex="0"><span id="manualPalletTrayBox" class="manual-tray-box"></span><span data-i18n="manualPalletTrayLabel">Drag a carton onto the pallet</span></div>
+        <button id="manualPalletRotateHeldButton" type="button" data-i18n="manualPalletFlipOrientation">Rotate carton in hand 90°</button>
+        <button id="manualPalletModeButton" type="button" data-i18n="manualPalletModeAdd">Mode: place</button>
+        <button id="manualPalletSnapButton" type="button" data-i18n="manualPalletSnapOn">Snap: on</button>
+        <button id="manualPalletUndoButton" type="button" data-i18n="manualPalletUndo">Undo last</button>
+        <button id="manualPalletClearButton" type="button" data-i18n="manualPalletClearLevel">Clear level</button>
+        <button id="manualPalletCopyPrevButton" type="button" data-i18n="manualPalletCopyPrev">Copy previous level here</button>
+        <button id="manualPalletRepeatButton" type="button" data-i18n="manualPalletRepeat">Repeat last 2 levels to full height</button>
+        <span class="source-note" data-i18n="manualPalletGridHint">Press and hold a carton, drag, and release to drop it.</span>
       </div>
       <div id="manualPallet3DBody" class="visual-body" hidden>
         <svg id="manualPalletSvg" viewBox="0 0 400 300" role="img" aria-label="Manual pallet stacking visualization"></svg>
@@ -1809,6 +1829,12 @@
         Object.assign(this.text.vi, { selectWeeklyBom: 'Mở BOM tuần thủ công', weeklyBomTitle: 'Đối chiếu BOM tuần mới nhất', weeklyBomLoading: 'Đang tải BOM tuần mới nhất…', weeklyBomUnavailable: 'Chưa tải BOM tuần. Hãy chạy file launcher hoặc mở BOM thủ công trong mục Dữ liệu Excel.', weeklyBomReady: 'Đã tải BOM mới nhất', weeklyBomFgMissing: 'Không tìm thấy FG trong BOM tuần mới nhất', weeklyBomCartonMissing: 'Không tìm thấy item Master Carton của FG này trong BOM tuần mới nhất', weeklyBomMatch: 'BOM tuần khớp Master Carton được gán', weeklyBomMismatch: 'Master Carton trong BOM tuần không khớp dữ liệu gán trong workbook', weeklyBomNoAssignment: 'BOM tuần có Master Carton nhưng FG_MasterCarton chưa gán thùng', weeklyBomSource: 'Nguồn BOM tuần', weeklyBomRows: 'Số dòng BOM của FG', weeklyBomCartons: 'Item Master Carton', weeklyBomCartonId: 'Mã thùng trong BOM tuần', weeklyBomProduct: 'Tên sản phẩm trong BOM', weeklyBomNorm: 'Số lượng / định mức BOM', weeklyBomAssignmentCheck: 'Đối chiếu gán thùng', weeklyBomDimensionCheck: 'Dữ liệu kích thước thùng', matchesAssignment: 'KHỚP DỮ LIỆU GÁN', doesNotMatchAssignment: 'KHÔNG KHỚP', dimensionAvailable: 'ĐÃ CÓ KÍCH THƯỚC', dimensionUnavailable: 'THIẾU KÍCH THƯỚC', weeklyBomLoadError: 'Không đọc được BOM tuần' });
         Object.assign(this.text.en, { rotateHint: 'Drag the drawing to rotate', bomSourceTruth: 'WEEKLY BOM — SOURCE OF TRUTH', bomAwaiting: 'Awaiting Weekly BOM source-of-truth check', bomAssignmentMissing: 'No Master Carton assignment in Weekly BOM', bomAssignmentAmbiguous: 'Multiple Master Carton items found in Weekly BOM', mvpAssignment: 'MVP workbook assignment', bomAssignment: 'Weekly BOM assignment', bomOverridesMvp: 'Weekly BOM overrides the provisional workbook assignment', bomMatchesMvp: 'Weekly BOM matches the provisional workbook assignment', bomOnlyAssignment: 'Weekly BOM assignment found; the provisional relationship sheet is absent or blank', mvpOnlyNotAuthoritative: 'Provisional workbook assignment is not authoritative because Weekly BOM has no Master Carton item for this FG', targetMvpFallback: 'Target quantity from provisional workbook', targetCartonFallback: 'Target quantity from carton-dimension fallback', targetUserOverride: 'Target quantity entered by user', weeklyBomPerSeries: 'Weekly BOM (Per series)', weeklyBomNorm: 'Weekly BOM (norm)', weeklyBomQuantity: 'Weekly BOM (quantity)', weeklyBomNoTarget: 'Weekly BOM (no valid target)', weeklyBomMissing: 'Weekly BOM (missing)', sourceTruthChosen: 'SOURCE-OF-TRUTH CARTON', otherBomCandidate: 'OTHER BOM CANDIDATE' });
         Object.assign(this.text.vi, { rotateHint: 'Kéo mô hình để xoay góc nhìn', bomSourceTruth: 'BOM TUẦN — NGUỒN DỮ LIỆU CHÍNH', bomAwaiting: 'Đang chờ đối chiếu nguồn chính BOM tuần', bomAssignmentMissing: 'Không có Master Carton được gán trong BOM tuần', bomAssignmentAmbiguous: 'Có nhiều item Master Carton trong BOM tuần', mvpAssignment: 'Dữ liệu gán tạm trong workbook MVP', bomAssignment: 'Dữ liệu gán theo BOM tuần', bomOverridesMvp: 'BOM tuần ghi đè dữ liệu gán tạm trong workbook', bomMatchesMvp: 'BOM tuần khớp dữ liệu gán tạm trong workbook', bomOnlyAssignment: 'Đã tìm thấy dữ liệu gán trong BOM tuần; sheet quan hệ tạm không có hoặc để trống', mvpOnlyNotAuthoritative: 'Dữ liệu gán tạm trong workbook không có hiệu lực vì BOM tuần không có item Master Carton cho FG này', targetMvpFallback: 'Số lượng mục tiêu lấy từ workbook tạm', targetCartonFallback: 'Số lượng mục tiêu dự phòng lấy từ dữ liệu kích thước thùng', targetUserOverride: 'Số lượng mục tiêu do người dùng nhập', weeklyBomPerSeries: 'BOM tuần (Per series)', weeklyBomNorm: 'BOM tuần (định mức)', weeklyBomQuantity: 'BOM tuần (số lượng)', weeklyBomNoTarget: 'BOM tuần (không có số lượng hợp lệ)', weeklyBomMissing: 'BOM tuần (thiếu)', sourceTruthChosen: 'THÙNG THEO NGUỒN DỮ LIỆU CHÍNH', otherBomCandidate: 'ỨNG VIÊN BOM KHÁC' });
+        Object.assign(this.text.en, { palletPatternVariantMirrorL: 'mirrored left-right', palletPatternVariantMirrorW: 'mirrored front-back', palletPatternVariantRotate180: 'turned 180°' });
+        Object.assign(this.text.vi, { palletPatternVariantMirrorL: 'đối xứng trái-phải', palletPatternVariantMirrorW: 'đối xứng trước-sau', palletPatternVariantRotate180: 'xoay 180°' });
+        Object.assign(this.text.en, { palletStabilityLabel: 'Stack stability', palletStabilityValue: '{interlock}% of cartons bridge 2+ cartons below; weakest carton {support}% supported', palletColumnStackWarning: 'This carton/pallet combination can only be stacked as straight columns (no interlocking pattern keeps cartons supported). Use corner boards, tight stretch wrap from the bottom up, straps, and slip sheets between layers.', palletWeakInterlockNote: 'Best interlock available for this carton is limited. Use corner boards and tight stretch wrap, and check the stack before shipping.' });
+        Object.assign(this.text.vi, { palletStabilityLabel: 'Độ ổn định chồng', palletStabilityValue: '{interlock}% thùng được đỡ bởi từ 2 thùng bên dưới; thùng yếu nhất được đỡ {support}%', palletColumnStackWarning: 'Tổ hợp thùng/pallet này chỉ có thể xếp thành các cột thẳng (không có kiểu xếp đan xen nào đảm bảo thùng được đỡ). Dùng nẹp góc, quấn màng co thật chặt từ dưới lên, dây đai và tấm lót giữa các lớp.', palletWeakInterlockNote: 'Khả năng đan xen tốt nhất cho thùng này bị hạn chế. Dùng nẹp góc, quấn màng co chặt và kiểm tra chồng hàng trước khi xuất.' });
+        Object.assign(this.text.en, { fgWeightOptional: 'FG weight (optional)', fgWeightPlaceholder: 'kg per piece', saveWeightInvalid: 'FG weight must be a positive number in kg (or leave it blank).' });
+        Object.assign(this.text.vi, { fgWeightOptional: 'Khối lượng FG (không bắt buộc)', fgWeightPlaceholder: 'kg mỗi sản phẩm', saveWeightInvalid: 'Khối lượng FG phải là số dương tính bằng kg (hoặc để trống).' });
         Object.assign(this.text.en, { sourceWorkbooks: 'Source workbooks:', openDimensionSource: 'Open dimension source', openBomSource: 'Open Weekly BOM source', sourceLinkWaiting: 'Links appear after launcher-loaded source files are found.', sourceLinkManual: 'The browser hides the original path of a manually selected file; use the launcher for a direct source link.', fgIdOptional: 'New FG ID (optional)', fgIdOptionalPlaceholder: 'Optional — generated if blank', invalidManual: 'Enter positive dimensions in mm and a positive whole-number target quantity. FG ID is optional.', explainUnderutilized: 'The target physically fits, but volumetric utilization is below the selected threshold. Review the optimized engineering proposal.', bomFallbackAlert: 'Weekly BOM source of truth did not load. The tool is using provisional FG_MasterCarton assignments with the available FG and carton dimension sheets. Verify the assignment before making an engineering decision.', bomFallbackLoading: 'Weekly BOM is still loading. Provisional FG_MasterCarton data is temporarily available.', dataCompleteFallback: '✓ Complete provisional data', fallbackMode: 'PROVISIONAL WORKBOOK FALLBACK', fallbackAssigned: 'PROVISIONAL FG_MasterCarton ASSIGNMENT', fallbackReference: 'WORKBOOK FALLBACK', fallbackPass: 'WORKBOOK FALLBACK — PASS — SIMPLE GRID', fallbackFail: 'WORKBOOK FALLBACK — SIMPLE GRID FAIL', fallbackMissing: 'WORKBOOK FALLBACK — DIMENSIONS MISSING', fallback3d: 'The 3D view uses the provisional FG_MasterCarton assignment because Weekly BOM is unavailable.', orientationsTested: 'Orthogonal orientations tested' });
         Object.assign(this.text.vi, { sourceWorkbooks: 'Workbook nguồn:', openDimensionSource: 'Mở file nguồn kích thước', openBomSource: 'Mở file nguồn BOM tuần', sourceLinkWaiting: 'Liên kết xuất hiện sau khi launcher tìm thấy file nguồn.', sourceLinkManual: 'Trình duyệt ẩn đường dẫn gốc của file được chọn thủ công; hãy dùng launcher để có liên kết trực tiếp.', fgIdOptional: 'Mã FG mới (không bắt buộc)', fgIdOptionalPlaceholder: 'Không bắt buộc — hệ thống tự tạo nếu để trống', invalidManual: 'Nhập kích thước dương theo mm và số lượng mục tiêu là số nguyên dương. Mã FG không bắt buộc.', explainUnderutilized: 'Số lượng mục tiêu vừa về mặt vật lý nhưng tỷ lệ sử dụng thể tích thấp hơn ngưỡng đã chọn. Hãy xem đề xuất kỹ thuật tối ưu.', bomFallbackAlert: 'Không tải được BOM tuần là nguồn dữ liệu chính. Công cụ đang dùng dữ liệu gán tạm từ FG_MasterCarton cùng các sheet kích thước FG và Master Carton hiện có. Hãy xác minh dữ liệu gán trước khi ra quyết định kỹ thuật.', bomFallbackLoading: 'BOM tuần vẫn đang tải. Dữ liệu tạm từ FG_MasterCarton hiện vẫn có thể sử dụng.', dataCompleteFallback: '✓ Đủ dữ liệu tạm', fallbackMode: 'DỮ LIỆU DỰ PHÒNG TỪ WORKBOOK', fallbackAssigned: 'GÁN TẠM TỪ FG_MasterCarton', fallbackReference: 'DỮ LIỆU DỰ PHÒNG', fallbackPass: 'DỮ LIỆU DỰ PHÒNG — ĐẠT — LƯỚI ĐƠN GIẢN', fallbackFail: 'DỮ LIỆU DỰ PHÒNG — KHÔNG ĐẠT LƯỚI ĐƠN GIẢN', fallbackMissing: 'DỮ LIỆU DỰ PHÒNG — THIẾU KÍCH THƯỚC', fallback3d: 'Mô hình 3D đang dùng dữ liệu gán tạm từ FG_MasterCarton vì chưa có BOM tuần.', orientationsTested: 'Số hướng vuông góc đã kiểm tra' });
         Object.assign(this.text.en, {
@@ -1894,7 +1920,7 @@
           bomConflictMissingDetail: "The target quantity is missing in the Weekly BOM. Using default target.",
           hideFailed: "Hide failed cartons",
           selectDimensionWorkbook: "Select Dimension Workbook",
-          toleranceNote: "Tolerance range: FG × 0.90–1.00, Carton × 1.00–1.10. Best-fitting combination selected automatically.",
+          toleranceNote: "Tolerance range: FG × 0.97–1.00, Carton × 1.00–1.03. Best-fitting combination selected automatically.",
           multiplier: "Multiplier",
           bomLoadedAsDimension: "This file does not contain the required FG dimension or Master Carton dimension sheets. It looks like a Weekly BOM file. Please load the dimension workbook (e.g., Products Physical Dimension - FG 1.Apr.25.xlsx) using ‘Select Dimension Workbook’, and load the BOM separately using ‘Open Weekly BOM manually’."
         });
@@ -1982,7 +2008,7 @@
           bomConflictMissingDetail: "Thiếu số lượng mục tiêu trong BOM tuần. Đang dùng số lượng mặc định.",
           hideFailed: "Ẩn thùng không đạt",
           selectDimensionWorkbook: "Chọn file kích thước",
-          toleranceNote: "Dải dung sai: FG × 0.90–1.00, Carton × 1.00–1.10. Tự động chọn tổ hợp phù hợp nhất.",
+          toleranceNote: "Dải dung sai: FG × 0.97–1.00, Carton × 1.00–1.03. Tự động chọn tổ hợp phù hợp nhất.",
           multiplier: "Hệ số nhân",
           bomLoadedAsDimension: "File này không chứa các sheet kích thước FG hoặc Master Carton cần thiết. Có vẻ đây là file BOM tuần. Vui lòng tải file kích thước (vd: Products Physical Dimension - FG 1.Apr.25.xlsx) bằng nút ‘Chọn file kích thước’, và tải BOM riêng bằng nút ‘Mở BOM tuần thủ công’."
         });
@@ -2050,7 +2076,7 @@
         });
         Object.assign(this.text.en, {
           addDataNav:'Add Data', addDataTitle:'Add Data', addDataNote:'Add several products or cartons at once. Anything you add is kept and used the next time you open the tool.', kindProducts:'Products (finished goods)', kindCartons:'Cartons', addStep1:'Download the blank sheet below and fill it in.', addStep2:'Drag the finished file onto the box, or paste the rows straight in.', addStep3:'Check the preview, then choose Save.', downloadTemplate:'Download blank sheet', dropHere:'Drop your file here', dropOrClick:'or click to choose a file', pastePlaceholder:'You can also paste rows here', checkRows:'Check the rows', saveAll:'Save all', startOver:'Start over', addDataFootnote:'If an item is already in the list, the new numbers replace the old ones.', saveProduct:'Save Product', saveCarton:'Save Carton', savingOn:'Saving is on', turnOffSaving:'Turn off', savedOk:'Saved.', savedReplaced:'Saved. This one was already on the list, so the new numbers replaced the old ones.', saveNeedId:'Please enter the product ID first.', saveNeedSize:'Please enter length, width and height first.', saveFailed:'Could not save. ', saveOffline:'Saving is not running right now, so nothing was saved.', saveStopped:'Saving is off. Close and reopen the tool to turn it back on.', saveNothingToCheck:'Add a file or paste some rows first.', saveNoValidRows:'None of these rows can be saved yet. See the notes in the table.', saveRowsReady:'Ready to save', saveRowsSkipped:'Will be skipped', saveDone:'Saved', saveReplacedCount:'Replaced an item already on the list', saveRowNo:'Row', saveIssue:'Problem', saveWillReplace:'Replaces an existing item', saveOkLabel:'Ready', saveWrongColumns:'That file does not have the expected columns. Please use the blank sheet.', cartonIdentityGroup:'Carton', cartonIdOptional:'Carton ID (optional)', cartonIdOptionalPlaceholder:'Existing or new carton ID', cartonNameOptional:'Carton Name (optional)', cartonNameOptionalPlaceholder:'e.g. Master Carton Standard 12', cartonSourceNeedId:'Enter a carton ID too before it can be saved.', cartonSourceNeedSize:'Enter the carton\'s length, width and height too before it can be saved.', cartonSavedOk:'Carton saved.', cartonSavedReplaced:'Carton saved. This carton was already on the list, so the new numbers replaced the old ones.', cartonSaveFailed:'Could not save the carton. ', excelSaveInProgress:'Saving to Excel...', excelSaveOk:'Saved to Excel and cache updated.', excelSaveFailed:'Could not save to Excel. ', excelSaveLocked:'The Excel file is open elsewhere - close it and try again.',
-          workflows:'Workflows', dashboard:'Dashboard', newProductNav:'New Product', fgLookup:'FG Lookup', cartonAudit:'Carton Audit', batchAudit:'Batch Audit', cartonLookup:'Carton Lookup', cancelTask:'Cancel', cancellingTask:'Cancelling safely…', processing:'Processing', loadingData:'Loading data', engineeringAssumptions:'Engineering assumptions', engineeringAdvisory:'Advisory output only. Confirm carton material, board grade, compression, regulatory, palletization, and physical samples before release.', fgMeasurementError:'FG measurement error (± mm)', cartonMeasurementError:'Carton measurement error (± mm)', wallThickness:'Wall thickness (mm / side)', foldDeduction:'Opening / fold deduction (mm)', openingAxis:'Opening axis', autoUnknown:'Auto / unknown (worst case)', minimumUtilization:'Minimum utilization (%)', clearance:'Packing clearance (mm)', roundingIncrement:'Proposal rounding (mm)', batchAuditNote:'Audit all eligible finished goods with the same conservative fit and recommendation rules.', runBatchAudit:'Run batch audit', exportCsv:'Export CSV', all:'All results', under85:'Under threshold', searchIncomplete:'Search incomplete', missingData:'Missing data', replacementAvailable:'Replacement available', newCartonRequired:'New carton required', bomConflict:'BOM conflict', lookupCarton:'Look up carton', auditAllUsingCarton:'Audit all FGs using this carton', sideBySideComparison:'Side-by-side packing comparison', currentBaseline:'Current / baseline', suggestedAlternative:'Suggested alternative', syncViews:'Sync views', ghost:'Ghost', buildingIndexes:'Building indexes', rowsIndexed:'rows indexed', missingFgDimensions:'Missing FG dimensions', missingTarget:'Missing target quantity', missingCartonAssignment:'Missing carton assignment', missingCartonDimensions:'Missing carton dimensions', openingAxisUnknownWarning:'Opening axis is unknown; the most conservative of all three opening-axis deductions is used.', invalidCartonDimensions:'Carton outside dimensions are missing or invalid.', deductionsExceedDimensions:'Wall, measurement, or fold deductions exceed carton dimensions.', extremeAspectRatio:'Extreme carton aspect ratio; engineering review required.', dataReady:'Data ready', dataNotReady:'Data not ready', eligibleFgs:'Eligible FGs', finishedGoods:'Finished goods', activeCartons:'Active cartons', bomRows:'BOM rows', phase:'Phase', status:'Status', warnings:'Warnings', bestExisting:'Best existing carton', bestNew:'Best new carton', utilizationPct:'Utilization %', searchComplete:'Search complete', cartonUsers:'Assigned finished goods', noResults:'No results', auditComplete:'Batch audit complete', batchCancelled:'Batch audit cancelled', cartonNotIndexed:'Carton was not found in the loaded data.', noCartonUsers:'No finished goods are assigned to this carton.', portfolioConsolidation:'Portfolio consolidation opportunities', dimensionModel:'Outside-to-inside dimension model', quickBatchAudit:'Quick Batch Audit', optimizedBatchSuggestions:'Optimized Batch Suggestions', cartonLineReduction:'Carton-Line Reduction', runQuickBatchAudit:'Run Quick Batch Audit', runOptimizedBatchSuggestions:'Run Optimized Batch Suggestions', runCartonLineReduction:'Run Carton-Line Reduction Analysis', quickBatchDescription:'Checks current BOM cartons and existing alternatives using exact active dimensions.', optimizedBatchDescription:'Screens existing cartons using Quick Mode, then applies 125 FG-ratio combinations at 0.05 steps to shortlisted candidates.', consolidationBatchDescription:'Recommends how existing FGs could share fewer existing master-carton IDs using greedy set-cover analysis.', consolidationAdvisory:'Potential consolidation candidate — production and engineering validation required.', noConsolidationResults:'No carton-line reduction results are available. Run the applicable Batch Audit mode first.', nominalFit:'NOMINAL_FIT', fgRatioEstimatedFit:'FG_RATIO_ESTIMATED_FIT', noFitLabel:'NO_FIT',
+          workflows:'Workflows', dashboard:'Dashboard', newProductNav:'New Product', fgLookup:'FG Lookup', cartonAudit:'Carton Audit', batchAudit:'Batch Audit', cartonLookup:'Carton Lookup', cancelTask:'Cancel', cancellingTask:'Cancelling safely…', processing:'Processing', loadingData:'Loading data', engineeringAssumptions:'Engineering assumptions', engineeringAdvisory:'Advisory output only. Confirm carton material, board grade, compression, regulatory, palletization, and physical samples before release.', fgMeasurementError:'FG measurement error (± mm)', cartonMeasurementError:'Carton measurement error (± mm)', wallThickness:'Wall thickness (mm / side)', foldDeduction:'Opening / fold deduction (mm)', openingAxis:'Opening axis', autoUnknown:'Auto / unknown (worst case)', minimumUtilization:'Minimum utilization (%)', clearance:'Packing clearance (mm)', roundingIncrement:'Proposal rounding (mm)', batchAuditNote:'Audit all eligible finished goods with the same conservative fit and recommendation rules.', runBatchAudit:'Run batch audit', exportCsv:'Export CSV', all:'All results', under85:'Under threshold', searchIncomplete:'Search incomplete', missingData:'Missing data', replacementAvailable:'Replacement available', newCartonRequired:'New carton required', bomConflict:'BOM conflict', lookupCarton:'Look up carton', auditAllUsingCarton:'Audit all FGs using this carton', sideBySideComparison:'Side-by-side packing comparison', currentBaseline:'Current / baseline', suggestedAlternative:'Suggested alternative', syncViews:'Sync views', ghost:'Ghost', buildingIndexes:'Building indexes', rowsIndexed:'rows indexed', missingFgDimensions:'Missing FG dimensions', missingTarget:'Missing target quantity', missingCartonAssignment:'Missing carton assignment', missingCartonDimensions:'Missing carton dimensions', openingAxisUnknownWarning:'Opening axis is unknown; the most conservative of all three opening-axis deductions is used.', invalidCartonDimensions:'Carton outside dimensions are missing or invalid.', deductionsExceedDimensions:'Wall, measurement, or fold deductions exceed carton dimensions.', extremeAspectRatio:'Extreme carton aspect ratio; engineering review required.', dataReady:'Data ready', dataNotReady:'Data not ready', eligibleFgs:'Eligible FGs', finishedGoods:'Finished goods', activeCartons:'Active cartons', bomRows:'BOM rows', phase:'Phase', status:'Status', warnings:'Warnings', bestExisting:'Best existing carton', bestNew:'Best new carton', utilizationPct:'Utilization %', searchComplete:'Search complete', cartonUsers:'Assigned finished goods', noResults:'No results', auditComplete:'Batch audit complete', batchCancelled:'Batch audit cancelled', cartonNotIndexed:'Carton was not found in the loaded data.', noCartonUsers:'No finished goods are assigned to this carton.', portfolioConsolidation:'Portfolio consolidation opportunities', dimensionModel:'Outside-to-inside dimension model', quickBatchAudit:'Quick Batch Audit', optimizedBatchSuggestions:'Optimized Batch Suggestions', cartonLineReduction:'Carton-Line Reduction', runQuickBatchAudit:'Run Quick Batch Audit', runOptimizedBatchSuggestions:'Run Optimized Batch Suggestions', runCartonLineReduction:'Run Carton-Line Reduction Analysis', quickBatchDescription:'Checks current BOM cartons and existing alternatives using exact active dimensions.', optimizedBatchDescription:'Screens existing cartons using Quick Mode, then applies 343 FG-ratio combinations at 0.01 steps to shortlisted candidates.', consolidationBatchDescription:'Recommends how existing FGs could share fewer existing master-carton IDs using greedy set-cover analysis.', consolidationAdvisory:'Potential consolidation candidate — production and engineering validation required.', noConsolidationResults:'No carton-line reduction results are available. Run the applicable Batch Audit mode first.', nominalFit:'NOMINAL_FIT', fgRatioEstimatedFit:'FG_RATIO_ESTIMATED_FIT', noFitLabel:'NO_FIT',
           fgLookupCartonOverride: 'Carton override:',
           fgLookupCartonOverridePlaceholder: 'Optional carton ID',
           fgLookupCartonOverrideInvalid: 'Carton {id} was not found or has invalid dimensions.',
@@ -2060,7 +2086,7 @@
         });
         Object.assign(this.text.vi, {
           addDataNav:'Thêm dữ liệu', addDataTitle:'Thêm dữ liệu', addDataNote:'Thêm nhiều sản phẩm hoặc thùng cùng lúc. Dữ liệu bạn thêm sẽ được giữ lại và dùng cho lần mở sau.', kindProducts:'Sản phẩm (thành phẩm)', kindCartons:'Thùng', addStep1:'Tải mẫu trống bên dưới và điền vào.', addStep2:'Kéo tệp đã điền vào ô, hoặc dán trực tiếp các dòng.', addStep3:'Xem lại bảng, sau đó chọn Lưu.', downloadTemplate:'Tải mẫu trống', dropHere:'Kéo tệp vào đây', dropOrClick:'hoặc bấm để chọn tệp', pastePlaceholder:'Bạn cũng có thể dán các dòng vào đây', checkRows:'Kiểm tra các dòng', saveAll:'Lưu tất cả', startOver:'Làm lại', addDataFootnote:'Nếu mục đã có trong danh sách, số liệu mới sẽ thay cho số liệu cũ.', saveProduct:'Lưu sản phẩm', saveCarton:'Lưu thùng carton', savingOn:'Đang bật lưu', turnOffSaving:'Tắt', savedOk:'Đã lưu.', savedReplaced:'Đã lưu. Mục này đã có sẵn nên số liệu mới đã thay cho số liệu cũ.', saveNeedId:'Vui lòng nhập mã sản phẩm trước.', saveNeedSize:'Vui lòng nhập chiều dài, rộng và cao trước.', saveFailed:'Không lưu được. ', saveOffline:'Chức năng lưu chưa chạy nên chưa lưu được gì.', saveStopped:'Đã tắt lưu. Đóng và mở lại công cụ để bật lại.', saveNothingToCheck:'Hãy thêm tệp hoặc dán vài dòng trước.', saveNoValidRows:'Chưa dòng nào lưu được. Xem ghi chú trong bảng.', saveRowsReady:'Sẵn sàng lưu', saveRowsSkipped:'Sẽ bỏ qua', saveDone:'Đã lưu', saveReplacedCount:'Thay cho mục đã có sẵn', saveRowNo:'Dòng', saveIssue:'Vấn đề', saveWillReplace:'Thay cho mục đã có', saveOkLabel:'Sẵn sàng', saveWrongColumns:'Tệp này không có các cột cần thiết. Vui lòng dùng mẫu trống.', cartonIdentityGroup:'Thùng', cartonIdOptional:'Mã thùng (không bắt buộc)', cartonIdOptionalPlaceholder:'Mã thùng đã có hoặc mã mới', cartonNameOptional:'Tên thùng (không bắt buộc)', cartonNameOptionalPlaceholder:'Vd: Master Carton Standard 12', cartonSourceNeedId:'Vui lòng nhập thêm mã thùng trước khi lưu.', cartonSourceNeedSize:'Vui lòng nhập thêm chiều dài, rộng và cao của thùng trước khi lưu.', cartonSavedOk:'Đã lưu thùng.', cartonSavedReplaced:'Đã lưu thùng. Thùng này đã có sẵn nên số liệu mới đã thay cho số liệu cũ.', cartonSaveFailed:'Không lưu được thùng. ', excelSaveInProgress:'Đang lưu vào Excel...', excelSaveOk:'Đã lưu vào Excel và cập nhật dữ liệu.', excelSaveFailed:'Không lưu được vào Excel. ', excelSaveLocked:'Tệp Excel đang mở ở nơi khác - hãy đóng và thử lại.',
-          workflows:'Quy trình', dashboard:'Bảng điều khiển', newProductNav:'Sản phẩm mới', fgLookup:'Tra cứu FG', cartonAudit:'Đánh giá thùng', batchAudit:'Đánh giá hàng loạt', cartonLookup:'Tra cứu thùng', cancelTask:'Hủy', cancellingTask:'Đang hủy an toàn…', processing:'Đang xử lý', loadingData:'Đang tải dữ liệu', engineeringAssumptions:'Giả định kỹ thuật', engineeringAdvisory:'Chỉ dùng để tư vấn. Xác nhận vật liệu thùng, định lượng giấy, độ nén, quy định, xếp pallet và mẫu thực tế trước khi phát hành.', fgMeasurementError:'Sai số đo FG (± mm)', cartonMeasurementError:'Sai số đo thùng (± mm)', wallThickness:'Độ dày thành (mm / mặt)', foldDeduction:'Khấu trừ miệng / nếp gấp (mm)', openingAxis:'Trục mở thùng', autoUnknown:'Tự động / chưa biết (xấu nhất)', minimumUtilization:'Mức sử dụng tối thiểu (%)', clearance:'Khoảng hở đóng gói (mm)', roundingIncrement:'Làm tròn đề xuất (mm)', batchAuditNote:'Đánh giá mọi FG đủ điều kiện bằng cùng quy tắc fit bảo thủ và đề xuất.', runBatchAudit:'Chạy đánh giá hàng loạt', exportCsv:'Xuất CSV', all:'Tất cả kết quả', under85:'Dưới ngưỡng', searchIncomplete:'Tìm kiếm chưa hoàn tất', missingData:'Thiếu dữ liệu', replacementAvailable:'Có thùng thay thế', newCartonRequired:'Cần thùng mới', bomConflict:'Xung đột BOM', lookupCarton:'Tra cứu thùng', auditAllUsingCarton:'Đánh giá mọi FG dùng thùng này', sideBySideComparison:'So sánh đóng gói song song', currentBaseline:'Hiện tại / cơ sở', suggestedAlternative:'Phương án đề xuất', syncViews:'Đồng bộ góc nhìn', ghost:'Khung mờ', buildingIndexes:'Đang tạo chỉ mục', rowsIndexed:'dòng đã lập chỉ mục', missingFgDimensions:'Thiếu kích thước FG', missingTarget:'Thiếu số lượng mục tiêu', missingCartonAssignment:'Thiếu gán thùng', missingCartonDimensions:'Thiếu kích thước thùng', openingAxisUnknownWarning:'Chưa biết trục mở; sử dụng khấu trừ bảo thủ nhất trong ba trục.', invalidCartonDimensions:'Kích thước ngoài của thùng bị thiếu hoặc không hợp lệ.', deductionsExceedDimensions:'Khấu trừ thành, sai số đo hoặc nếp gấp vượt kích thước thùng.', extremeAspectRatio:'Tỷ lệ kích thước thùng quá lớn; cần kỹ thuật xem xét.', dataReady:'Dữ liệu sẵn sàng', dataNotReady:'Dữ liệu chưa sẵn sàng', eligibleFgs:'FG đủ điều kiện', finishedGoods:'Thành phẩm', activeCartons:'Thùng đang hoạt động', bomRows:'Dòng BOM', phase:'Giai đoạn', status:'Trạng thái', warnings:'Cảnh báo', bestExisting:'Thùng hiện có tốt nhất', bestNew:'Thùng mới tốt nhất', utilizationPct:'Mức sử dụng %', searchComplete:'Tìm kiếm hoàn tất', cartonUsers:'FG được gán', noResults:'Không có kết quả', auditComplete:'Đánh giá hàng loạt hoàn tất', batchCancelled:'Đã hủy đánh giá hàng loạt', cartonNotIndexed:'Không tìm thấy thùng trong dữ liệu đã tải.', noCartonUsers:'Không có FG nào được gán cho thùng này.', portfolioConsolidation:'Cơ hội hợp nhất danh mục', dimensionModel:'Mô hình kích thước ngoài sang trong', quickBatchAudit:'Đánh giá nhanh hàng loạt', optimizedBatchSuggestions:'Đề xuất tối ưu hàng loạt', cartonLineReduction:'Giảm dòng thùng', runQuickBatchAudit:'Chạy đánh giá nhanh hàng loạt', runOptimizedBatchSuggestions:'Chạy đề xuất tối ưu hàng loạt', runCartonLineReduction:'Chạy phân tích giảm dòng thùng', quickBatchDescription:'Kiểm tra thùng BOM hiện tại và phương án thay thế bằng kích thước chính xác đang dùng.', optimizedBatchDescription:'Sàng lọc thùng hiện có bằng Chế độ nhanh, sau đó áp dụng 125 tổ hợp tỷ lệ FG với bước 0,05 cho các ứng viên.', consolidationBatchDescription:'Đề xuất cách các FG hiện có có thể dùng chung ít mã thùng hơn bằng phân tích set-cover tham lam.', consolidationAdvisory:'Ứng viên hợp nhất tiềm năng — cần xác nhận sản xuất và kỹ thuật.', noConsolidationResults:'Không có kết quả giảm dòng thùng nào. Hãy chạy chế độ Batch Audit phù hợp trước.', nominalFit:'VỪA DANH NGHĨA', fgRatioEstimatedFit:'VỪA THEO TỶ LỆ FG ƯỚC TÍNH', noFitLabel:'KHÔNG VỪA',
+          workflows:'Quy trình', dashboard:'Bảng điều khiển', newProductNav:'Sản phẩm mới', fgLookup:'Tra cứu FG', cartonAudit:'Đánh giá thùng', batchAudit:'Đánh giá hàng loạt', cartonLookup:'Tra cứu thùng', cancelTask:'Hủy', cancellingTask:'Đang hủy an toàn…', processing:'Đang xử lý', loadingData:'Đang tải dữ liệu', engineeringAssumptions:'Giả định kỹ thuật', engineeringAdvisory:'Chỉ dùng để tư vấn. Xác nhận vật liệu thùng, định lượng giấy, độ nén, quy định, xếp pallet và mẫu thực tế trước khi phát hành.', fgMeasurementError:'Sai số đo FG (± mm)', cartonMeasurementError:'Sai số đo thùng (± mm)', wallThickness:'Độ dày thành (mm / mặt)', foldDeduction:'Khấu trừ miệng / nếp gấp (mm)', openingAxis:'Trục mở thùng', autoUnknown:'Tự động / chưa biết (xấu nhất)', minimumUtilization:'Mức sử dụng tối thiểu (%)', clearance:'Khoảng hở đóng gói (mm)', roundingIncrement:'Làm tròn đề xuất (mm)', batchAuditNote:'Đánh giá mọi FG đủ điều kiện bằng cùng quy tắc fit bảo thủ và đề xuất.', runBatchAudit:'Chạy đánh giá hàng loạt', exportCsv:'Xuất CSV', all:'Tất cả kết quả', under85:'Dưới ngưỡng', searchIncomplete:'Tìm kiếm chưa hoàn tất', missingData:'Thiếu dữ liệu', replacementAvailable:'Có thùng thay thế', newCartonRequired:'Cần thùng mới', bomConflict:'Xung đột BOM', lookupCarton:'Tra cứu thùng', auditAllUsingCarton:'Đánh giá mọi FG dùng thùng này', sideBySideComparison:'So sánh đóng gói song song', currentBaseline:'Hiện tại / cơ sở', suggestedAlternative:'Phương án đề xuất', syncViews:'Đồng bộ góc nhìn', ghost:'Khung mờ', buildingIndexes:'Đang tạo chỉ mục', rowsIndexed:'dòng đã lập chỉ mục', missingFgDimensions:'Thiếu kích thước FG', missingTarget:'Thiếu số lượng mục tiêu', missingCartonAssignment:'Thiếu gán thùng', missingCartonDimensions:'Thiếu kích thước thùng', openingAxisUnknownWarning:'Chưa biết trục mở; sử dụng khấu trừ bảo thủ nhất trong ba trục.', invalidCartonDimensions:'Kích thước ngoài của thùng bị thiếu hoặc không hợp lệ.', deductionsExceedDimensions:'Khấu trừ thành, sai số đo hoặc nếp gấp vượt kích thước thùng.', extremeAspectRatio:'Tỷ lệ kích thước thùng quá lớn; cần kỹ thuật xem xét.', dataReady:'Dữ liệu sẵn sàng', dataNotReady:'Dữ liệu chưa sẵn sàng', eligibleFgs:'FG đủ điều kiện', finishedGoods:'Thành phẩm', activeCartons:'Thùng đang hoạt động', bomRows:'Dòng BOM', phase:'Giai đoạn', status:'Trạng thái', warnings:'Cảnh báo', bestExisting:'Thùng hiện có tốt nhất', bestNew:'Thùng mới tốt nhất', utilizationPct:'Mức sử dụng %', searchComplete:'Tìm kiếm hoàn tất', cartonUsers:'FG được gán', noResults:'Không có kết quả', auditComplete:'Đánh giá hàng loạt hoàn tất', batchCancelled:'Đã hủy đánh giá hàng loạt', cartonNotIndexed:'Không tìm thấy thùng trong dữ liệu đã tải.', noCartonUsers:'Không có FG nào được gán cho thùng này.', portfolioConsolidation:'Cơ hội hợp nhất danh mục', dimensionModel:'Mô hình kích thước ngoài sang trong', quickBatchAudit:'Đánh giá nhanh hàng loạt', optimizedBatchSuggestions:'Đề xuất tối ưu hàng loạt', cartonLineReduction:'Giảm dòng thùng', runQuickBatchAudit:'Chạy đánh giá nhanh hàng loạt', runOptimizedBatchSuggestions:'Chạy đề xuất tối ưu hàng loạt', runCartonLineReduction:'Chạy phân tích giảm dòng thùng', quickBatchDescription:'Kiểm tra thùng BOM hiện tại và phương án thay thế bằng kích thước chính xác đang dùng.', optimizedBatchDescription:'Sàng lọc thùng hiện có bằng Chế độ nhanh, sau đó áp dụng 343 tổ hợp tỷ lệ FG với bước 0,01 cho các ứng viên.', consolidationBatchDescription:'Đề xuất cách các FG hiện có có thể dùng chung ít mã thùng hơn bằng phân tích set-cover tham lam.', consolidationAdvisory:'Ứng viên hợp nhất tiềm năng — cần xác nhận sản xuất và kỹ thuật.', noConsolidationResults:'Không có kết quả giảm dòng thùng nào. Hãy chạy chế độ Batch Audit phù hợp trước.', nominalFit:'VỪA DANH NGHĨA', fgRatioEstimatedFit:'VỪA THEO TỶ LỆ FG ƯỚC TÍNH', noFitLabel:'KHÔNG VỪA',
           fgLookupCartonOverride: 'Ghi đè mã thùng:',
           fgLookupCartonOverridePlaceholder: 'Mã thùng tùy chọn',
           fgLookupCartonOverrideInvalid: 'Không tìm thấy thùng {id} hoặc kích thước thùng không hợp lệ.',
@@ -2068,15 +2094,15 @@
           fgLookupCartonOverrideRow: 'Ghi đè trong phiên',
           fgLookupCartonOverrideSource: 'Thùng từ BOM nguồn'
         });
-        Object.assign(this.text.en, { fitScenarios:'Fit scenarios', scenarioModelNote:'FG axis ratios 0.90–1.10 · step 0.05 · fixed averaged carton dimensions', searchObjective:'Search objective', closestValidFit:'Closest valid fit', highestUtilization:'Highest utilization', searchingLengthRatios:'Searching length ratios…', searchingWidthRatios:'Searching width ratios…', searchingHeightRatios:'Searching height ratios…', rankingBestFit:'Ranking best fit…', fit:'FIT — NOMINAL', fitWithAllowance:'FIT WITH ESTIMATED RATIO ADJUSTMENT', bomConfirmedModelMismatch:'BOM CONFIRMED — MODEL MISMATCH', simplifiedBomMismatch:'Current BOM pairing — simplified model could not reproduce the packing. Check measured dimensions or actual production arrangement.', below85Warning:'Fits, but utilization is below the 85% target.', selectedScenario:'Selected scenario', adjustedAxis:'Adjusted axis', adjustmentPercentage:'Percentage adjustment', fgCartonMultipliers:'FG / carton ratios', compactBomReady:'Compact carton BOM index loaded', compactBomFallback:'Compact carton BOM preprocessing was unavailable. The browser is using the full workbook fallback.', wallAllowance:'No wall deduction is applied by the fit model', proposalFootnote:'Generated dimensions use the continuous single-axis ratio fit model, 5 mm clearance, and the shared rounding increment. Physical sample validation is required.', nominalUtilization:'Nominal utilization', scenarioUtilization:'Adjusted utilization', evaluatedDimensions:'Evaluated dimensions', nominalDimensions:'Nominal dimensions', adjustedScenarioConfirmation:'Fit found using estimated dimension ratios. Physical confirmation is required.' });
-        Object.assign(this.text.vi, { fitScenarios:'Kịch bản xếp thùng', scenarioModelNote:'Tỷ lệ trục FG 0,90–1,10 · bước 0,05 · kích thước thùng trung bình cố định', searchObjective:'Mục tiêu tìm kiếm', closestValidFit:'Cách vừa gần danh nghĩa nhất', highestUtilization:'Mức sử dụng cao nhất', searchingLengthRatios:'Đang tìm tỷ lệ chiều dài…', searchingWidthRatios:'Đang tìm tỷ lệ chiều rộng…', searchingHeightRatios:'Đang tìm tỷ lệ chiều cao…', rankingBestFit:'Đang xếp hạng cách vừa tốt nhất…', fit:'VỪA — DANH NGHĨA', fitWithAllowance:'VỪA KHI ĐIỀU CHỈNH TỶ LỆ ƯỚC TÍNH', bomConfirmedModelMismatch:'BOM ĐÃ XÁC NHẬN — MÔ HÌNH KHÔNG KHỚP', simplifiedBomMismatch:'Cặp BOM hiện tại — mô hình đơn giản không tái hiện được cách xếp. Kiểm tra kích thước đo thực tế hoặc cách đóng gói sản xuất.', below85Warning:'Vừa, nhưng mức sử dụng thấp hơn mục tiêu 85%.', selectedScenario:'Kịch bản đã chọn', adjustedAxis:'Trục điều chỉnh', adjustmentPercentage:'Phần trăm điều chỉnh', fgCartonMultipliers:'Tỷ lệ FG / thùng', compactBomReady:'Đã tải chỉ mục BOM thùng gọn nhẹ', compactBomFallback:'Không có dữ liệu BOM thùng đã tiền xử lý. Trình duyệt đang dùng phương án dự phòng đọc toàn bộ workbook.', wallAllowance:'Mô hình fit không khấu trừ độ dày thành thùng', proposalFootnote:'Kích thước đề xuất dùng mô hình tỷ lệ liên tục một trục, khoảng hở 5 mm và bước làm tròn dùng chung. Cần xác nhận bằng mẫu thực tế.', nominalUtilization:'Mức sử dụng danh nghĩa', scenarioUtilization:'Mức sử dụng đã điều chỉnh', evaluatedDimensions:'Kích thước đã đánh giá', nominalDimensions:'Kích thước danh nghĩa', adjustedScenarioConfirmation:'Đã tìm thấy cách vừa bằng tỷ lệ kích thước ước tính. Cần xác nhận thực tế.' });
+        Object.assign(this.text.en, { fitScenarios:'Fit scenarios', scenarioModelNote:'FG axis ratios 0.97–1.03 · step 0.01 · fixed averaged carton dimensions', searchObjective:'Search objective', closestValidFit:'Closest valid fit', highestUtilization:'Highest utilization', searchingLengthRatios:'Searching length ratios…', searchingWidthRatios:'Searching width ratios…', searchingHeightRatios:'Searching height ratios…', rankingBestFit:'Ranking best fit…', fit:'FIT — NOMINAL', fitWithAllowance:'FIT WITH ESTIMATED RATIO ADJUSTMENT', bomConfirmedModelMismatch:'BOM CONFIRMED — MODEL MISMATCH', simplifiedBomMismatch:'Current BOM pairing — simplified model could not reproduce the packing. Check measured dimensions or actual production arrangement.', below85Warning:'Fits, but utilization is below the 85% target.', selectedScenario:'Selected scenario', adjustedAxis:'Adjusted axis', adjustmentPercentage:'Percentage adjustment', fgCartonMultipliers:'FG / carton ratios', compactBomReady:'Compact carton BOM index loaded', compactBomFallback:'Compact carton BOM preprocessing was unavailable. The browser is using the full workbook fallback.', wallAllowance:'No wall deduction is applied by the fit model', proposalFootnote:'Generated dimensions use the continuous single-axis ratio fit model, 5 mm clearance, and the shared rounding increment. Physical sample validation is required.', nominalUtilization:'Nominal utilization', scenarioUtilization:'Adjusted utilization', evaluatedDimensions:'Evaluated dimensions', nominalDimensions:'Nominal dimensions', adjustedScenarioConfirmation:'Fit found using estimated dimension ratios. Physical confirmation is required.' });
+        Object.assign(this.text.vi, { fitScenarios:'Kịch bản xếp thùng', scenarioModelNote:'Tỷ lệ trục FG 0,97–1,03 · bước 0,01 · kích thước thùng trung bình cố định', searchObjective:'Mục tiêu tìm kiếm', closestValidFit:'Cách vừa gần danh nghĩa nhất', highestUtilization:'Mức sử dụng cao nhất', searchingLengthRatios:'Đang tìm tỷ lệ chiều dài…', searchingWidthRatios:'Đang tìm tỷ lệ chiều rộng…', searchingHeightRatios:'Đang tìm tỷ lệ chiều cao…', rankingBestFit:'Đang xếp hạng cách vừa tốt nhất…', fit:'VỪA — DANH NGHĨA', fitWithAllowance:'VỪA KHI ĐIỀU CHỈNH TỶ LỆ ƯỚC TÍNH', bomConfirmedModelMismatch:'BOM ĐÃ XÁC NHẬN — MÔ HÌNH KHÔNG KHỚP', simplifiedBomMismatch:'Cặp BOM hiện tại — mô hình đơn giản không tái hiện được cách xếp. Kiểm tra kích thước đo thực tế hoặc cách đóng gói sản xuất.', below85Warning:'Vừa, nhưng mức sử dụng thấp hơn mục tiêu 85%.', selectedScenario:'Kịch bản đã chọn', adjustedAxis:'Trục điều chỉnh', adjustmentPercentage:'Phần trăm điều chỉnh', fgCartonMultipliers:'Tỷ lệ FG / thùng', compactBomReady:'Đã tải chỉ mục BOM thùng gọn nhẹ', compactBomFallback:'Không có dữ liệu BOM thùng đã tiền xử lý. Trình duyệt đang dùng phương án dự phòng đọc toàn bộ workbook.', wallAllowance:'Mô hình fit không khấu trừ độ dày thành thùng', proposalFootnote:'Kích thước đề xuất dùng mô hình tỷ lệ liên tục một trục, khoảng hở 5 mm và bước làm tròn dùng chung. Cần xác nhận bằng mẫu thực tế.', nominalUtilization:'Mức sử dụng danh nghĩa', scenarioUtilization:'Mức sử dụng đã điều chỉnh', evaluatedDimensions:'Kích thước đã đánh giá', nominalDimensions:'Kích thước danh nghĩa', adjustedScenarioConfirmation:'Đã tìm thấy cách vừa bằng tỷ lệ kích thước ước tính. Cần xác nhận thực tế.' });
         for (const key of ['addNpi', 'sessionAdded', 'duplicateId', 'applyOptimized', 'overrideApplied']) { delete this.text.en[key]; delete this.text.vi[key] }
       }
-      static { Object.assign(this.text.en,{remeasuredLength:'Remeasured FG length (mm)',remeasuredWidth:'Remeasured FG width (mm)',remeasuredHeight:'Remeasured FG height (mm)',applyRemeasurement:'Apply remeasurement',clearRemeasurement:'Clear',searchLimitReached:'SEARCH LIMIT REACHED',searchingMultiAxisRatios:'Searching multi-axis ratios…',scenarioModelNote:'Optimized Mode evaluates the Finished Good at its exact (1.00) dimensions — never adjusted. The carton starts at the maximum measured dimension per axis and, only if needed, may grow up to 10% larger per axis to fit.',adjustedScenarioConfirmation:'Fit found by allowing the carton to grow up to 10% larger than the measured maximum. Physical confirmation required.'}); Object.assign(this.text.vi,{remeasuredLength:'Chiều dài FG đo lại (mm)',remeasuredWidth:'Chiều rộng FG đo lại (mm)',remeasuredHeight:'Chiều cao FG đo lại (mm)',applyRemeasurement:'Áp dụng số đo lại',clearRemeasurement:'Xóa',searchLimitReached:'ĐÃ ĐẠT GIỚI HẠN TÌM KIẾM',searchingMultiAxisRatios:'Đang tìm tỷ lệ đa trục…',scenarioModelNote:'Chế độ Tối ưu tính theo kích thước chính xác (tỷ lệ 1,00) của FG — không bao giờ điều chỉnh. Thùng bắt đầu từ kích thước lớn nhất đo được theo từng trục và, chỉ khi cần, có thể lớn hơn tối đa 10% mỗi trục để vừa.',adjustedScenarioConfirmation:'Đã tìm thấy cách vừa bằng cách cho phép thùng lớn hơn tối đa 10% so với kích thước lớn nhất đo được. Cần xác nhận thực tế.'}) }
+      static { Object.assign(this.text.en,{remeasuredLength:'Remeasured FG length (mm)',remeasuredWidth:'Remeasured FG width (mm)',remeasuredHeight:'Remeasured FG height (mm)',applyRemeasurement:'Apply remeasurement',clearRemeasurement:'Clear',searchLimitReached:'SEARCH LIMIT REACHED',searchingMultiAxisRatios:'Searching multi-axis ratios…',scenarioModelNote:'Optimized Mode evaluates the Finished Good at its exact (1.00) dimensions — never adjusted. The carton starts at the maximum measured dimension per axis and, only if needed, may grow up to 3% larger per axis to fit.',adjustedScenarioConfirmation:'Fit found by allowing the carton to grow up to 3% larger than the measured maximum. Physical confirmation required.'}); Object.assign(this.text.vi,{remeasuredLength:'Chiều dài FG đo lại (mm)',remeasuredWidth:'Chiều rộng FG đo lại (mm)',remeasuredHeight:'Chiều cao FG đo lại (mm)',applyRemeasurement:'Áp dụng số đo lại',clearRemeasurement:'Xóa',searchLimitReached:'ĐÃ ĐẠT GIỚI HẠN TÌM KIẾM',searchingMultiAxisRatios:'Đang tìm tỷ lệ đa trục…',scenarioModelNote:'Chế độ Tối ưu tính theo kích thước chính xác (tỷ lệ 1,00) của FG — không bao giờ điều chỉnh. Thùng bắt đầu từ kích thước lớn nhất đo được theo từng trục và, chỉ khi cần, có thể lớn hơn tối đa 3% mỗi trục để vừa.',adjustedScenarioConfirmation:'Đã tìm thấy cách vừa bằng cách cho phép thùng lớn hơn tối đa 3% so với kích thước lớn nhất đo được. Cần xác nhận thực tế.'}) }
       static { Object.assign(this.text.en,{bestWithinLimit:'Best candidate found within the configured search limit.'}); Object.assign(this.text.vi,{bestWithinLimit:'Ứng viên tốt nhất tìm được trong giới hạn tìm kiếm đã cấu hình.'}) }
       static { Object.assign(this.text.en,{calculationAndMeasurement:'Calculation and measurement settings',physicalValidationRequired:'Physical sample validation required',targetQuantity:'Target quantity',estimatedRemaining:'Estimated remaining',estimatingTime:'Estimated remaining: calculating…',fewSeconds:'a few seconds',finishing:'Finishing…',completedIn:'Completed in {time}',missingDimensionQueryComplete:'Missing-dimension data query complete',noFitCalculations:'No fit calculations were performed.',missingDataIssue:'Missing-data issue',assignmentSource:'Assignment source',dimensionSource:'Dimension source',recommendedAction:'Recommended action',totalMissingRecords:'Total missing-data records',cartonRecordsNotFound:'Carton records not found',bothDimensionsMissing:'Both FG and carton missing'}); Object.assign(this.text.vi,{calculationAndMeasurement:'Cài đặt tính toán và đo thực tế',physicalValidationRequired:'Cần xác nhận bằng mẫu thực tế',targetQuantity:'Số lượng mục tiêu',estimatedRemaining:'Thời gian còn lại dự kiến',estimatingTime:'Thời gian còn lại: đang ước tính…',fewSeconds:'vài giây',finishing:'Đang hoàn tất…',completedIn:'Hoàn tất trong {time}',missingDimensionQueryComplete:'Truy vấn dữ liệu thiếu kích thước đã hoàn tất',noFitCalculations:'Không thực hiện phép tính độ vừa.',missingDataIssue:'Loại dữ liệu thiếu',assignmentSource:'Nguồn gán thùng',dimensionSource:'Nguồn kích thước',recommendedAction:'Hành động đề xuất',totalMissingRecords:'Tổng bản ghi thiếu dữ liệu',cartonRecordsNotFound:'Không tìm thấy bản ghi thùng',bothDimensionsMissing:'Thiếu cả kích thước FG và thùng'}) }
       static { Object.assign(this.text.en,{betterExistingCarton:'Better existing carton',existingAlternative:'Existing carton alternative',existingAlternatives:'existing carton alternative(s)',currentCartonBest:'Current BOM carton remains the best existing option by utilization.',noMeaningfulImprovement:'No physically fitting existing carton has higher utilization than the current carton.',noBetterAlternative:'No higher-utilization existing-carton alternative found. Current BOM carton remains the recommended option.',recommendedHighestUtilization:'Recommended — highest utilization',notRecommendedLowerUtilization:'Not recommended — lower utilization rank',equalUtilizationAlternative:'Equal-utilization alternative',currentUtilization:'Current utilization',candidateUtilization:'Candidate utilization',utilizationGain:'Utilization gain',currentCartonVolume:'Current carton volume',candidateCartonVolume:'Candidate carton volume',volumeReduction:'Volume reduction',capacitySurplusChange:'Capacity-surplus change',evidenceClass:'Evidence class',recommendationDecision:'Recommendation decision',notRecommendedWorse:'Not recommended — worse than current carton'}); Object.assign(this.text.vi,{betterExistingCarton:'Thùng hiện có tốt hơn',existingAlternative:'Thùng hiện có thay thế',existingAlternatives:'thùng hiện có thay thế',currentCartonBest:'Thùng BOM hiện tại vẫn là lựa chọn hiện có tốt nhất theo mức sử dụng.',noMeaningfulImprovement:'Không có thùng hiện có vừa vật lý nào có mức sử dụng cao hơn thùng hiện tại.',noBetterAlternative:'Không tìm thấy thùng hiện có có mức sử dụng cao hơn. Thùng BOM hiện tại vẫn là lựa chọn đề xuất.',recommendedHighestUtilization:'Đề xuất — mức sử dụng cao nhất',notRecommendedLowerUtilization:'Không đề xuất — hạng sử dụng thấp hơn',equalUtilizationAlternative:'Phương án có mức sử dụng bằng nhau',currentUtilization:'Mức sử dụng hiện tại',candidateUtilization:'Mức sử dụng ứng viên',utilizationGain:'Mức tăng sử dụng',currentCartonVolume:'Thể tích thùng hiện tại',candidateCartonVolume:'Thể tích thùng ứng viên',volumeReduction:'Mức giảm thể tích',capacitySurplusChange:'Thay đổi sức chứa dư',evidenceClass:'Cấp độ bằng chứng',recommendationDecision:'Quyết định đề xuất',notRecommendedWorse:'Không đề xuất — kém hơn thùng hiện tại'}) }
-      static { Object.assign(this.text.en,{quickMode:'⚡ Quick Mode',optimizedMode:'⚙ Optimized Mode',enterRemeasurement:'Enter remeasurement',exactValuesOnly:'Exact source dimensions only',optimizationEnabled:'Dimension optimization enabled',calculationMode:'Calculation mode',quickModeDescription:'Exact source values only. No tolerance or ratio adjustment.',optimizedModeDescription:'FG fixed at 1.00 (exact dimensions), never adjusted · carton starts at the maximum measured dimension per axis and may grow up to 10% larger per axis to fit',quickModeAssumptions:'Exact active FG dimensions · Exact source carton dimensions · Six orthogonal orientations · Rigid rectangular grid · No compression · No nesting · No diagonal placement',fitRemeasuredExact:'FIT — EXACT REMEASURED DIMENSIONS',fitSourceExact:'FIT — EXACT SOURCE DIMENSIONS',doesNotFitExact:'DOES NOT FIT — EXACT VALUES',missingDimensionData:'MISSING DIMENSION DATA',optimizedModeSlow:'Optimized Mode may take significantly longer.'}); Object.assign(this.text.vi,{quickMode:'⚡ Chế độ nhanh',optimizedMode:'⚙ Chế độ tối ưu',enterRemeasurement:'Nhập kích thước đo lại',exactValuesOnly:'Chỉ dùng kích thước chính xác từ nguồn',optimizationEnabled:'Đã bật tối ưu kích thước',calculationMode:'Chế độ tính toán',quickModeDescription:'Chỉ dùng giá trị chính xác từ nguồn. Không áp dụng dung sai hoặc tỷ lệ.',optimizedModeDescription:'FG cố định ở 1,00 (kích thước chính xác), không bao giờ điều chỉnh · thùng bắt đầu từ kích thước lớn nhất đo được theo từng trục và có thể lớn hơn tối đa 10% mỗi trục để vừa',quickModeAssumptions:'Kích thước FG chính xác đang dùng · Kích thước thùng chính xác từ nguồn · Sáu hướng vuông góc · Lưới chữ nhật cứng · Không nén · Không lồng · Không đặt chéo',fitRemeasuredExact:'VỪA — KÍCH THƯỚC ĐO LẠI CHÍNH XÁC',fitSourceExact:'VỪA — KÍCH THƯỚC NGUỒN CHÍNH XÁC',doesNotFitExact:'KHÔNG VỪA — GIÁ TRỊ CHÍNH XÁC',missingDimensionData:'THIẾU DỮ LIỆU KÍCH THƯỚC',optimizedModeSlow:'Chế độ tối ưu có thể mất nhiều thời gian hơn.'}) }
+      static { Object.assign(this.text.en,{quickMode:'⚡ Quick Mode',optimizedMode:'⚙ Optimized Mode',enterRemeasurement:'Enter remeasurement',exactValuesOnly:'Exact source dimensions only',optimizationEnabled:'Dimension optimization enabled',calculationMode:'Calculation mode',quickModeDescription:'Exact source values only. No tolerance or ratio adjustment.',optimizedModeDescription:'FG fixed at 1.00 (exact dimensions), never adjusted · carton starts at the maximum measured dimension per axis and may grow up to 3% larger per axis to fit',quickModeAssumptions:'Exact active FG dimensions · Exact source carton dimensions · Six orthogonal orientations · Rigid rectangular grid · No compression · No nesting · No diagonal placement',fitRemeasuredExact:'FIT — EXACT REMEASURED DIMENSIONS',fitSourceExact:'FIT — EXACT SOURCE DIMENSIONS',doesNotFitExact:'DOES NOT FIT — EXACT VALUES',missingDimensionData:'MISSING DIMENSION DATA',optimizedModeSlow:'Optimized Mode may take significantly longer.'}); Object.assign(this.text.vi,{quickMode:'⚡ Chế độ nhanh',optimizedMode:'⚙ Chế độ tối ưu',enterRemeasurement:'Nhập kích thước đo lại',exactValuesOnly:'Chỉ dùng kích thước chính xác từ nguồn',optimizationEnabled:'Đã bật tối ưu kích thước',calculationMode:'Chế độ tính toán',quickModeDescription:'Chỉ dùng giá trị chính xác từ nguồn. Không áp dụng dung sai hoặc tỷ lệ.',optimizedModeDescription:'FG cố định ở 1,00 (kích thước chính xác), không bao giờ điều chỉnh · thùng bắt đầu từ kích thước lớn nhất đo được theo từng trục và có thể lớn hơn tối đa 3% mỗi trục để vừa',quickModeAssumptions:'Kích thước FG chính xác đang dùng · Kích thước thùng chính xác từ nguồn · Sáu hướng vuông góc · Lưới chữ nhật cứng · Không nén · Không lồng · Không đặt chéo',fitRemeasuredExact:'VỪA — KÍCH THƯỚC ĐO LẠI CHÍNH XÁC',fitSourceExact:'VỪA — KÍCH THƯỚC NGUỒN CHÍNH XÁC',doesNotFitExact:'KHÔNG VỪA — GIÁ TRỊ CHÍNH XÁC',missingDimensionData:'THIẾU DỮ LIỆU KÍCH THƯỚC',optimizedModeSlow:'Chế độ tối ưu có thể mất nhiều thời gian hơn.'}) }
       static { Object.assign(this.text.en,{sourceCartonDimensions:'Source carton dimensions',usableInternalCartonDimensions:'Usable internal carton dimensions',assumedWallThickness:'Assumed wall thickness',quickWallDeduction:'Quick Mode — exact source values with 5 mm carton wall deduction per side',quickInternalSource:'Quick Mode — source dimensions identified as internal; no wall deduction applied',quickOutsideAssumption:'Quick Mode assumption — source carton dimensions treated as outside dimensions with 5 mm walls per side',invalidQuickInternalDimensions:'Wall deduction produced invalid usable internal carton dimensions.',wallDeductionApplied:'Wall deduction applied',quickModeDescription:'Exact FG values and usable internal carton dimensions. No tolerance or ratio adjustment.',quickModeAssumptions:'Exact active FG dimensions · Source carton normalized once to usable internal dimensions · 5 mm wall per side unless marked internal · Six orthogonal orientations · Rigid rectangular grid · No compression · No nesting · No diagonal placement'}); Object.assign(this.text.vi,{sourceCartonDimensions:'Kích thước thùng từ nguồn',usableInternalCartonDimensions:'Kích thước trong sử dụng được',assumedWallThickness:'Độ dày thành thùng giả định',quickWallDeduction:'Chế độ nhanh — giá trị nguồn chính xác với khấu trừ thành thùng 5 mm mỗi bên',quickInternalSource:'Chế độ nhanh — kích thước nguồn được xác định là kích thước trong; không khấu trừ thành thùng',quickOutsideAssumption:'Giả định Chế độ nhanh — kích thước thùng nguồn là kích thước ngoài với thành 5 mm mỗi bên',invalidQuickInternalDimensions:'Khấu trừ thành thùng tạo ra kích thước trong không hợp lệ.',wallDeductionApplied:'Đã áp dụng khấu trừ thành thùng',quickModeDescription:'Dùng kích thước FG chính xác và kích thước trong sử dụng được của thùng. Không áp dụng dung sai hoặc tỷ lệ.',quickModeAssumptions:'Kích thước FG chính xác đang dùng · Chuẩn hóa kích thước thùng một lần sang kích thước trong · Thành thùng 5 mm mỗi bên trừ khi được đánh dấu là kích thước trong · Sáu hướng vuông góc · Lưới chữ nhật cứng · Không nén · Không lồng · Không đặt chéo'}) }
       static { Object.assign(this.text.en,{cartonWidth:'Carton width',launcherPreparedSource:'Launcher-prepared carton dimensions',wallThicknessPerSide:'Wall thickness per side',dragAlternativeHere:'Drag an alternative or proposal here, or select View 3D.',simpleGridCapacity:'Simple-grid capacity',dragToSuggested:'Drag to Suggested 3D view'}); Object.assign(this.text.vi,{cartonWidth:'Chiều rộng thùng',launcherPreparedSource:'Kích thước thùng đã được launcher chuẩn bị',wallThicknessPerSide:'Độ dày thành thùng mỗi bên',dragAlternativeHere:'Kéo một thùng thay thế hoặc đề xuất vào đây, hoặc chọn Xem 3D.',simpleGridCapacity:'Sức chứa lưới đơn giản',dragToSuggested:'Kéo vào chế độ xem 3D đề xuất'}) }
       static { Object.assign(this.text.en,{openingTopBottom:'Opening (top/bottom)',visualizerCartonDimLabel:'Carton',visualizerFgDimLabel:'FG'}); Object.assign(this.text.vi,{openingTopBottom:'Miệng mở (trên/dưới)',visualizerCartonDimLabel:'Thùng',visualizerFgDimLabel:'FG'}) }
@@ -2099,8 +2125,8 @@
         palletQtyPerCarton:'Units per carton (from fit calculation)', palletCartonsNeeded:'Cartons needed', palletPalletsNeeded:'Pallets needed', palletTargetSource:'Target quantity source',
         palletOrientationRotated:'rotated 90° — carton length runs along the pallet width',
         palletOrientationStraight:'carton length runs along the pallet length',
-        palletOrientationOffset:'shifted half a carton — running-bond interlock, each carton bridges 2 cartons below',
-        palletLayerPatternLabel:'Layer pattern', palletLayerPatternInterlocked:'Interlocked (brick) — alternates {a} and {b} each layer',
+        palletOrientationOffset:'staggered so the joints of neighbouring layers do not line up',
+        palletLayerPatternLabel:'Layer pattern', palletLayerPatternInterlocked:'Interlocked — alternates {a} and {b} each layer',
         palletLayerPatternUniform:'Uniform every layer — {a}',
         palletLayerControlLabel:'Show layers up to', palletLayerAll:'Show all', palletTopView:'Top-down view', palletDragHint:'Drag to rotate',
         palletLayerShownNote:'Showing layers 1–{shown} of {total} — use the layer slider to reveal the rest.',
@@ -2118,13 +2144,18 @@
         palletSopStepDTitle:'Step D — Strapping (air / LCL only)', palletSopStepDText:'2 horizontal + 2 vertical plastic straps, not twisted (add 1 extra horizontal strap at mid-height for special cases). Corner boards must sit under every strap contact point. Tension with a strap tool, crimp with pliers, then hand-test before cutting.',
         palletSopStepDTextTruck:'Not required for standard truck/container shipments — proceed straight to stretch film (Step C) after stacking.',
         palletSopStepETitle:'Step E — Incomplete top layer', palletSopStepEText:'Strap the full lower layers first, then stretch-film the partial top layer to bind it to the stack. If the partial layer fills a full width or length, run the 2 straps over the top layer along that direction.',
-        manualPalletLayoutNav:'Manual Pallet Layout', manualPalletLayoutNote:'Pick a carton, then click the grid to stack it onto the pallet by hand, Tetris-style.',
+        manualPalletLayoutNav:'Manual Pallet Layout', manualPalletLayoutNote:'Pick a carton, then drag cartons onto the pallet anywhere you like and build it level by level.',
         manualCartonLabel:'Manual entry',
-        manualPalletBuildGrid:'Build grid', manualPalletFlipOrientation:'Rotate carton 90°',
-        manualPalletModeAdd:'Click to place', manualPalletModeRemove:'Click to remove',
-        manualPalletGridHint:'Click a cell to stack one carton there; click again to keep stacking.',
-        manualPalletGridSize:'Grid size (positions)', manualPalletMaxLayers:'Max layers per position', manualPalletCartonsPlaced:'Cartons placed',
-        manualPalletStackHeightRange:'Stack height range (placed positions)', manualPalletPrintGridTitle:'Stack count per position (number = cartons high)',
+        manualPalletBuildGrid:'Start layout', manualPalletFlipOrientation:'Rotate carton in hand 90°',
+        manualPalletModeAdd:'Mode: place', manualPalletModeRemove:'Mode: remove', manualPalletSnapOn:'Snap: on', manualPalletSnapOff:'Snap: off',
+        manualPalletGridHint:'Press and hold a carton (or the empty pallet), drag, and release to drop it. Drag a placed carton to move it. Right-click removes. R rotates the carton in hand.',
+        manualPalletTrayLabel:'Drag a carton onto the pallet', manualPalletLevelTab:'Level {n}', manualPalletAddLevel:'+ Add level', manualPalletDeleteLevel:'Delete top level',
+        manualPalletUndo:'Undo last', manualPalletClearLevel:'Clear level', manualPalletCopyPrev:'Copy previous level here', manualPalletRepeat:'Repeat last 2 levels to full height',
+        manualPalletCartonsPlaced:'Cartons placed', manualPalletLevelsUsed:'Levels used / max', manualPalletPerLevel:'Cartons per level', manualPalletLevelFill:'Active level footprint covered',
+        manualPalletWeakest:'Weakest carton support', manualPalletLowSupport:'Cartons under 80% supported', manualPalletFloating:'Floating cartons (nothing below)', manualPalletColumns:'Cartons sitting on a single carton',
+        manualPalletTopPartial:'The top level has fewer cartons than the level below. Fill it completely or remove the partial boxes so the top stays flat and stable.',
+        manualPalletBuildWarn:'Place some cartons on level 1 first.', manualPalletEmptyLevel:'Add cartons to this level before adding another.',
+        manualPalletPrintLevelTitle:'Level pattern {label}', manualPalletPrintApplies:'Applies to levels: {list}', manualPalletPrintOrder:'Level order, repeating up to the full stack: {order}', manualPalletPrintDims:'Carton footprint (L × W)',
       }); Object.assign(this.text.vi,{
         palletVisualizerNote:'Nhập một mã FG hoặc mã thùng để xem cách xếp lên pallet tiêu chuẩn, theo SC-WI-WH-01.',
         palletLookupIdLabel:'Mã FG hoặc mã thùng', palletShipMethodLabel:'Phương thức vận chuyển', palletShipAir:'Đường hàng không (tối đa 1,6 m)', palletShipTruck:'Xe tải / container (tối đa 2,2 m)',
@@ -2140,8 +2171,8 @@
         palletQtyPerCarton:'Số lượng mỗi thùng (theo tính toán vừa khít)', palletCartonsNeeded:'Số thùng cần', palletPalletsNeeded:'Số pallet cần', palletTargetSource:'Nguồn số lượng mục tiêu',
         palletOrientationRotated:'xoay 90° — chiều dài thùng chạy theo chiều rộng pallet',
         palletOrientationStraight:'chiều dài thùng chạy theo chiều dài pallet',
-        palletOrientationOffset:'lệch nửa thùng — kiểu xen kẽ xây gạch, mỗi thùng tựa lên 2 thùng bên dưới',
-        palletLayerPatternLabel:'Kiểu xếp lớp', palletLayerPatternInterlocked:'Xen kẽ (kiểu gạch xây) — luân phiên {a} và {b} mỗi lớp',
+        palletOrientationOffset:'lệch nhau để mối nối của các lớp kề nhau không trùng',
+        palletLayerPatternLabel:'Kiểu xếp lớp', palletLayerPatternInterlocked:'Xen kẽ — luân phiên {a} và {b} mỗi lớp',
         palletLayerPatternUniform:'Giống nhau mọi lớp — {a}',
         palletLayerControlLabel:'Hiện lớp đến', palletLayerAll:'Hiện tất cả', palletTopView:'Xem từ trên xuống', palletDragHint:'Rê chuột để xoay',
         palletLayerShownNote:'Đang hiện lớp 1–{shown} trên tổng {total} — dùng thanh trượt lớp để xem thêm.',
@@ -2159,13 +2190,18 @@
         palletSopStepDTitle:'Bước D — Đai hàng (chỉ hàng không / LCL)', palletSopStepDText:'2 đai ngang + 2 đai dọc bằng nhựa, không bị xoắn (thêm 1 đai ngang giữa khối hàng cho trường hợp đặc biệt). Mỗi điểm tiếp xúc đai phải có thanh góc. Siết bằng dụng cụ căng đai, bấm khóa đai bằng kìm chuyên dụng, sau đó kéo thử bằng tay trước khi cắt.',
         palletSopStepDTextTruck:'Không bắt buộc với lô hàng xe tải/container tiêu chuẩn — sau khi xếp chồng, chuyển thẳng sang quấn màng (Bước C).',
         palletSopStepETitle:'Bước E — Lớp trên cùng không đầy', palletSopStepEText:'Đai chặt các lớp dưới đã đầy trước, sau đó quấn màng lớp trên cùng dở dang vào khối hàng. Nếu lớp dở dang lấp đầy trọn chiều rộng hoặc chiều dài, cho 2 đai chạy qua lớp trên cùng theo chiều đó.',
-        manualPalletLayoutNav:'Xếp Pallet Thủ công', manualPalletLayoutNote:'Chọn một thùng, sau đó bấm vào lưới để xếp thùng lên pallet bằng tay, kiểu xếp hình khối.',
+        manualPalletLayoutNav:'Xếp Pallet Thủ công', manualPalletLayoutNote:'Chọn một thùng, sau đó kéo thùng vào bất kỳ vị trí nào trên pallet và xếp từng lớp một.',
         manualCartonLabel:'Nhập thủ công',
-        manualPalletBuildGrid:'Tạo lưới', manualPalletFlipOrientation:'Xoay thùng 90°',
-        manualPalletModeAdd:'Bấm để đặt thùng', manualPalletModeRemove:'Bấm để bỏ thùng',
-        manualPalletGridHint:'Bấm vào một ô để xếp một thùng vào đó; bấm tiếp để xếp chồng thêm.',
-        manualPalletGridSize:'Kích thước lưới (số vị trí)', manualPalletMaxLayers:'Số lớp tối đa mỗi vị trí', manualPalletCartonsPlaced:'Số thùng đã đặt',
-        manualPalletStackHeightRange:'Khoảng chiều cao chồng (các vị trí đã đặt)', manualPalletPrintGridTitle:'Số thùng chồng tại mỗi vị trí (số = số thùng cao)',
+        manualPalletBuildGrid:'Bắt đầu xếp', manualPalletFlipOrientation:'Xoay thùng đang cầm 90°',
+        manualPalletModeAdd:'Chế độ: đặt thùng', manualPalletModeRemove:'Chế độ: bỏ thùng', manualPalletSnapOn:'Hít: bật', manualPalletSnapOff:'Hít: tắt',
+        manualPalletGridHint:'Nhấn giữ một thùng (hoặc vùng trống của pallet), kéo rồi thả để đặt. Kéo thùng đã đặt để di chuyển. Bấm chuột phải để bỏ. Phím R xoay thùng đang cầm.',
+        manualPalletTrayLabel:'Kéo thùng vào pallet', manualPalletLevelTab:'Lớp {n}', manualPalletAddLevel:'+ Thêm lớp', manualPalletDeleteLevel:'Xóa lớp trên cùng',
+        manualPalletUndo:'Hoàn tác', manualPalletClearLevel:'Xóa lớp này', manualPalletCopyPrev:'Sao chép lớp trước vào đây', manualPalletRepeat:'Lặp 2 lớp cuối đến hết chiều cao',
+        manualPalletCartonsPlaced:'Số thùng đã đặt', manualPalletLevelsUsed:'Số lớp đã dùng / tối đa', manualPalletPerLevel:'Số thùng mỗi lớp', manualPalletLevelFill:'Diện tích lớp hiện tại được phủ',
+        manualPalletWeakest:'Mức đỡ yếu nhất của thùng', manualPalletLowSupport:'Thùng được đỡ dưới 80%', manualPalletFloating:'Thùng lơ lửng (không có gì bên dưới)', manualPalletColumns:'Thùng chỉ nằm trên một thùng',
+        manualPalletTopPartial:'Lớp trên cùng có ít thùng hơn lớp bên dưới. Hãy xếp đầy hoặc bỏ các thùng lẻ để mặt trên phẳng và ổn định.',
+        manualPalletBuildWarn:'Hãy đặt một vài thùng ở lớp 1 trước.', manualPalletEmptyLevel:'Hãy đặt thùng vào lớp này trước khi thêm lớp khác.',
+        manualPalletPrintLevelTitle:'Kiểu xếp lớp {label}', manualPalletPrintApplies:'Áp dụng cho các lớp: {list}', manualPalletPrintOrder:'Thứ tự lớp, lặp lại đến hết chồng: {order}', manualPalletPrintDims:'Diện tích đáy thùng (D × R)',
       }) }
       static t(key, vars = {}) { let s = this.text[this.language][key] ?? this.text.en[key] ?? key; for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, v); return s }
     }
@@ -2526,10 +2562,12 @@
         return { status: evaluated?.passes ? 'found-uniform-grid' : 'no-uniform-grid-fit', complete: true, nodes: 0, placements: null, fit: evaluated };
       }
     }
-    const RATIO_MIN = 0.90;
-    const RATIO_MAX = 1.10;
-    const RATIO_STEP = 0.05;
-    const FG_RATIOS = Object.freeze([0.90, 0.95, 1.00, 1.05, 1.10]);
+    // Single source of truth for how far FG/carton dimensions may be adjusted when searching for a fit (+/- 3%).
+    const FIT_TOLERANCE = 0.03;
+    const RATIO_MIN = Number((1 - FIT_TOLERANCE).toFixed(6));
+    const RATIO_MAX = Number((1 + FIT_TOLERANCE).toFixed(6));
+    const RATIO_STEP = 0.01;
+    const FG_RATIOS = Object.freeze([0.97, 0.98, 0.99, 1.00, 1.01, 1.02, 1.03]);
     const CARTON_RATIOS = Object.freeze([1.00]);
     const UTILIZATION_EPSILON = 0.001;
     const VERIFY_MAX_SCENARIOS = 2000;
@@ -2604,12 +2642,12 @@
       if (!hasValidQuickModeInternalDimensions(internalCarton)) return false;
       const fgVol = fg.width * fg.depth * fg.height;
       const cartonVol = internalCarton.width * internalCarton.depth * internalCarton.height;
-      if (cartonVol * 1.331 < fgVol * targetQty) return false;
+      if (cartonVol * Math.pow(RATIO_MAX, 3) < fgVol * targetQty) return false;
       const sortedFg = [fg.width, fg.depth, fg.height].sort((a,b)=>a-b);
       const sortedCarton = [internalCarton.width, internalCarton.depth, internalCarton.height].sort((a,b)=>a-b);
-      if (sortedFg[0] * 0.90 > sortedCarton[0] * 1.10 ||
-          sortedFg[1] * 0.90 > sortedCarton[1] * 1.10 ||
-          sortedFg[2] * 0.90 > sortedCarton[2] * 1.10) {
+      if (sortedFg[0] * RATIO_MIN > sortedCarton[0] * RATIO_MAX ||
+          sortedFg[1] * RATIO_MIN > sortedCarton[1] * RATIO_MAX ||
+          sortedFg[2] * RATIO_MIN > sortedCarton[2] * RATIO_MAX) {
         return false;
       }
       return true;
@@ -2629,10 +2667,10 @@
     const FG_RATIO_COUNT = 3;
     function createRatioValues(min = RATIO_MIN, max = RATIO_MAX, step = RATIO_STEP) { const count=Math.round((max-min)/step);return Array.from({length:count+1},(_,index)=>Number((min+index*step).toFixed(6))) }
     const RATIO_VALUES = Object.freeze(createRatioValues());
-    const CARTON_GROWTH_VALUES = Object.freeze([1.00, 1.05, 1.10]);
+    const CARTON_GROWTH_VALUES = Object.freeze(createRatioValues(1, RATIO_MAX, RATIO_STEP));
     const VERTICAL_AXIS_BY_ORIENTATION = Object.freeze({1:'height',2:'width',3:'height',4:'length',5:'width',6:'length'});
     const NOMINAL_FIT_SCENARIO = Object.freeze(Object.fromEntries(RATIO_PROPERTIES.map(key=>[key,1])));
-    if(RATIO_VALUES.length!==5||RATIO_VALUES[0]!==.9||RATIO_VALUES[1]!==.95||RATIO_VALUES[2]!==1||RATIO_VALUES[3]!==1.05||RATIO_VALUES[4]!==1.1)throw new Error('Invalid FG ratio configuration');
+    if(RATIO_VALUES.length!==Math.round(2*FIT_TOLERANCE/RATIO_STEP)+1||RATIO_VALUES[0]!==RATIO_MIN||RATIO_VALUES[RATIO_VALUES.length-1]!==RATIO_MAX||!RATIO_VALUES.includes(1))throw new Error('Invalid FG ratio configuration');
 
     class FitSettings {
       static defaults = Object.freeze({
@@ -3090,7 +3128,7 @@
         return{...best,passes:!!passing.length,status:passing.length?(totalAdjustment?'FIT_WITH_MULTI_AXIS_ADJUSTMENT':'FIT_RECORDED_NOMINAL'):'DOES_NOT_FIT',selectedScenario:this.candidateKey(ratios),selectedScenarioId:this.candidateKey(ratios),selectedScenarioName:totalAdjustment?'Multi-axis ratio adjustment':'Nominal',adjustedAxis:totalAdjustment?'multi-axis':null,ratios,...ratios,fgRatio,cartonRatio,fgMultiplier:fgRatio,cartonMultiplier:cartonRatio,deviation:totalAdjustment,totalAdjustment,fgDeviation,cartonDeviation,percentageAdjustment:Object.fromEntries(RATIO_PROPERTIES.map(key=>[key,(ratios[key]-1)*100])),recordedFgDimensions:{width:recordedFg.width,depth:recordedFg.depth,height:recordedFg.height},remeasuredFgDimensions:options.remeasuredFg?{...options.remeasuredFg}:null,nominalFgDimensions:{width:nominalFg.width,depth:nominalFg.depth,height:nominalFg.height},nominalCartonDimensions:{width:carton.width,depth:carton.depth,height:carton.height},evaluatedFgDimensions:{...evaluatedFg},evaluatedCartonDimensions:{...evaluatedCarton},cartonUsableDimensions:{...evaluatedCarton},orientedFgDimensions:{length:best.length,width:best.width,height:best.height},orientation:best.orientation_id,arrangement:best.arrangement,requiredQuantity:recordedFg.target,targetQty:recordedFg.target,capacitySurplus:best.capacity-recordedFg.target,nominalUtilization,recordedNominalUtilization,adjustedUtilization:scenarioUtilization,scenarioUtilization,utilization:nominalUtilization,volumeUtilization:nominalUtilization,volumeUtilizationPct:nominalUtilization*100,cartonVolume,evaluatedCartonVolume,requiredVolume,packingMode:'uniform',uniformCapacity:best.capacity,uniformBest:{...best},orientationResults,orientationsTested:volumePossible?6:0,volumeRejected:!volumePossible,capacityLowerBound:false,searchComplete:true,mixedSearch:{status:'bounded-multi-axis',complete:true,nodes:0},warnings:totalAdjustment?[I18n.t('adjustedScenarioConfirmation')]:[]}
       }
       static compactCandidate(fg,carton,candidate,options={}){carton=getQuickModeInternalCartonDimensions(carton);if(!hasValidQuickModeInternalDimensions(carton))return null;const ratios=this.ratios(candidate),base=options.nominalFg||fg,key=`${this.cacheKey(fg,carton,base)}|${this.candidateKey(ratios)}`;if(this._ratioCache.has(key))return this._ratioCache.get(key);const evaluatedFg={uprightAxis:base.uprightAxis,width:base.width*ratios.fgLengthRatio,depth:base.depth*ratios.fgWidthRatio,height:base.height*ratios.fgHeightRatio},evaluatedCarton={width:carton.width*ratios.cartonLengthRatio,depth:carton.depth*ratios.cartonWidthRatio,height:carton.height*ratios.cartonHeightRatio},requiredVolume=fg.target*evaluatedFg.width*evaluatedFg.depth*evaluatedFg.height,cartonVolume=evaluatedCarton.width*evaluatedCarton.depth*evaluatedCarton.height;if(requiredVolume>cartonVolume+1e-7)return this.put(key,null,this._ratioCache);let best=null;for(const o of this.permutations(evaluatedFg)){if(o.length>evaluatedCarton.width+1e-7||o.width>evaluatedCarton.depth+1e-7||o.height>evaluatedCarton.height+1e-7)continue;const alongLength=Math.floor(evaluatedCarton.width/o.length),alongWidth=Math.floor(evaluatedCarton.depth/o.width),alongHeight=Math.floor(evaluatedCarton.height/o.height),capacity=alongLength*alongWidth*alongHeight;if(capacity<fg.target)continue;const fgDeviation=Math.abs(ratios.fgLengthRatio-1)+Math.abs(ratios.fgWidthRatio-1)+Math.abs(ratios.fgHeightRatio-1),cartonDeviation=Math.abs(ratios.cartonLengthRatio-1)+Math.abs(ratios.cartonWidthRatio-1)+Math.abs(ratios.cartonHeightRatio-1),result={ratios,...ratios,deviation:fgDeviation+cartonDeviation,fgDeviation,cartonDeviation,scenarioUtilization:requiredVolume/cartonVolume,adjustedUtilization:requiredVolume/cartonVolume,capacity,capacitySurplus:capacity-fg.target,alongLength,alongWidth,alongHeight,orientationIndex:o.orientation_id};if(!best||this.compareAdjusted(result,best)<0)best=result}return this.put(key,best,this._ratioCache)}
-      static searchCartonGrowth(fg,carton,options={}){const candidates=[];for(const l of CARTON_GROWTH_VALUES)for(const w of CARTON_GROWTH_VALUES)for(const h of CARTON_GROWTH_VALUES)candidates.push({fgLengthRatio:1,fgWidthRatio:1,fgHeightRatio:1,cartonLengthRatio:l,cartonWidthRatio:w,cartonHeightRatio:h});const deviation=c=>Math.abs(c.cartonLengthRatio-1)+Math.abs(c.cartonWidthRatio-1)+Math.abs(c.cartonHeightRatio-1);candidates.sort((a,b)=>deviation(a)-deviation(b));const passing=[];for(const candidate of candidates){const found=this.compactCandidate(fg,carton,candidate,options);if(found)passing.push(found)}passing.sort((a,b)=>this.compareAdjusted(a,b,'closestFit'));if(passing.length>5)passing.length=5;return{objective:'closestFit',step:0.05,frontier:[],seen:new Set(),passing,processed:candidates.length,generated:candidates.length,rejectedByVolume:0,rejectedByAxis:0,passingCount:passing.length,started:performance.now(),complete:true,limited:false,maxScenarios:candidates.length,maxTimeMs:0}}
+      static searchCartonGrowth(fg,carton,options={}){const candidates=[];for(const l of CARTON_GROWTH_VALUES)for(const w of CARTON_GROWTH_VALUES)for(const h of CARTON_GROWTH_VALUES)candidates.push({fgLengthRatio:1,fgWidthRatio:1,fgHeightRatio:1,cartonLengthRatio:l,cartonWidthRatio:w,cartonHeightRatio:h});const deviation=c=>Math.abs(c.cartonLengthRatio-1)+Math.abs(c.cartonWidthRatio-1)+Math.abs(c.cartonHeightRatio-1);candidates.sort((a,b)=>deviation(a)-deviation(b));const passing=[];for(const candidate of candidates){const found=this.compactCandidate(fg,carton,candidate,options);if(found)passing.push(found)}passing.sort((a,b)=>this.compareAdjusted(a,b,'closestFit'));if(passing.length>5)passing.length=5;return{objective:'closestFit',step:RATIO_STEP,frontier:[],seen:new Set(),passing,processed:candidates.length,generated:candidates.length,rejectedByVolume:0,rejectedByAxis:0,passingCount:passing.length,started:performance.now(),complete:true,limited:false,maxScenarios:candidates.length,maxTimeMs:0}}
       static compareAdjusted(a,b,objective='highestUtilization'){if(objective==='closestFit')return a.deviation-b.deviation||a.capacitySurplus-b.capacitySurplus||b.scenarioUtilization-a.scenarioUtilization||a.orientationIndex-b.orientationIndex;const utilDiff=b.scenarioUtilization-a.scenarioUtilization;if(Math.abs(utilDiff)>UTILIZATION_EPSILON)return utilDiff;return Number(b.scenarioUtilization>=.85)-Number(a.scenarioUtilization>=.85)||a.capacitySurplus-b.capacitySurplus||a.deviation-b.deviation||a.alongHeight-b.alongHeight||a.orientationIndex-b.orientationIndex||utilDiff}
       static frontierCompare(a,b){return a.deviation-b.deviation||a.key.localeCompare(b.key)}
       static push(frontier,node){frontier.push(node);let i=frontier.length-1;while(i){const p=(i-1)>>1;if(this.frontierCompare(frontier[p],node)<=0)break;frontier[i]=frontier[p];i=p}frontier[i]=node}
@@ -3112,7 +3150,7 @@
           if(required>available+1e-7)state.rejectedByVolume++;else state.rejectedByAxis++
         }
         const step = state.step || RATIO_STEP;
-        const maxOffset = Math.round(0.10 / step);
+        const maxOffset = Math.round(FIT_TOLERANCE / step);
         for(let axis=0;axis<FG_RATIO_COUNT;axis++)for(const delta of[-1,1]){
           const offsets=node.offsets.slice();
           offsets[axis]+=delta;
@@ -3871,13 +3909,13 @@
         })];
       }
       static palletBatchRows(rows){
-        const header=['Input_ID','Resolved_Type','FG_ID','Carton_ID','Carton_Name','Carton_Dimensions_mm','Layer_Pattern','Odd_Layer_Cartons','Even_Layer_Cartons','Layers','Total_Cartons_Per_Pallet','Shipment_Method','Max_Stack_Height_mm','Actual_Stack_Height_mm','Units_Per_Carton','Target_Quantity','Cartons_Needed','Pallets_Needed','Notes'];
-        const describe=p=>p?`${p.kind} ${p.cartonsPerLayer} (${p.regions.map(r=>`${r.perLength}x${r.perWidth}`).join('+')}${p.offsetAxis?' offset':''})`:'';
-        return [header,...(rows||[]).map(r=>[r.inputId,r.type||'',r.fg?.fg_id||'',r.carton?.carton_id||'',r.carton?.carton_name||'',r.carton?dims(r.carton):'',r.layout?(r.layout.interlocked?'Interlocked':'Uniform'):'',r.layout?describe(r.layout.primary):'',r.layout?describe(r.layout.secondary):'',r.layout?.layers??'',r.layout?.totalPerPallet??'',r.method||'',r.maxHeightMm??'',r.layout?.stackHeightMm??'',r.qtyPerCarton??'',r.targetQty??'',r.cartonsNeeded??'',r.palletsNeeded??'',r.error||r.partialInfo||''])];
+        const header=['Input_ID','Resolved_Type','FG_ID','Carton_ID','Carton_Name','Carton_Dimensions_mm','Layer_Pattern','Odd_Layer_Cartons','Even_Layer_Cartons','Layers','Total_Cartons_Per_Pallet','Shipment_Method','Max_Stack_Height_mm','Actual_Stack_Height_mm','Units_Per_Carton','Target_Quantity','Cartons_Needed','Pallets_Needed','Notes','Interlocked_Cartons_Percent','Min_Support_Percent'];
+        const describe=p=>p?`${p.kind} ${p.cartonsPerLayer} (${p.regions.map(r=>`${r.perLength}x${r.perWidth}`).join('+')}${p.variant?' '+p.variant:''}${p.offsetAxis?' offset':''})`:'';
+        return [header,...(rows||[]).map(r=>[r.inputId,r.type||'',r.fg?.fg_id||'',r.carton?.carton_id||'',r.carton?.carton_name||'',r.carton?dims(r.carton):'',r.layout?(r.layout.interlocked?'Interlocked':'Uniform'):'',r.layout?describe(r.layout.primary):'',r.layout?describe(r.layout.secondary):'',r.layout?.layers??'',r.layout?.totalPerPallet??'',r.method||'',r.maxHeightMm??'',r.layout?.stackHeightMm??'',r.qtyPerCarton??'',r.targetQty??'',r.cartonsNeeded??'',r.palletsNeeded??'',r.error||r.partialInfo||'',r.layout?.stability?Math.round(r.layout.stability.interlockedShare*100):'',r.layout?.stability?Math.round(r.layout.stability.minSupport*100):''])];
       }
     }
     // A "pattern" is { kind, regions: [{uL,uW,startL,stepL,startW,stepW,perLength,perWidth}, ...], cartonsPerLayer, rotate?, offsetAxis? }.
-    // Every region is its own flush sub-grid (used for the perimeter strips + interior block of a pinwheel, the
+    // Every region is its own gap-free sub-grid (used for the perimeter strips + interior block of a pinwheel, the
     // two bands of a split row, or just one region for a plain block/brick/row layer); expandPatternCells()
     // flattens whichever shape a pattern has into a plain list of placed cartons for rendering/export.
     function expandPatternCells(pattern) {
@@ -3885,108 +3923,229 @@
       for (const r of pattern?.regions || []) { if (!r) continue; for (let i = 0; i < r.perLength; i++) for (let j = 0; j < r.perWidth; j++) out.push({ x: r.startL + i * r.stepL, y: r.startW + j * r.stepW, uL: r.uL, uW: r.uW }) }
       return out;
     }
+    function patternVariantLabel(p) { return p?.variant ? I18n.t(`palletPatternVariant${p.variant[0].toUpperCase()}${p.variant.slice(1)}`) : '' }
     function patternKindLabel(p) { return I18n.t(p.kind === 'pinwheel' && p.regions.length > 4 ? 'palletPatternKindHybridPinwheel' : `palletPatternKind${p.kind[0].toUpperCase()}${p.kind.slice(1)}`) }
-    // Flush to the pallet edge on the outside; any leftover space becomes even gaps BETWEEN cartons (not a margin around the block),
-    // so the outer silhouette of a region stays a flat rectangle - a single row/column centers instead, since it has no "between" to use.
-    function flushAxisLayout(dim, unit, count) { return count <= 1 ? { start: (dim - count * unit) / 2, step: unit } : { start: 0, step: unit + Math.max(0, (dim - count * unit) / (count - 1)) } }
-    function flushGridRegion(uL, uW, spanL, spanW, offsetL = 0, offsetW = 0) { const perLength = Math.floor(spanL / uL), perWidth = Math.floor(spanW / uW); if (perLength <= 0 || perWidth <= 0) return null; const la = flushAxisLayout(spanL, uL, perLength), wa = flushAxisLayout(spanW, uW, perWidth); return { uL, uW, perLength, perWidth, startL: offsetL + la.start, stepL: la.step, startW: offsetW + wa.start, stepW: wa.step } }
-    function regionCount(r) { return r ? r.perLength * r.perWidth : 0 }
+    // ---------------------------------------------------------------------------------------------------------
+    // Pallet layer stability model. A layer pair is judged on what actually keeps a stack standing: how much of
+    // each carton rests on the layer below (and is rested on by the layer above), and whether each carton is
+    // BRIDGED across two or more cartons - a carton sitting ~entirely on one carton is just a vertical column.
+    const PALLET_SUPPORT_TARGET = 0.78;   // ~80% of the carton's bottom (and top) face is carried by the adjacent layer
+    const PALLET_COLUMN_SHARE = 0.82;     // more than this share on ONE carton = column (seams of both layers line up)
+    function palletOverlap1D(a0, a1, b0, b1) { return Math.max(0, Math.min(a1, b1) - Math.max(a0, b0)) }
+    function palletCells(pattern) { const out = []; for (const r of pattern?.regions || []) { if (!r) continue; for (let i = 0; i < r.perLength; i++) for (let j = 0; j < r.perWidth; j++) out.push([r.startL + i * r.stepL, r.startW + j * r.stepW, r.uL, r.uW]) } return out }
+    function palletCellKey(cells) { return cells.map(c => `${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${Math.round(c[3])}`).sort().join(';') }
+    // Measures layer A against layer B in both directions (every carton of the repeating pair has the other layer
+    // below it AND above it). Returns minSupport, the share of cartons under the support target, the share that are
+    // columns, and the share bridged across >=2 cartons along BOTH axes (2-D interlock, as in a pinwheel).
+    function layerStability(cellsA, cellsB) {
+      if (!cellsA.length || !cellsB.length) return null;
+      let S = 1; for (const c of cellsA) S = Math.max(S, c[2], c[3]); for (const c of cellsB) S = Math.max(S, c[2], c[3]);
+      const index = cells => { const m = new Map(); cells.forEach((c, i) => { const k = Math.floor(c[0] / S) + ',' + Math.floor(c[1] / S); const list = m.get(k); if (list) list.push(i); else m.set(k, [i]) }); return m };
+      const idxA = index(cellsA), idxB = index(cellsB), stat = { n: 0, minSupport: 1, low: 0, col: 0, bridged: 0, support: 0 };
+      const measure = (cells, other, idx) => {
+        for (const c of cells) {
+          const area = c[2] * c[3]; let total = 0, maxOv = 0, xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+          for (let ix = Math.floor((c[0] - S) / S); ix <= Math.floor((c[0] + c[2]) / S); ix++) for (let iy = Math.floor((c[1] - S) / S); iy <= Math.floor((c[1] + c[3]) / S); iy++) {
+            const list = idx.get(ix + ',' + iy); if (!list) continue;
+            for (const j of list) { const d = other[j], o = palletOverlap1D(c[0], c[0] + c[2], d[0], d[0] + d[2]) * palletOverlap1D(c[1], c[1] + c[3], d[1], d[1] + d[3]); if (o <= 0) continue; total += o; if (o > maxOv) maxOv = o; if (o >= .03 * area) { if (d[0] < xMin) xMin = d[0]; if (d[0] > xMax) xMax = d[0]; if (d[1] < yMin) yMin = d[1]; if (d[1] > yMax) yMax = d[1] } }
+          }
+          const support = Math.min(1, total / area), share = maxOv / area;
+          stat.n++; stat.support += support; if (support < stat.minSupport) stat.minSupport = support; if (support < PALLET_SUPPORT_TARGET) stat.low++; if (share > PALLET_COLUMN_SHARE) stat.col++;
+          if (xMax - xMin > 5 && yMax - yMin > 5) stat.bridged++;
+        }
+      };
+      measure(cellsA, cellsB, idxB); measure(cellsB, cellsA, idxA);
+      return { minSupport: stat.minSupport, meanSupport: stat.support / stat.n, lowShare: stat.low / stat.n, columnShare: stat.col / stat.n, bridge2D: stat.bridged / stat.n };
+    }
+    const palletGrid = (uL, uW, x, y, nL, nW) => ({ uL, uW, perLength: nL, perWidth: nW, startL: x, stepL: uL, startW: y, stepW: uW });
+    const palletBounds = cells => { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const c of cells) { x0 = Math.min(x0, c[0]); y0 = Math.min(y0, c[1]); x1 = Math.max(x1, c[0] + c[2]); y1 = Math.max(y1, c[1] + c[3]) } return { x0, y0, x1, y1 } };
+    function palletMovePattern(p, dx, dy, extra = {}) { return { ...p, ...extra, regions: p.regions.map(r => ({ ...r, startL: r.startL + dx, startW: r.startW + dy })) } }
+    function palletMirrorPattern(p, PL, PW, mirrorL, mirrorW, extra = {}) {
+      return { ...p, ...extra, regions: p.regions.map(r => ({ ...r,
+        startL: mirrorL ? PL - (r.startL + (r.perLength - 1) * r.stepL + r.uL) : r.startL,
+        startW: mirrorW ? PW - (r.startW + (r.perWidth - 1) * r.stepW + r.uW) : r.startW })) };
+    }
+    function palletFinishPattern(kind, regions, PL, PW) {
+      const live = regions.filter(r => r && r.perLength > 0 && r.perWidth > 0); if (!live.length) return null;
+      const pattern = { kind, regions: live, cartonsPerLayer: live.reduce((s, r) => s + r.perLength * r.perWidth, 0) };
+      const b = palletBounds(palletCells(pattern));
+      if (b.x1 - b.x0 > PL + 1e-6 || b.y1 - b.y0 > PW + 1e-6) return null;
+      return palletMovePattern(pattern, (PL - (b.x1 - b.x0)) / 2 - b.x0, (PW - (b.y1 - b.y0)) / 2 - b.y0);   // centred tight block, no overhang
+    }
+    // Every single-layer arrangement worth pairing: whole blocks (also one row/column short, which buys room to
+    // stagger), split rows (the leftover strip filled with rotated cartons) and perimeter rings that keep the outer
+    // wall flat with the unavoidable void pushed to the inside. All are gap-free; the pallet margin is left outside.
+    function palletBasePatterns(cl, cw, PL, PW) {
+      const out = [], add = p => { if (p) out.push(p) };
+      for (const rotate of [false, true]) {
+        const uL = rotate ? cw : cl, uW = rotate ? cl : cw, nMax = Math.floor(PL / uL), mMax = Math.floor(PW / uW);
+        for (const n of [nMax, nMax - 1]) for (const m of [mMax, mMax - 1]) if (n >= 1 && m >= 1) add(palletFinishPattern('block', [palletGrid(uL, uW, 0, 0, n, m)], PL, PW));
+      }
+      for (const [uL1, uW1, uL2, uW2] of [[cl, cw, cw, cl], [cw, cl, cl, cw]]) {
+        const n1 = Math.floor(PL / uL1), n2 = Math.floor(PL / uL2), max1 = Math.floor(PW / uW1);
+        for (const rows1 of [max1, max1 - 1]) {
+          if (rows1 < 1 || n1 < 1 || n2 < 1) continue;
+          const rows2 = Math.floor((PW - rows1 * uW1) / uW2); if (rows2 < 1) continue;
+          add(palletFinishPattern('splitRow', [palletGrid(uL1, uW1, (PL - n1 * uL1) / 2, 0, n1, rows1), palletGrid(uL2, uW2, (PL - n2 * uL2) / 2, rows1 * uW1, n2, rows2)], PL, PW));
+        }
+        const m1 = Math.floor(PW / uW1), m2 = Math.floor(PW / uW2), maxC = Math.floor(PL / uL1);
+        for (const cols1 of [maxC, maxC - 1]) {
+          if (cols1 < 1 || m1 < 1 || m2 < 1) continue;
+          const cols2 = Math.floor((PL - cols1 * uL1) / uL2); if (cols2 < 1) continue;
+          add(palletFinishPattern('splitRow', [palletGrid(uL1, uW1, 0, (PW - m1 * uW1) / 2, cols1, m1), palletGrid(uL2, uW2, cols1 * uL1, (PW - m2 * uW2) / 2, cols2, m2)], PL, PW));
+        }
+      }
+      const fillInterior = (x0, y0, w, h) => {
+        if (w <= 0 || h <= 0) return null;
+        const a = [Math.floor(w / cl), Math.floor(h / cw)], b = [Math.floor(w / cw), Math.floor(h / cl)];
+        const useA = a[0] * a[1] >= b[0] * b[1], n = useA ? a : b, uL = useA ? cl : cw, uW = useA ? cw : cl;
+        if (n[0] < 1 || n[1] < 1) return null;
+        return palletGrid(uL, uW, x0 + (w - n[0] * uL) / 2, y0 + (h - n[1] * uW) / 2, n[0], n[1]);
+      };
+      for (const [A, B] of [[cl, cw], [cw, cl]]) {
+        // Ring, variant 1: the top and bottom strips own the corners (full length); the side strips fit between them.
+        { const nT = Math.floor(PL / A), nSide = Math.floor((PW - 2 * B) / A);
+          if (nT >= 1 && nSide >= 1) { const EL = nT * A, EW = 2 * B + nSide * A;
+            if (EL >= 2 * B) add(palletFinishPattern('pinwheel', [palletGrid(A, B, 0, 0, nT, 1), palletGrid(A, B, 0, EW - B, nT, 1), palletGrid(B, A, 0, B, 1, nSide), palletGrid(B, A, EL - B, B, 1, nSide), fillInterior(B, B, EL - 2 * B, EW - 2 * B)], PL, PW)) } }
+        // Ring, variant 2 (the opposite handedness): the side strips own the corners; the top/bottom strips fit between.
+        { const nS = Math.floor(PW / A), nT = Math.floor((PL - 2 * B) / A);
+          if (nS >= 1 && nT >= 1) { const EW = nS * A, EL = 2 * B + nT * A;
+            if (EW >= 2 * B) add(palletFinishPattern('pinwheel', [palletGrid(B, A, 0, 0, 1, nS), palletGrid(B, A, EL - B, 0, 1, nS), palletGrid(A, B, B, 0, nT, 1), palletGrid(A, B, B, EW - B, nT, 1), fillInterior(B, B, EL - 2 * B, EW - 2 * B)], PL, PW)) } }
+      }
+      const seen = new Set(), unique = [];
+      for (const p of out) { const key = palletCellKey(palletCells(p)); if (!seen.has(key)) { seen.add(key); unique.push(p) } }
+      return unique;
+    }
+    const palletLayoutCache = new Map();
     function computePalletLayout(carton, palletLengthMm, palletWidthMm, maxHeightMm) {
       const cl = Number(carton?.width), cw = Number(carton?.depth), ch = Number(carton?.height);
       if (![cl, cw, ch].every(n => Number.isFinite(n) && n > 0)) return null;
-      const PL = palletLengthMm, PW = palletWidthMm;
-      const region = flushGridRegion, count = regionCount;
-      const cellsOf = r => { const out = []; if (!r) return out; for (let i = 0; i < r.perLength; i++) for (let j = 0; j < r.perWidth; j++) out.push([r.startL + i * r.stepL, r.startW + j * r.stepW, r.uL, r.uW]); return out };
-      const overlap1D = (a0, a1, b0, b1) => Math.max(0, Math.min(a1, b1) - Math.max(a0, b0));
-      const cellOverlap = (c1, c2) => overlap1D(c1[0], c1[0] + c1[2], c2[0], c2[0] + c2[2]) * overlap1D(c1[1], c1[1] + c1[3], c2[1], c2[1] + c2[3]);
-      // Minimum, over every carton in either layer, of the fraction of its footprint resting on (or rested on by) the other layer's cartons.
-      const supportFraction = (cellsA, cellsB) => { if (!cellsA.length || !cellsB.length) return 0; let minFrac = 1; for (const c of cellsA) { const area = c[2] * c[3]; let sup = 0; for (const d of cellsB) sup += cellOverlap(c, d); minFrac = Math.min(minFrac, area > 0 ? sup / area : 1) } for (const c of cellsB) { const area = c[2] * c[3]; let sup = 0; for (const d of cellsA) sup += cellOverlap(c, d); minFrac = Math.min(minFrac, area > 0 ? sup / area : 1) } return minFrac };
-
-      const candidates = [];
-
-      // Block: one orientation, identical every layer. Simplest, always fully supported.
-      for (const rotate of [false, true]) {
-        const uL = rotate ? cw : cl, uW = rotate ? cl : cw, r = region(uL, uW, PL, PW);
-        if (!r) continue;
-        const primary = { kind: 'block', rotate, regions: [r], cartonsPerLayer: count(r) };
-        candidates.push({ primary, secondary: primary, score: primary.cartonsPerLayer, safety: 1 });
-      }
-
-      // Row: alternate the whole layer's orientation 90° every layer. Only offered when the two orientations'
-      // grids still support each other well (roughly square cartons) - otherwise a column can float over a gap.
-      { const gA = region(cl, cw, PL, PW), gB = region(cw, cl, PL, PW);
-        if (gA && gB) { const support = supportFraction(cellsOf(gA), cellsOf(gB));
-          if (support >= 0.5) { const primary = { kind: 'row', rotate: false, regions: [gA], cartonsPerLayer: count(gA) }, secondary = { kind: 'row', rotate: true, regions: [gB], cartonsPerLayer: count(gB) };
-            candidates.push({ primary, secondary, score: (primary.cartonsPerLayer + secondary.cartonsPerLayer) / 2, safety: support }) } } }
-
-      // Brick (running bond): shift alternating layers by half a step along the denser axis, dropping the
-      // one column/row that would overhang, so every shifted carton rests split across two cartons below it.
-      for (const rotate of [false, true]) {
-        const uL = rotate ? cw : cl, uW = rotate ? cl : cw, primaryRegion = region(uL, uW, PL, PW);
-        if (!primaryRegion) continue;
-        const axis = primaryRegion.perLength >= primaryRegion.perWidth ? 'length' : 'width', axisCount = axis === 'length' ? primaryRegion.perLength : primaryRegion.perWidth;
-        if (axisCount <= 1) continue;
-        const secondaryRegion = axis === 'length'
-          ? { ...primaryRegion, perLength: primaryRegion.perLength - 1, startL: primaryRegion.startL + primaryRegion.stepL / 2, offsetAxis: 'length' }
-          : { ...primaryRegion, perWidth: primaryRegion.perWidth - 1, startW: primaryRegion.startW + primaryRegion.stepW / 2, offsetAxis: 'width' };
-        const support = supportFraction(cellsOf(primaryRegion), cellsOf(secondaryRegion));
-        if (support < 0.35) continue;
-        const primary = { kind: 'brick', rotate, regions: [primaryRegion], cartonsPerLayer: count(primaryRegion) }, secondary = { kind: 'brick', rotate, regions: [secondaryRegion], cartonsPerLayer: count(secondaryRegion), offsetAxis: secondaryRegion.offsetAxis };
-        candidates.push({ primary, secondary, score: (primary.cartonsPerLayer + secondary.cartonsPerLayer) / 2, safety: support });
-      }
-
-      // Split row: fill as much of the layer as possible with one orientation, then use the leftover strip
-      // along one edge for a row of the rotated orientation, instead of wasting it as a gap.
-      for (const [uL1, uW1, uL2, uW2] of [[cl, cw, cw, cl], [cw, cl, cl, cw]]) {
-        for (const axis of ['width', 'length']) {
-          const primarySpan = axis === 'width' ? PW : PL, perPrimary = Math.floor(primarySpan / (axis === 'width' ? uW1 : uL1));
-          if (perPrimary <= 0) continue;
-          const usedSpan = perPrimary * (axis === 'width' ? uW1 : uL1), leftover = primarySpan - usedSpan;
-          let band1, band2;
-          if (axis === 'width') { band1 = region(uL1, uW1, PL, usedSpan, 0, 0); band2 = leftover >= uW2 ? region(uL2, uW2, PL, leftover, 0, usedSpan) : null }
-          else { band1 = region(uL1, uW1, usedSpan, PW, 0, 0); band2 = leftover >= uL2 ? region(uL2, uW2, leftover, PW, usedSpan, 0) : null }
-          if (!band1) continue;
-          const regions = [band1, band2].filter(Boolean), total = regions.reduce((s, r) => s + count(r), 0);
-          const primary = { kind: 'splitRow', regions, cartonsPerLayer: total };
-          candidates.push({ primary, secondary: primary, score: total, safety: 1 });
-        }
-      }
-
-      // Pinwheel / hybrid pinwheel: a flush ring of cartons around all 4 edges (each edge's cartons run
-      // lengthwise along that edge) keeps the outer wall perfectly flat on every layer regardless of the
-      // interior, plus a filled interior (block, or brick-interlocked between layers for extra strength).
-      // An empty interior is a plain pinwheel; a dense filled one is the "hybrid" version.
-      for (const [A, B] of [[cl, cw], [cw, cl]]) {
-        if (2 * B >= PL || 2 * B >= PW) continue;
-        const top = region(A, B, PL, B, 0, 0), bottom = region(A, B, PL, B, 0, PW - B), midH = PW - 2 * B;
-        const left = midH > 0 ? region(B, A, B, midH, 0, B) : null, right = midH > 0 ? region(B, A, B, midH, PL - B, B) : null;
-        const frame = [top, bottom, left, right].filter(Boolean);
-        if (!frame.length) continue;
-        const innerL = PL - 2 * B, innerW = PW - 2 * B;
-        let interior = null;
-        if (innerL > 0 && innerW > 0) { const iStraight = region(cl, cw, innerL, innerW, B, B), iRotated = region(cw, cl, innerL, innerW, B, B); interior = count(iRotated) > count(iStraight) ? iRotated : iStraight }
-        const frameCount = frame.reduce((s, r) => s + count(r), 0), primaryRegions = interior ? [...frame, interior] : frame;
-        const primary = { kind: 'pinwheel', regions: primaryRegions, cartonsPerLayer: frameCount + count(interior) };
-        let secondary = primary, safety = 1;
-        if (interior) {
-          const axis = interior.perLength >= interior.perWidth ? 'length' : 'width', axisCount = axis === 'length' ? interior.perLength : interior.perWidth;
-          if (axisCount > 1) {
-            const interiorSecondary = axis === 'length'
-              ? { ...interior, perLength: interior.perLength - 1, startL: interior.startL + interior.stepL / 2 }
-              : { ...interior, perWidth: interior.perWidth - 1, startW: interior.startW + interior.stepW / 2 };
-            const support = supportFraction(cellsOf(interior), cellsOf(interiorSecondary));
-            if (support >= 0.35) { secondary = { kind: 'pinwheel', regions: [...frame, interiorSecondary], cartonsPerLayer: frameCount + count(interiorSecondary) }; safety = support }
+      const PL = palletLengthMm, PW = palletWidthMm, cacheKey = [cl, cw, ch, PL, PW, maxHeightMm].join('|');
+      let found = palletLayoutCache.get(cacheKey);
+      if (found === undefined) { found = palletChooseLayers(cl, cw, PL, PW); if (palletLayoutCache.size > 400) palletLayoutCache.clear(); palletLayoutCache.set(cacheKey, found) }
+      if (!found) return null;
+      const { primary, secondary, stability } = found;
+      const layers = Math.floor(maxHeightMm / ch), oddLayers = Math.ceil(layers / 2), evenLayers = Math.floor(layers / 2);
+      const totalPerPallet = oddLayers * primary.cartonsPerLayer + evenLayers * secondary.cartonsPerLayer;
+      return { cartonLengthMm: cl, cartonWidthMm: cw, cartonHeightMm: ch, primary, secondary, interlocked: secondary !== primary, layers, totalPerPallet, stackHeightMm: layers * ch, cartonsPerLayer: primary.cartonsPerLayer, stability };
+    }
+    function palletChooseLayers(cl, cw, PL, PW) {
+      let bases = palletBasePatterns(cl, cw, PL, PW); if (!bases.length) return null;
+      const maxCount = Math.max(...bases.map(p => p.cartonsPerLayer));
+      // Small cartons mean hundreds of cells per layer; keep the search proportionate so a layout stays instant.
+      const dense = maxCount > 120;
+      bases = bases.filter(p => p.cartonsPerLayer >= maxCount * 0.6).sort((a, b) => b.cartonsPerLayer - a.cartonsPerLayer).slice(0, dense ? 6 : 14);
+      const candidates = [], cellsCache = new Map(), cellsOf = p => { let c = cellsCache.get(p); if (!c) { c = palletCells(p); cellsCache.set(p, c) } return c };
+      const flatWall = (a, b) => { const A = palletBounds(cellsOf(a)), B = palletBounds(cellsOf(b)); return Math.abs(A.x0 - B.x0) < 3 && Math.abs(A.x1 - B.x1) < 3 && Math.abs(A.y0 - B.y0) < 3 && Math.abs(A.y1 - B.y1) < 3 };
+      const consider = (p, q, label) => {
+        const m = layerStability(cellsOf(p), cellsOf(q)); if (!m) return;
+        const tier = m.minSupport >= PALLET_SUPPORT_TARGET && m.columnShare <= 0.25 ? 1 : m.lowShare <= 0.3 && m.columnShare <= 0.4 && m.minSupport >= 0.45 ? 2 : m.lowShare <= 0.5 && m.columnShare <= 0.6 && m.minSupport >= 0.3 ? 3 : 4;
+        candidates.push({ primary: p, secondary: q, tier, count: (p.cartonsPerLayer + q.cartonsPerLayer) / 2, flat: flatWall(p, q), metrics: m, label });
+      };
+      // 1) two different arrangements alternated (row rotation, pinwheel handedness swap, split row over block, ...)
+      for (let i = 0; i < bases.length; i++) for (let j = i + 1; j < bases.length; j++) consider(bases[i], bases[j], 'pair');
+      // 2) one arrangement alternated with its own mirror / 180° turn / small stagger (running bond in one or both axes)
+      const fracs = dense ? [.2, .5] : [.15, .2, .25, .33, .5], steps = [...new Set([cl, cw].flatMap(d => fracs.map(f => Math.round(d * f * 10) / 10)))].filter(s => s >= 6).sort((a, b) => a - b);
+      const fine = dense ? [] : steps.filter(s => s <= Math.max(cl, cw) * .25);
+      const shifts = [[0, 0]]; for (const s of steps) { shifts.push([s, 0]); shifts.push([0, s]) } for (const a of fine) for (const b of fine) shifts.push([a, b]);
+      for (const p of bases) {
+        const pb = palletBounds(cellsOf(p)), seenQ = new Set();
+        for (const [mL, mW] of [[false, false], [true, false], [false, true], [true, true]]) {
+          const t = mL || mW ? palletMirrorPattern(p, PL, PW, mL, mW) : p;
+          for (const [dx, dy] of shifts) {
+            if (!mL && !mW && !dx && !dy) continue;
+            if (pb.x0 - dx / 2 < -1e-6 || pb.y0 - dy / 2 < -1e-6 || pb.x1 + dx / 2 > PL + 1e-6 || pb.y1 + dy / 2 > PW + 1e-6) continue;   // both layers stay on the pallet
+            const key = `${mL}${mW}|${dx}|${dy}`; if (seenQ.has(key)) continue; seenQ.add(key);
+            const kind = !mL && !mW && (dx || dy) && p.kind === 'block' ? 'brick' : p.kind, axis = dx && dy ? 'both' : dx ? 'length' : dy ? 'width' : null;
+            const P = dx || dy ? palletMovePattern(p, -dx / 2, -dy / 2, { kind }) : (kind === p.kind ? p : { ...p, kind });
+            const variant = mL && mW ? 'rotate180' : mL ? 'mirrorL' : mW ? 'mirrorW' : null;
+            const Q = palletMovePattern(t, dx / 2, dy / 2, { kind, ...(axis ? { offsetAxis: axis } : {}), ...(variant ? { variant } : {}) });
+            consider(P, Q, 'shift');
           }
         }
-        candidates.push({ primary, secondary, score: (primary.cartonsPerLayer + secondary.cartonsPerLayer) / 2, safety });
       }
-
-      if (!candidates.length) return null;
-      candidates.sort((a, b) => b.score - a.score || b.safety - a.safety);
-      const { primary, secondary } = candidates[0];
-      const layers = ch > 0 ? Math.floor(maxHeightMm / ch) : 0, oddLayers = Math.ceil(layers / 2), evenLayers = Math.floor(layers / 2);
-      const totalPerPallet = oddLayers * primary.cartonsPerLayer + evenLayers * secondary.cartonsPerLayer;
-      return { cartonLengthMm: cl, cartonWidthMm: cw, cartonHeightMm: ch, primary, secondary, interlocked: secondary !== primary, layers, totalPerPallet, stackHeightMm: layers * ch, cartonsPerLayer: primary.cartonsPerLayer };
+      // Fallback so there is always an answer: the best plain block, identical every layer (flagged as a column stack).
+      const plain = bases.slice().sort((a, b) => b.cartonsPerLayer - a.cartonsPerLayer)[0];
+      consider(plain, plain, 'column');
+      const bestCount = Math.max(...candidates.map(c => c.count)), pool = candidates.filter(c => c.count >= bestCount * 0.7);
+      const poolBest = Math.min(...pool.map(c => c.tier));
+      const order = (a, b) => (b.metrics.bridge2D >= .5) - (a.metrics.bridge2D >= .5) || Number(b.flat) - Number(a.flat) || b.count - a.count || a.metrics.columnShare - b.metrics.columnShare || b.metrics.minSupport - a.metrics.minSupport;
+      // "Drop boxes to interlock": a lower count that is properly interlocked beats a fuller column stack. Inside the
+      // best stability tier, near-equal counts (within 5%) are separated by 2-D bridging and a flat outer wall.
+      const source = poolBest < 4 ? pool : candidates, tierBest = Math.min(...source.map(c => c.tier)), inTier = source.filter(c => c.tier === tierBest);
+      const topCount = Math.max(...inTier.map(c => c.count)), best = inTier.filter(c => c.count >= topCount * 0.95).sort(order)[0];
+      const primary = best.primary, secondary = best.primary === best.secondary || palletCellKey(palletCells(best.primary)) === palletCellKey(palletCells(best.secondary)) ? best.primary : best.secondary;
+      const m = best.metrics;
+      return { primary, secondary, stability: { tier: best.tier, minSupport: m.minSupport, columnShare: m.columnShare, interlockedShare: 1 - m.columnShare, bridge2D: m.bridge2D, flatWall: best.flat, columnStack: best.tier === 4 && m.columnShare > 0.5 } };
+    }
+    // ---------------------------------------------------------------------------------------------------------
+    // Shared orthographic 3-D drawing of a pallet stack (auto Pallet Visualizer + Manual Pallet Layout).
+    // Built for accuracy first: every carton is drawn at its exact mm position (x, y, level * carton height) on a
+    // pallet block of true size; the pallet corner is the fixed anchor (red = length axis, green = width axis,
+    // blue = stack height, each with its mm value) and the scale is fitted to the FULL stack so changing the
+    // shown layers or rotating never moves the pallet. Occlusion is exact for this geometry: levels are painted
+    // bottom to top (a lower carton can never hide a higher one from a camera above), cartons inside a level are
+    // painted far to near by their real plan-view order, and only the faces that point at the camera are drawn.
+    function palletPaintOrder(boxes, vx, vy) {
+      const n = boxes.length, EPS = 0.01; if (n < 2) return boxes.slice();
+      const out = Array.from({ length: n }, () => []), indegree = new Array(n).fill(0);
+      const ax = Math.abs(vx) > 1e-6, ay = Math.abs(vy) > 1e-6;
+      for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+        const a = boxes[i], b = boxes[j];
+        const sx = a.x + a.l <= b.x + EPS ? -1 : b.x + b.l <= a.x + EPS ? 1 : 0, sy = a.y + a.w <= b.y + EPS ? -1 : b.y + b.w <= a.y + EPS ? 1 : 0;
+        const nearX = sx !== 0 && ax ? (sx > 0) === (vx > 0) : null, nearY = sy !== 0 && ay ? (sy > 0) === (vy > 0) : null;   // true: a is nearer the camera than b
+        let aNearer = null;
+        if (nearX !== null && nearY !== null) aNearer = nearX === nearY ? nearX : null; else aNearer = nearX !== null ? nearX : nearY;
+        if (aNearer === null) continue;
+        if (aNearer) { out[j].push(i); indegree[i]++ } else { out[i].push(j); indegree[j]++ }   // far one is painted first
+      }
+      const depth = b => b.x * vx + b.y * vy + (b.l * vx + b.w * vy) / 2, queue = [], result = [], placed = new Array(n).fill(false);
+      for (let i = 0; i < n; i++) if (!indegree[i]) queue.push(i);
+      while (result.length < n) {
+        if (!queue.length) { let best = -1; for (let i = 0; i < n; i++) if (!placed[i] && (best < 0 || depth(boxes[i]) < depth(boxes[best]))) best = i; indegree[best] = 0; queue.push(best) }   // cyclic overlap: fall back to centre depth
+        queue.sort((p, q) => depth(boxes[q]) - depth(boxes[p]));
+        const i = queue.pop(); if (placed[i]) continue; placed[i] = true; result.push(boxes[i]);
+        for (const j of out[i]) if (!placed[j] && --indegree[j] <= 0) queue.push(j);
+      }
+      return result;
+    }
+    function buildStack3dSvg(o) {
+      const { PL, PW, levels, ch, maxHeightMm, rotation = 0, pitch = 0, activeLevel = -1 } = o, PH = o.PH || 150;
+      const fullLevels = Math.max(1, o.fullLevels || levels.length), H = PH + fullLevels * ch;
+      const theta = (45 + rotation * 15) * Math.PI / 180, elevation = (25 + pitch) * Math.PI / 180, ux = Math.cos(theta), uy = Math.sin(theta), sinE = Math.sin(elevation), cosE = Math.cos(elevation);
+      const cx = PL / 2, cy = PW / 2, cz = H / 2;
+      const raw = (x, y, z) => [ux * (x - cx) - uy * (y - cy), sinE * (uy * (x - cx) + ux * (y - cy)) - cosE * (z - cz)];
+      const corners = []; for (const x of [0, PL]) for (const y of [0, PW]) for (const z of [0, H]) corners.push(raw(x, y, z));
+      const spanX = Math.max(...corners.map(p => p[0])) - Math.min(...corners.map(p => p[0])), spanY = Math.max(...corners.map(p => p[1])) - Math.min(...corners.map(p => p[1]));
+      let scale = Math.min(300 / Math.max(spanX, 1), 200 / Math.max(spanY, 1)); if (!Number.isFinite(scale) || scale <= 0) scale = 1;
+      const pt = (x, y, z) => { const p = raw(x, y, z); return [200 + p[0] * scale, 150 + p[1] * scale] }, P = (x, y, z) => pt(x, y, z).map(n => n.toFixed(1)).join(',');
+      const vx = uy, vy = ux;   // plan-view direction toward the camera
+      const showTop = sinE > 0.0001, showPosX = vx > 1e-6, showNegX = vx < -1e-6, showPosY = vy > 1e-6, showNegY = vy < -1e-6;
+      const faces = (x0, y0, z0, x1, y1, z1, colors, stroke) => {
+        let s = '';
+        const poly = (pts, fill) => { s += `<polygon points="${pts.map(p => P(...p)).join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width=".6" stroke-linejoin="round"/>` };
+        if (showNegX) poly([[x0, y0, z0], [x0, y1, z0], [x0, y1, z1], [x0, y0, z1]], colors.nx);
+        if (showPosX) poly([[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]], colors.px);
+        if (showNegY) poly([[x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1]], colors.ny);
+        if (showPosY) poly([[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]], colors.py);
+        if (showTop) poly([[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], colors.top);
+        return s;
+      };
+      const palletColors = { nx: '#7a4f28', px: '#6e4523', ny: '#a97438', py: '#8a5a2e', top: '#c98f52' };
+      const cartonColors = { nx: '#287fb0', px: '#17648f', ny: '#4ea3d8', py: '#388dbb', top: '#9bd2ef' }, activeColors = { ...cartonColors, top: '#ffd98a' };
+      let out = faces(0, 0, 0, PL, PW, PH, palletColors, '#3a2513');
+      levels.forEach((boxes, level) => {
+        const z0 = PH + level * ch, z1 = z0 + ch, colors = level === activeLevel ? activeColors : cartonColors;
+        for (const b of palletPaintOrder(boxes, vx, vy)) out += faces(b.x, b.y, z0, b.x + b.l, b.y + b.w, z1, colors, '#12314a');
+      });
+      const guideInView = Number.isFinite(maxHeightMm) && PH + maxHeightMm <= H + ch * 0.5;
+      if (guideInView) { const gz = PH + maxHeightMm, pts = [[0, 0, gz], [PL, 0, gz], [PL, PW, gz], [0, PW, gz]]; out += `<polygon points="${pts.map(p => P(...p)).join(' ')}" fill="none" stroke="#c0392b" stroke-width="1.2" stroke-dasharray="5 3"/>` }
+      // Anchor axes from the pallet's (0,0) corner at floor level, labelled with the real dimensions.
+      const stackMm = Number.isFinite(o.stackMm) ? o.stackMm : levels.length * ch, fmtMm = n => Math.round(n).toLocaleString();
+      const axis = (a, b, color, label) => { const p = pt(...a), q = pt(...b); return `<line x1="${p[0].toFixed(1)}" y1="${p[1].toFixed(1)}" x2="${q[0].toFixed(1)}" y2="${q[1].toFixed(1)}" stroke="${color}" stroke-width="2.4"/><circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="${color}"/><text x="${((p[0] + q[0]) / 2).toFixed(1)}" y="${((p[1] + q[1]) / 2 - 4).toFixed(1)}" font-size="9" font-weight="700" text-anchor="middle" fill="${color}" stroke="#fff" stroke-width=".4" paint-order="stroke">${label}</text>` };
+      out += axis([0, 0, 0], [PL, 0, 0], '#d63031', `L ${fmtMm(PL)} mm`) + axis([0, 0, 0], [0, PW, 0], '#00a651', `W ${fmtMm(PW)} mm`);
+      out += axis([0, 0, PH], [0, 0, PH + Math.max(stackMm, ch)], '#2d5be3', `H ${fmtMm(stackMm)} mm${Number.isFinite(maxHeightMm) && !guideInView ? ` (limit ${fmtMm(maxHeightMm)})` : ''}`);
+      return out;
     }
     class PalletVisualizer {
       constructor(svg, summary) { this.svg = svg; this.summary = summary; this.state = null; this.rotation = 0; this.pitch = 0; this.visibleLayers = null; this.topView = false; this.drag = null; this.bindDrag() }
@@ -4003,29 +4162,15 @@
         const s = this.state; if (!s) { this.empty(''); return }
         const { palletLengthMm: PL, palletWidthMm: PW, layout, maxHeightMm } = s;
         if (!layout || !layout.layers || !layout.cartonsPerLayer) { this.empty(I18n.t('palletInvalidCartonDims')); return }
-        const PH = 150, { cartonHeightMm: ch, layers } = layout, shownLayers = Math.max(1, Math.min(layers, this.visibleLayers ?? layers));
-        const L = PL, W = PW, H = PH + layers * ch, cx = L / 2, cy = W / 2, cz = H / 2, theta = (45 + this.rotation * 15) * Math.PI / 180, elevation = (25 + this.pitch) * Math.PI / 180, ux = Math.cos(theta), uy = Math.sin(theta), sinE = Math.sin(elevation), cosE = Math.cos(elevation);
-        const raw = (x, y, z) => { x -= cx; y -= cy; z -= cz; return [ux * x - uy * y, sinE * (uy * x + ux * y) - cosE * z] };
-        const viewDepth = (x, y, z) => { x -= cx; y -= cy; z -= cz; return cosE * (uy * x + ux * y) + sinE * z };
-        const corners = [[0, 0, 0], [L, 0, 0], [L, W, 0], [0, W, 0], [0, 0, H], [L, 0, H], [L, W, H], [0, W, H]], rawCorners = corners.map(p => raw(...p)), xs = rawCorners.map(p => p[0]), ys = rawCorners.map(p => p[1]), spanX = Math.max(...xs) - Math.min(...xs), spanY = Math.max(...ys) - Math.min(...ys);
-        let scale = Math.min(320 / Math.max(spanX, 1), 220 / Math.max(spanY, 1)); if (!Number.isFinite(scale) || scale <= 0) scale = 1;
-        const project = (x, y, z) => { const p = raw(x, y, z); return [200 + p[0] * scale, 150 + p[1] * scale] }, P = (x, y, z) => project(x, y, z).map(n => n.toFixed(1)).join(','), q = p => project(...p);
-        const palletFaceDefs = [[[0, 2, 6, 4], '#8a5a2e'], [[1, 5, 7, 3], '#6e4523'], [[0, 1, 5, 4], '#a97438'], [[2, 6, 7, 3], '#7a4f28'], [[0, 1, 3, 2], '#8a5a2e'], [[4, 5, 7, 6], '#c98f52']];
-        const cartonFaceDefs = [[[0, 2, 6, 4], '#287fb0'], [[1, 5, 7, 3], '#17648f'], [[0, 1, 5, 4], '#4ea3d8'], [[2, 6, 7, 3], '#388dbb'], [[0, 1, 3, 2], '#1d6f9d'], [[4, 5, 7, 6], '#9bd2ef']];
-        const palletEdge = { color: '#3a2513', width: .8, opacity: .9 }, cartonEdge = { color: '#12314a', width: .5, opacity: .3 };
-        const faces = [], addBox = (x0, y0, z0, x1, y1, z1, defs, edge) => { const vertices = [[x0, y0, z0], [x1, y0, z0], [x0, y1, z0], [x1, y1, z0], [x0, y0, z1], [x1, y0, z1], [x0, y1, z1], [x1, y1, z1]]; for (const [indices, fill] of defs) { const points = indices.map(i => vertices[i]); faces.push({ points, fill, edge, depth: points.reduce((sum, v) => sum + viewDepth(...v), 0) / points.length }) } };
-        addBox(0, 0, 0, PL, PW, PH, palletFaceDefs, palletEdge);
-        for (let layer = 0; layer < shownLayers; layer++) { const pattern = layer % 2 === 0 ? layout.primary : layout.secondary, z0 = PH + layer * ch, z1 = z0 + ch; for (const cell of expandPatternCells(pattern)) addBox(cell.x, cell.y, z0, cell.x + cell.uL, cell.y + cell.uW, z1, cartonFaceDefs, cartonEdge) }
-        faces.sort((a, b) => a.depth - b.depth);
-        let out = ''; for (const face of faces) out += `<polygon points="${face.points.map(p => P(...p)).join(' ')}" fill="${face.fill}" fill-opacity=".92" stroke="${face.edge.color}" stroke-width="${face.edge.width}" stroke-opacity="${face.edge.opacity}"/>`;
-        if (Number.isFinite(maxHeightMm)) { const guideZ = PH + maxHeightMm; if (guideZ <= H + ch) { const pts = [[0, 0, guideZ], [L, 0, guideZ], [L, W, guideZ], [0, W, guideZ]].map(q); out += `<polygon points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="#c0392b" stroke-width="1.4" stroke-dasharray="5 3"/>` } }
-        this.svg.innerHTML = out;
+        const { cartonHeightMm: ch, layers } = layout, shownLayers = Math.max(1, Math.min(layers, this.visibleLayers ?? layers));
+        const cellsFor = pattern => expandPatternCells(pattern).map(c => ({ x: c.x, y: c.y, l: c.uL, w: c.uW })), primaryCells = cellsFor(layout.primary), secondaryCells = cellsFor(layout.secondary);
+        const levels = []; for (let layer = 0; layer < shownLayers; layer++) levels.push(layer % 2 === 0 ? primaryCells : secondaryCells);
+        this.svg.innerHTML = buildStack3dSvg({ PL, PW, levels, ch, fullLevels: layers, maxHeightMm, rotation: this.rotation, pitch: this.pitch, stackMm: shownLayers * ch });
         if (this.summary) this.summary.innerHTML = (s.summaryHtml || '') + (shownLayers < layers ? `<div class="notice">${escapeHtml(I18n.t('palletLayerShownNote', { shown: shownLayers, total: layers }))}</div>` : '');
       }
     }
-    // Read-only 3D preview for the interactive Manual Pallet Layout tool: unlike PalletVisualizer (which
-    // renders a repeating primary/secondary layer pattern), each grid position here can be stacked to its
-    // own independent height, so it renders straight from an explicit per-cell carton count instead.
+    // 3D preview for the Manual Pallet Layout tool. Unlike PalletVisualizer (a repeating primary/secondary pattern) every
+    // level here is its own free arrangement of cartons, so it renders straight from the explicit per-level box lists.
     class ManualPalletVisualizer {
       constructor(svg) { this.svg = svg; this.state = null; this.rotation = 0; this.pitch = 0; this.topView = false; this.drag = null; this.bindDrag() }
       bindDrag() {
@@ -4039,51 +4184,110 @@
       setTopView() { this.topView = true; this.pitch = 65; this.rotation = -3; this.render() }
       render() {
         const s = this.state; if (!s) { this.empty(); return }
-        const { palletLengthMm: PL, palletWidthMm: PW, grid, counts, maxLayers, ch, maxHeightMm } = s;
-        const PH = 150, H = PH + Math.max(1, maxLayers) * ch, cx = PL / 2, cy = PW / 2, cz = H / 2, theta = (45 + this.rotation * 15) * Math.PI / 180, elevation = (25 + this.pitch) * Math.PI / 180, ux = Math.cos(theta), uy = Math.sin(theta), sinE = Math.sin(elevation), cosE = Math.cos(elevation);
-        const raw = (x, y, z) => { x -= cx; y -= cy; z -= cz; return [ux * x - uy * y, sinE * (uy * x + ux * y) - cosE * z] };
-        const viewDepth = (x, y, z) => { x -= cx; y -= cy; z -= cz; return cosE * (uy * x + ux * y) + sinE * z };
-        const corners = [[0, 0, 0], [PL, 0, 0], [PL, PW, 0], [0, PW, 0], [0, 0, H], [PL, 0, H], [PL, PW, H], [0, PW, H]], rawCorners = corners.map(p => raw(...p)), xs = rawCorners.map(p => p[0]), ys = rawCorners.map(p => p[1]), spanX = Math.max(...xs) - Math.min(...xs), spanY = Math.max(...ys) - Math.min(...ys);
-        let scale = Math.min(320 / Math.max(spanX, 1), 220 / Math.max(spanY, 1)); if (!Number.isFinite(scale) || scale <= 0) scale = 1;
-        const project = (x, y, z) => { const p = raw(x, y, z); return [200 + p[0] * scale, 150 + p[1] * scale] }, P = (x, y, z) => project(x, y, z).map(n => n.toFixed(1)).join(','), q = p => project(...p);
-        const palletFaceDefs = [[[0, 2, 6, 4], '#8a5a2e'], [[1, 5, 7, 3], '#6e4523'], [[0, 1, 5, 4], '#a97438'], [[2, 6, 7, 3], '#7a4f28'], [[0, 1, 3, 2], '#8a5a2e'], [[4, 5, 7, 6], '#c98f52']];
-        const cartonFaceDefs = [[[0, 2, 6, 4], '#287fb0'], [[1, 5, 7, 3], '#17648f'], [[0, 1, 5, 4], '#4ea3d8'], [[2, 6, 7, 3], '#388dbb'], [[0, 1, 3, 2], '#1d6f9d'], [[4, 5, 7, 6], '#9bd2ef']];
-        const palletEdge = { color: '#3a2513', width: .8, opacity: .9 }, cartonEdge = { color: '#12314a', width: .5, opacity: .3 };
-        const faces = [], addBox = (x0, y0, z0, x1, y1, z1, defs, edge) => { const vertices = [[x0, y0, z0], [x1, y0, z0], [x0, y1, z0], [x1, y1, z0], [x0, y0, z1], [x1, y0, z1], [x0, y1, z1], [x1, y1, z1]]; for (const [indices, fill] of defs) { const points = indices.map(i => vertices[i]); faces.push({ points, fill, edge, depth: points.reduce((sum, v) => sum + viewDepth(...v), 0) / points.length }) } };
-        addBox(0, 0, 0, PL, PW, PH, palletFaceDefs, palletEdge);
-        for (let ix = 0; ix < grid.perLength; ix++) for (let iy = 0; iy < grid.perWidth; iy++) { const n = counts[ix]?.[iy] || 0; if (!n) continue; const x0 = grid.startL + ix * grid.stepL, y0 = grid.startW + iy * grid.stepW; for (let layer = 0; layer < n; layer++) { const z0 = PH + layer * ch, z1 = z0 + ch; addBox(x0, y0, z0, x0 + grid.uL, y0 + grid.uW, z1, cartonFaceDefs, cartonEdge) } }
-        faces.sort((a, b) => a.depth - b.depth);
-        let out = ''; for (const face of faces) out += `<polygon points="${face.points.map(p => P(...p)).join(' ')}" fill="${face.fill}" fill-opacity=".92" stroke="${face.edge.color}" stroke-width="${face.edge.width}" stroke-opacity="${face.edge.opacity}"/>`;
-        if (Number.isFinite(maxHeightMm)) { const guideZ = PH + maxHeightMm; if (guideZ <= H + ch) { const pts = [[0, 0, guideZ], [PL, 0, guideZ], [PL, PW, guideZ], [0, PW, guideZ]].map(q); out += `<polygon points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="#c0392b" stroke-width="1.4" stroke-dasharray="5 3"/>` } }
-        this.svg.innerHTML = out;
+        const { palletLengthMm: PL, palletWidthMm: PW, levels, activeLevel, maxLayers, ch, maxHeightMm } = s;
+        const usedLevels = levels.reduce((n, boxes, k) => boxes.length ? k + 1 : n, 0);
+        this.svg.innerHTML = buildStack3dSvg({ PL, PW, levels, ch, fullLevels: Math.min(Math.max(1, maxLayers), Math.max(usedLevels + 1, levels.length, 6)), maxHeightMm, rotation: this.rotation, pitch: this.pitch, activeLevel, stackMm: usedLevels * ch });
       }
     }
-    function buildManualPalletGridSvg(b) {
-      const { grid, counts, maxLayers, palletLengthMm: PL, palletWidthMm: PW } = b, pad = 20, vbW = PL + pad * 2, vbH = PW + pad * 2;
-      let out = `<svg viewBox="0 0 ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:520px;height:auto;">`;
-      out += `<rect x="${pad}" y="${pad}" width="${PL}" height="${PW}" fill="#f3e6d4" stroke="#8a5a2e" stroke-width="4"/>`;
-      for (let ix = 0; ix < grid.perLength; ix++) for (let iy = 0; iy < grid.perWidth; iy++) {
-        const n = counts[ix]?.[iy] || 0, x = pad + grid.startL + ix * grid.stepL, y = pad + grid.startW + iy * grid.stepW, frac = maxLayers > 0 ? n / maxLayers : 0;
-        const fill = n === 0 ? '#eef4f9' : `rgba(23,100,143,${(0.25 + 0.65 * frac).toFixed(2)})`;
-        out += `<rect data-ix="${ix}" data-iy="${iy}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${grid.uL}" height="${grid.uW}" fill="${fill}" stroke="#17648f" stroke-width="2" style="cursor:pointer"/>`;
-        if (n > 0) { const tx = x + grid.uL / 2, ty = y + grid.uW / 2; out += `<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-size="${Math.min(grid.uL, grid.uW) * 0.35}" text-anchor="middle" dominant-baseline="central" fill="${frac > 0.5 ? '#fff' : '#0d2b3d'}" style="font-weight:700;pointer-events:none">${n}</text>` }
+    // ---- Manual Pallet Layout: free-placement helpers. All values in mm, origin at the pallet corner. -------------
+    const MANUAL_PAD_MM = 20, MANUAL_SNAP_MM = 12, MANUAL_EPS_MM = 0.5;
+    function manualOverlaps(boxes, rect, ignoreIndex = -1) {
+      for (let i = 0; i < boxes.length; i++) {
+        if (i === ignoreIndex) continue;
+        const o = boxes[i];
+        if (rect.x < o.x + o.l - MANUAL_EPS_MM && rect.x + rect.l > o.x + MANUAL_EPS_MM && rect.y < o.y + o.w - MANUAL_EPS_MM && rect.y + rect.w > o.y + MANUAL_EPS_MM) return true;
       }
-      out += '</svg>';
-      return out;
+      return false;
+    }
+    // Where a carton of size l x w ends up when its centre is dragged to (cx, cy): pulled to the pallet edges and
+    // to neighbouring cartons when snapping is on, always clamped inside the pallet (no overhang), and checked for overlap.
+    function manualResolvePosition(b, boxes, cx, cy, l, w, ignoreIndex = -1) {
+      const PL = b.palletLengthMm, PW = b.palletWidthMm;
+      let x = cx - l / 2, y = cy - w / 2;
+      const pull = (v, candidates) => { let best = v, bestDistance = MANUAL_SNAP_MM; for (const c of candidates) { const d = Math.abs(c - v); if (d <= bestDistance) { bestDistance = d; best = c } } return best };
+      if (b.snap) {
+        const xs = [0, PL - l], ys = [0, PW - w];
+        boxes.forEach((o, i) => { if (i === ignoreIndex) return; xs.push(o.x + o.l, o.x - l, o.x, o.x + o.l - l); ys.push(o.y + o.w, o.y - w, o.y, o.y + o.w - w) });
+        x = pull(x, xs); y = pull(y, ys);
+      }
+      x = Math.round(Math.min(Math.max(0, x), Math.max(0, PL - l)) * 10) / 10; y = Math.round(Math.min(Math.max(0, y), Math.max(0, PW - w)) * 10) / 10;
+      const rect = { x, y, l, w };
+      return { ...rect, valid: l <= PL + 1e-6 && w <= PW + 1e-6 && !manualOverlaps(boxes, rect, ignoreIndex) };
+    }
+    // How much of this carton's bottom face rests on the level below (the pallet itself for level 1).
+    function manualBoxSupport(box, below) {
+      if (!below) return { support: 1, maxShare: 1, supporters: 0 };
+      const area = box.l * box.w; let total = 0, maxOverlap = 0, supporters = 0;
+      for (const o of below) {
+        const overlap = palletOverlap1D(box.x, box.x + box.l, o.x, o.x + o.l) * palletOverlap1D(box.y, box.y + box.w, o.y, o.y + o.w);
+        if (overlap > 0.5) { total += overlap; supporters++; if (overlap > maxOverlap) maxOverlap = overlap }
+      }
+      return { support: Math.min(1, total / area), maxShare: maxOverlap / area, supporters };
+    }
+    function manualAnalyze(b) {
+      const stats = { total: 0, perLevel: b.levels.map(l => l.length), minSupport: 1, low: 0, floating: 0, singleSupporter: 0, levelsUsed: 0, topPartial: false };
+      b.levels.forEach((boxes, k) => {
+        const below = k ? b.levels[k - 1] : null; stats.total += boxes.length; if (boxes.length) stats.levelsUsed = k + 1;
+        if (!below) return;
+        for (const box of boxes) {
+          const s = manualBoxSupport(box, below);
+          stats.minSupport = Math.min(stats.minSupport, s.support);
+          if (s.support < PALLET_SUPPORT_TARGET) stats.low++;
+          if (s.support < 0.05) stats.floating++; else if (s.maxShare > PALLET_COLUMN_SHARE) stats.singleSupporter++;
+        }
+      });
+      const used = b.levels.filter(l => l.length);
+      stats.topPartial = used.length >= 2 && used[used.length - 1].length < used[used.length - 2].length;
+      return stats;
+    }
+    function manualLevelSignature(boxes) { return boxes.map(o => `${Math.round(o.x)},${Math.round(o.y)},${Math.round(o.l)},${Math.round(o.w)}`).sort().join(';') }
+    // Top-down drawing of one level. `interactive` adds the live ghost + per-carton support tint (screen); the print
+    // version is static and numbers every carton so a packer can follow it.
+    function buildManualPalletLevelSvg(b, levelIndex, opts = {}) {
+      const { interactive = false } = opts, PL = b.palletLengthMm, PW = b.palletWidthMm, pad = MANUAL_PAD_MM, vbW = PL + pad * 2, vbH = PW + pad * 2;
+      const boxes = b.levels[levelIndex] || [], below = levelIndex > 0 ? b.levels[levelIndex - 1] : null, fontBase = Math.max(18, Math.min(PL, PW) / 38);
+      let out = `<svg viewBox="0 0 ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${interactive ? 760 : 560}px;height:auto;${interactive ? 'touch-action:none;user-select:none;cursor:crosshair;' : ''}">`;
+      out += `<rect x="${pad}" y="${pad}" width="${PL}" height="${PW}" fill="#f3e6d4" stroke="#8a5a2e" stroke-width="4"/>`;
+      for (let gx = 100; gx < PL; gx += 100) out += `<line x1="${pad + gx}" y1="${pad}" x2="${pad + gx}" y2="${pad + PW}" stroke="#c9b79c" stroke-width="1" opacity=".55"/>`;
+      for (let gy = 100; gy < PW; gy += 100) out += `<line x1="${pad}" y1="${pad + gy}" x2="${pad + PL}" y2="${pad + gy}" stroke="#c9b79c" stroke-width="1" opacity=".55"/>`;
+      if (below && interactive) for (const o of below) out += `<rect x="${pad + o.x}" y="${pad + o.y}" width="${o.l}" height="${o.w}" fill="none" stroke="#6b7a88" stroke-width="2" stroke-dasharray="10 7" opacity=".85" pointer-events="none"/>`;
+      boxes.forEach((box, i) => {
+        const s = manualBoxSupport(box, below), weak = below && s.support < PALLET_SUPPORT_TARGET, floating = below && s.support < 0.05, single = below && !floating && s.maxShare > PALLET_COLUMN_SHARE;
+        const fill = !below ? 'rgba(23,100,143,.22)' : floating ? 'rgba(192,57,43,.45)' : s.support >= PALLET_SUPPORT_TARGET ? 'rgba(46,160,67,.32)' : s.support >= 0.5 ? 'rgba(230,160,0,.38)' : 'rgba(192,57,43,.38)';
+        const label = interactive ? (below ? `${Math.round(s.support * 100)}%` : '') : String(i + 1);
+        out += `<rect ${interactive ? `data-box="${i}"` : ''} x="${pad + box.x}" y="${pad + box.y}" width="${box.l}" height="${box.w}" fill="${fill}" stroke="${single ? '#b9770e' : '#17648f'}" stroke-width="${single ? 4 : 2.5}" ${single ? 'stroke-dasharray="12 6"' : ''} ${interactive ? 'style="cursor:grab"' : ''}/>`;
+        if (label) out += `<text x="${pad + box.x + box.l / 2}" y="${pad + box.y + box.w / 2}" font-size="${Math.min(fontBase, Math.min(box.l, box.w) * .36)}" text-anchor="middle" dominant-baseline="central" fill="#0d2b3d" style="font-weight:700;pointer-events:none">${label}</text>`;
+        void weak;
+      });
+      if (!interactive) {
+        out += `<text x="${pad + PL / 2}" y="${vbH - 4}" font-size="${fontBase}" text-anchor="middle" fill="#444">${fmt(PL)} mm</text>`;
+        out += `<text x="12" y="${pad + PW / 2}" font-size="${fontBase}" text-anchor="middle" fill="#444" transform="rotate(-90 12 ${pad + PW / 2})">${fmt(PW)} mm</text>`;
+      } else out += `<rect id="manualGhost" x="0" y="0" width="0" height="0" fill="rgba(46,160,67,.35)" stroke="#2ea043" stroke-width="3" stroke-dasharray="8 5" pointer-events="none" display="none"/>`;
+      return out + '</svg>';
     }
     function buildManualPalletSummaryHtml(b) {
-      let total = 0, maxUsed = 0, minUsed = Infinity, filledCols = 0;
-      for (const col of b.counts) for (const n of col) { total += n; if (n > 0) { filledCols++; maxUsed = Math.max(maxUsed, n); minUsed = Math.min(minUsed, n) } }
+      const a = manualAnalyze(b), level = b.levels[b.activeLevel] || [], footprint = level.reduce((s, o) => s + o.l * o.w, 0) / (b.palletLengthMm * b.palletWidthMm);
       const rows = [
         [I18n.t('palletCartonId'), escapeHtml(b.carton.carton_id || I18n.t('manualCartonLabel'))],
         [I18n.t('palletCartonDims'), escapeHtml(dims(b.carton))],
-        [I18n.t('manualPalletGridSize'), `${b.grid.perLength} × ${b.grid.perWidth}`],
-        [I18n.t('manualPalletMaxLayers'), fmt(b.maxLayers)],
-        [I18n.t('manualPalletCartonsPlaced'), fmt(total)],
-        [I18n.t('manualPalletStackHeightRange'), filledCols ? `${fmt(minUsed * b.carton.height)}–${fmt(maxUsed * b.carton.height)} mm` : '—'],
+        [I18n.t('palletSizeLabel'), `${fmt(b.palletLengthMm)} × ${fmt(b.palletWidthMm)} mm`],
+        [I18n.t('manualPalletLevelsUsed'), `${a.levelsUsed} / ${fmt(b.maxLayers)}`],
+        [I18n.t('manualPalletCartonsPlaced'), fmt(a.total)],
+        [I18n.t('manualPalletPerLevel'), a.perLevel.map((n, i) => `${i + 1}: ${n}`).join(' · ') || '—'],
+        [I18n.t('palletStackHeightLabel'), `${fmt(a.levelsUsed * b.carton.height)} mm`],
         [I18n.t('palletMaxHeightLabel', { method: I18n.t(b.method === 'air' ? 'palletShipAir' : 'palletShipTruck') }), `${fmt(b.maxHeightMm)} mm`],
+        [I18n.t('manualPalletLevelFill'), pct(footprint)],
       ];
-      return `<dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+      if (a.levelsUsed > 1) {
+        rows.push([I18n.t('manualPalletWeakest'), pct(a.minSupport)]);
+        rows.push([I18n.t('manualPalletLowSupport'), fmt(a.low)]);
+        rows.push([I18n.t('manualPalletFloating'), fmt(a.floating)]);
+        rows.push([I18n.t('manualPalletColumns'), fmt(a.singleSupporter)]);
+      }
+      let html = `<dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+      if (a.topPartial) html += `<div class="notice">${escapeHtml(I18n.t('manualPalletTopPartial'))}</div>`;
+      if (a.floating) html += `<div class="notice audit-warning">${escapeHtml(I18n.t('manualPalletFloating'))}: ${a.floating}</div>`;
+      return html;
     }
     function mean(v) { return v.reduce((a, b) => a + b, 0) / v.length }
     function fmt(n, d = 0) { return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d }) : '—' }
@@ -4109,7 +4313,7 @@
     function fitFailureNote() { return I18n.t('orthogonalPreview') }
     function buildPalletSummaryHtml(ctx) {
       const { carton, layout, method, maxHeightMm, qtyPerCarton, cartonsNeeded, palletsNeeded, targetQty, targetSource, partialInfo } = ctx;
-      const describe = p => `${fmt(p.cartonsPerLayer)} — ${patternKindLabel(p)} (${p.regions.map(r => `${r.perLength}×${r.perWidth}`).join(' + ')}${p.offsetAxis ? ', ' + I18n.t('palletOrientationOffset') : ''})`;
+      const describe = p => `${fmt(p.cartonsPerLayer)} — ${patternKindLabel(p)} (${p.regions.map(r => `${r.perLength}×${r.perWidth}`).join(' + ')}${p.variant ? ', ' + patternVariantLabel(p) : ''}${p.offsetAxis ? ', ' + I18n.t('palletOrientationOffset') : ''})`;
       const rows = [
         [I18n.t('palletCartonId'), escapeHtml(carton.carton_id || I18n.t('manualCartonLabel'))],
         [I18n.t('palletCartonDims'), escapeHtml(dims(carton))],
@@ -4119,6 +4323,8 @@
         [I18n.t('palletMaxHeightLabel', { method: I18n.t(method === 'air' ? 'palletShipAir' : 'palletShipTruck') }), `${fmt(maxHeightMm)} mm`],
         [I18n.t('palletStackHeightLabel'), `${fmt(layout.stackHeightMm)} mm`],
       ];
+      const stability = layout.stability;
+      if (stability) rows.push([I18n.t('palletStabilityLabel'), escapeHtml(I18n.t('palletStabilityValue', { interlock: Math.round(stability.interlockedShare * 100), support: Math.round(stability.minSupport * 100) }))]);
       if (Number.isFinite(qtyPerCarton)) rows.push([I18n.t('palletQtyPerCarton'), fmt(qtyPerCarton)]);
       if (Number.isFinite(cartonsNeeded)) rows.push([I18n.t('palletCartonsNeeded'), fmt(cartonsNeeded)]);
       if (Number.isFinite(palletsNeeded)) rows.push([I18n.t('palletPalletsNeeded'), fmt(palletsNeeded)]);
@@ -4127,6 +4333,8 @@
       if (partialInfo) html += `<div class="notice">${escapeHtml(partialInfo)}</div>`;
       else if (Number.isFinite(cartonsNeeded)) html += `<div class="notice">${escapeHtml(I18n.t('palletFullLayers'))}</div>`;
       if (!layout.totalPerPallet) html += `<div class="notice">${escapeHtml(I18n.t('palletInvalidCartonDims'))}</div>`;
+      if (stability?.columnStack) html += `<div class="notice audit-warning">${escapeHtml(I18n.t('palletColumnStackWarning'))}</div>`;
+      else if (stability && stability.tier >= 3) html += `<div class="notice">${escapeHtml(I18n.t('palletWeakInterlockNote'))}</div>`;
       return html;
     }
     function buildPalletSopHtml(method) {
@@ -4506,10 +4714,24 @@
         document.querySelector('#manualPalletSetupForm')?.addEventListener('submit', e => this.buildManualPalletGrid(e));
         document.querySelector('#manualPalletLookupId')?.addEventListener('input', e => { this.populatePalletLookupSelect(e.target.value, '#manualPalletLookupSelect'); this.syncManualPalletCartonFromLookup() });
         document.querySelector('#manualPalletLookupSelect')?.addEventListener('change', e => { if (!e.target.value) return; document.querySelector('#manualPalletLookupId').value = e.target.value; this.syncManualPalletCartonFromLookup() });
-        document.querySelector('#manualPalletOrientationButton')?.addEventListener('click', () => this.toggleManualPalletOrientation());
+        for (const id of ['#manualPalletOrientationButton', '#manualPalletRotateHeldButton']) document.querySelector(id)?.addEventListener('click', () => this.toggleManualPalletOrientation());
         document.querySelector('#manualPalletModeButton')?.addEventListener('click', () => this.toggleManualPalletMode());
+        document.querySelector('#manualPalletSnapButton')?.addEventListener('click', () => this.toggleManualPalletSnap());
+        document.querySelector('#manualPalletUndoButton')?.addEventListener('click', () => this.manualUndo());
         document.querySelector('#manualPalletClearButton')?.addEventListener('click', () => this.clearManualPalletGrid());
-        document.querySelector('#manualPalletGridWrap')?.addEventListener('click', e => { const cell = e.target.closest('[data-ix]'); if (!cell) return; this.handleManualGridClick(Number(cell.dataset.ix), Number(cell.dataset.iy)) });
+        document.querySelector('#manualPalletCopyPrevButton')?.addEventListener('click', () => this.manualCopyPrevious());
+        document.querySelector('#manualPalletRepeatButton')?.addEventListener('click', () => this.manualRepeatLevels());
+        document.querySelector('#manualPalletAddLevelButton')?.addEventListener('click', () => this.manualAddLevel());
+        document.querySelector('#manualPalletDeleteLevelButton')?.addEventListener('click', () => this.manualDeleteLevel());
+        document.querySelector('#manualPalletLevelTabs')?.addEventListener('click', e => { const tab = e.target.closest('[data-level]'); if (tab) this.manualSelectLevel(Number(tab.dataset.level)) });
+        const manualWrap = document.querySelector('#manualPalletGridWrap');
+        manualWrap?.addEventListener('pointerdown', e => this.manualPointerDown(e, 'canvas'));
+        manualWrap?.addEventListener('contextmenu', e => { const hit = e.target.closest?.('[data-box]'); if (!hit) return; e.preventDefault(); this.manualRemoveBox(Number(hit.dataset.box)) });
+        document.querySelector('#manualPalletTray')?.addEventListener('pointerdown', e => this.manualPointerDown(e, 'tray'));
+        window.addEventListener('pointermove', e => this.manualPointerMove(e));
+        window.addEventListener('pointerup', e => this.manualPointerUp(e));
+        window.addEventListener('pointercancel', () => this.manualCancelDrag());
+        document.addEventListener('keydown', e => this.manualKeyDown(e));
         document.querySelector('#manualPalletExportPdfButton')?.addEventListener('click', () => this.exportManualPalletSopPdf());
         document.querySelector('#manualPalletRotateLeft')?.addEventListener('click', () => { this.manualPalletVisual.rotation = (this.manualPalletVisual.rotation + 1) % 24; this.manualPalletVisual.render() });
         document.querySelector('#manualPalletRotateRight')?.addEventListener('click', () => { this.manualPalletVisual.rotation = (this.manualPalletVisual.rotation - 1) % 24; this.manualPalletVisual.render() });
@@ -4813,7 +5035,7 @@
         const summaryHtml = buildPalletSummaryHtml(ctx), sopHtml = buildPalletSopHtml(ctx.method);
         const oddLayers = [], evenLayers = [];
         for (let layer = 1; layer <= layout.layers; layer++) (layer % 2 === 1 ? oddLayers : evenLayers).push(layer);
-        const patternPage = (pattern, layerNumbers, label) => `<div class="print-layer-page"><h2>${escapeHtml(I18n.t('palletPatternTitle', { label }))}</h2><div class="print-layer-meta">${escapeHtml(patternKindLabel(pattern))} — ${escapeHtml(I18n.t('palletCartonsPerLayer'))}: ${pattern.cartonsPerLayer} (${pattern.regions.map(r => `${r.perLength}×${r.perWidth}`).join(' + ')})<br>${escapeHtml(I18n.t('palletPatternAppliesTo', { list: layerNumbers.join(', ') }))}</div>${buildLayerTopViewSvg(pattern, palletLengthMm, palletWidthMm)}</div>`;
+        const patternPage = (pattern, layerNumbers, label) => `<div class="print-layer-page"><h2>${escapeHtml(I18n.t('palletPatternTitle', { label }))}</h2><div class="print-layer-meta">${escapeHtml(patternKindLabel(pattern))} — ${escapeHtml(I18n.t('palletCartonsPerLayer'))}: ${pattern.cartonsPerLayer} (${pattern.regions.map(r => `${r.perLength}×${r.perWidth}`).join(' + ')}${pattern.variant ? ', ' + escapeHtml(patternVariantLabel(pattern)) : ''}${pattern.offsetAxis ? ', ' + escapeHtml(I18n.t('palletOrientationOffset')) : ''})<br>${escapeHtml(I18n.t('palletPatternAppliesTo', { list: layerNumbers.join(', ') }))}</div>${buildLayerTopViewSvg(pattern, palletLengthMm, palletWidthMm)}</div>`;
         const pages = layout.interlocked
           ? patternPage(layout.primary, oddLayers, I18n.t('palletPatternOddLabel')) + patternPage(layout.secondary, evenLayers, I18n.t('palletPatternEvenLabel')) + `<div class="print-layer-page"><p>${escapeHtml(I18n.t('palletPatternRepeatInterlocked', { total: layout.layers }))}</p></div>`
           : patternPage(layout.primary, oddLayers.concat(evenLayers), I18n.t('palletPatternUniformLabel')) + `<div class="print-layer-page"><p>${escapeHtml(I18n.t('palletPatternRepeatUniform', { total: layout.layers }))}</p></div>`;
@@ -4900,15 +5122,13 @@
       }
       exportPalletBatch() { if (!this.palletBatchRows?.length) return; CsvExporter.download(`WVN_Pallet_SOP_Export_${new Date().toISOString().slice(0, 10)}.csv`, CsvExporter.palletBatchRows(this.palletBatchRows)) }
       renderManualPalletError(message) {
-        this.manualBuilder = null;
+        this.manualBuilder = null; this.manualDrag = null;
         document.querySelector('#manualPalletSummary').innerHTML = `<span class="audit-warning">${escapeHtml(message)}</span>`;
-        document.querySelector('#manualPalletGridBody').hidden = true; document.querySelector('#manualPalletGridControls').hidden = true;
-        document.querySelector('#manualPallet3DBody').hidden = true; document.querySelector('#manualPallet3DControls').hidden = true;
-        document.querySelector('#manualPalletSopSteps').hidden = true; document.querySelector('#manualPalletOrientationButton').hidden = true;
+        for (const id of ['#manualPalletLevelBar', '#manualPalletGridBody', '#manualPalletGridControls', '#manualPallet3DBody', '#manualPallet3DControls', '#manualPalletSopSteps', '#manualPalletOrientationButton']) document.querySelector(id).hidden = true;
         this.manualPalletVisual?.empty();
       }
       // Resolves the FG/Carton ID (if any) into a real carton, otherwise falls back to the typed
-      // L/W/H fields — lets the tool build a grid either from an existing carton or a not-yet-catalogued one.
+      // L/W/H fields — lets the tool build a layout either from an existing carton or a not-yet-catalogued one.
       resolveManualPalletCarton() {
         const lookupId = document.querySelector('#manualPalletLookupId').value.trim();
         if (lookupId) {
@@ -4926,52 +5146,177 @@
         document.querySelector('#manualPalletCartonWidth').value = resolved.carton.depth;
         document.querySelector('#manualPalletCartonHeight').value = resolved.carton.height;
       }
+      // "Start layout": picks the carton and pallet and opens an empty level 1 - cartons are then dragged on freely.
       buildManualPalletGrid(event) {
         if (event) event.preventDefault();
         const resolved = this.resolveManualPalletCarton();
         if (resolved.error) { this.renderManualPalletError(resolved.error); return }
         const method = document.querySelector('#manualPalletShipMethod').value, palletLengthMm = Number(document.querySelector('#manualPalletLengthMm').value) || 1200, palletWidthMm = Number(document.querySelector('#manualPalletWidthMm').value) || 1000, maxHeightMm = method === 'air' ? 1600 : 2200;
-        this.manualBuilder = { carton: resolved.carton, method, palletLengthMm, palletWidthMm, maxHeightMm, rotate: false, mode: 'add' };
+        const { width: cl, depth: cw, height: ch } = resolved.carton;
+        const fits = (cl <= palletLengthMm && cw <= palletWidthMm) || (cw <= palletLengthMm && cl <= palletWidthMm);
+        if (!fits || ch > maxHeightMm) { this.renderManualPalletError(this.t('palletInvalidCartonDims')); return }
+        this.manualDrag = null;
+        this.manualBuilder = { carton: resolved.carton, method, palletLengthMm, palletWidthMm, maxHeightMm, maxLayers: Math.max(1, Math.floor(maxHeightMm / ch)), holdRotated: false, mode: 'add', snap: true, activeLevel: 0, levels: [[]] };
         document.querySelector('#manualPalletOrientationButton').hidden = false;
-        this.rebuildManualPalletGrid();
+        this.renderManualPalletBuilder();
       }
-      toggleManualPalletOrientation() { if (!this.manualBuilder) return; this.manualBuilder.rotate = !this.manualBuilder.rotate; this.rebuildManualPalletGrid() }
-      // Rebuilding (new carton, pallet size, or flipped orientation) resets placements — the grid geometry changed underneath them.
-      rebuildManualPalletGrid() {
+      manualNotice(key) { document.querySelector('#manualPalletSummary').innerHTML = `<span class="audit-warning">${escapeHtml(this.t(key))}</span>` }
+      manualHeldSize(b = this.manualBuilder) { return b.holdRotated ? { l: b.carton.depth, w: b.carton.width } : { l: b.carton.width, w: b.carton.depth } }
+      // Only the carton in hand turns; cartons already on the pallet keep the orientation they were placed with.
+      toggleManualPalletOrientation() {
         const b = this.manualBuilder; if (!b) return;
-        const uL = b.rotate ? b.carton.depth : b.carton.width, uW = b.rotate ? b.carton.width : b.carton.depth;
-        const grid = flushGridRegion(uL, uW, b.palletLengthMm, b.palletWidthMm);
-        if (!grid) { this.renderManualPalletError(this.t('palletInvalidCartonDims')); return }
-        b.grid = grid; b.maxLayers = Math.max(1, Math.floor(b.maxHeightMm / b.carton.height));
-        b.counts = Array.from({ length: grid.perLength }, () => new Array(grid.perWidth).fill(0));
+        b.holdRotated = !b.holdRotated;
+        const drag = this.manualDrag; if (drag) { [drag.l, drag.w] = [drag.w, drag.l]; if (drag.lastPointer) this.manualUpdateDrag(drag.lastPointer) }
+        this.updateManualTray();
+      }
+      toggleManualPalletMode() { const b = this.manualBuilder; if (!b) return; b.mode = b.mode === 'add' ? 'remove' : 'add'; this.renderManualPalletControls() }
+      toggleManualPalletSnap() { const b = this.manualBuilder; if (!b) return; b.snap = !b.snap; this.renderManualPalletControls() }
+      manualActiveBoxes() { const b = this.manualBuilder; return b ? b.levels[b.activeLevel] : [] }
+      manualUndo() { const boxes = this.manualActiveBoxes(); if (boxes.length) { boxes.pop(); this.renderManualPalletBuilder() } }
+      clearManualPalletGrid() { const b = this.manualBuilder; if (!b) return; b.levels[b.activeLevel] = []; this.renderManualPalletBuilder() }
+      manualRemoveBox(index) { const boxes = this.manualActiveBoxes(); if (index >= 0 && index < boxes.length) { boxes.splice(index, 1); this.renderManualPalletBuilder() } }
+      manualSelectLevel(index) { const b = this.manualBuilder; if (!b || index < 0 || index >= b.levels.length) return; b.activeLevel = index; this.renderManualPalletBuilder() }
+      manualAddLevel() {
+        const b = this.manualBuilder; if (!b || b.levels.length >= b.maxLayers) return;
+        if (!b.levels[b.levels.length - 1].length) { this.manualNotice('manualPalletEmptyLevel'); return }
+        b.levels.push([]); b.activeLevel = b.levels.length - 1; this.renderManualPalletBuilder();
+      }
+      manualDeleteLevel() {
+        const b = this.manualBuilder; if (!b) return;
+        if (b.levels.length > 1) { b.levels.pop(); b.activeLevel = Math.min(b.activeLevel, b.levels.length - 1) } else b.levels[0] = [];
         this.renderManualPalletBuilder();
       }
-      toggleManualPalletMode() { const b = this.manualBuilder; if (!b) return; b.mode = b.mode === 'add' ? 'remove' : 'add'; document.querySelector('#manualPalletModeButton').textContent = this.t(b.mode === 'add' ? 'manualPalletModeAdd' : 'manualPalletModeRemove') }
-      clearManualPalletGrid() { const b = this.manualBuilder; if (!b?.counts) return; b.counts = b.counts.map(col => col.map(() => 0)); this.renderManualPalletBuilder() }
-      handleManualGridClick(ix, iy) {
-        const b = this.manualBuilder; if (!b?.counts?.[ix]) return;
-        const current = b.counts[ix][iy] ?? 0;
-        if (b.mode === 'add') { if (current < b.maxLayers) b.counts[ix][iy] = current + 1 } else if (current > 0) b.counts[ix][iy] = current - 1;
+      manualCopyPrevious() {
+        const b = this.manualBuilder; if (!b || b.activeLevel < 1) return;
+        b.levels[b.activeLevel] = b.levels[b.activeLevel - 1].map(o => ({ ...o })); this.renderManualPalletBuilder();
+      }
+      // Repeats the last two built levels (or the single level, if only one exists) on top, alternating, up to the height limit.
+      manualRepeatLevels() {
+        const b = this.manualBuilder; if (!b) return;
+        const built = b.levels.filter(l => l.length); if (!built.length) { this.manualNotice('manualPalletBuildWarn'); return }
+        const source = built.length >= 2 ? [built[built.length - 2], built[built.length - 1]] : [built[0]];
+        b.levels = b.levels.slice(0, built.length);
+        for (let k = 0; b.levels.length < b.maxLayers; k++) b.levels.push(source[k % source.length].map(o => ({ ...o })));
         this.renderManualPalletBuilder();
+      }
+      // ---- dragging: press on a placed carton to move it, or on the empty pallet / tray to carry a new carton ----
+      manualPointerToMm(event) {
+        const svg = document.querySelector('#manualPalletGridWrap svg'); if (!svg) return null;
+        const matrix = svg.getScreenCTM(); if (!matrix) return null;
+        const point = svg.createSVGPoint(); point.x = event.clientX; point.y = event.clientY;
+        const p = point.matrixTransform(matrix.inverse());
+        return { x: p.x - MANUAL_PAD_MM, y: p.y - MANUAL_PAD_MM };
+      }
+      manualPointerDown(event, source) {
+        const b = this.manualBuilder; if (!b || this.manualDrag || (event.button !== undefined && event.button !== 0)) return;
+        const boxes = this.manualActiveBoxes(), held = this.manualHeldSize(b), start = { x: event.clientX, y: event.clientY };
+        if (source === 'tray') {
+          if (b.mode === 'remove') return;
+          this.manualDrag = { kind: 'new', source: 'tray', pointerId: event.pointerId, l: held.l, w: held.w, grab: { dx: 0, dy: 0 }, start, moved: false, ignore: -1, pos: null };
+          event.preventDefault(); return;
+        }
+        const p = this.manualPointerToMm(event); if (!p) return;
+        const hit = event.target.closest?.('[data-box]');
+        if (hit) {
+          const index = Number(hit.dataset.box), box = boxes[index]; if (!box) return;
+          if (b.mode === 'remove') { this.manualRemoveBox(index); event.preventDefault(); return }
+          this.manualDrag = { kind: 'move', source: 'canvas', pointerId: event.pointerId, index, orig: { ...box }, l: box.l, w: box.w, grab: { dx: p.x - (box.x + box.l / 2), dy: p.y - (box.y + box.w / 2) }, start, moved: false, ignore: index, pos: null };
+          hit.setAttribute('opacity', '.25');
+        } else if (b.mode === 'add' && p.x >= 0 && p.y >= 0 && p.x <= b.palletLengthMm && p.y <= b.palletWidthMm) {
+          this.manualDrag = { kind: 'new', source: 'canvas', pointerId: event.pointerId, l: held.l, w: held.w, grab: { dx: 0, dy: 0 }, start, moved: false, ignore: -1, pos: null };
+        } else return;
+        event.preventDefault();
+        this.manualUpdateDrag(event);
+      }
+      manualUpdateDrag(event) {
+        const drag = this.manualDrag, b = this.manualBuilder; if (!drag || !b) return;
+        drag.lastPointer = { clientX: event.clientX, clientY: event.clientY, pointerId: event.pointerId };
+        if (!drag.moved && Math.hypot(event.clientX - drag.start.x, event.clientY - drag.start.y) > 4) drag.moved = true;
+        const ghost = document.querySelector('#manualGhost'), p = this.manualPointerToMm(event); if (!ghost) return;
+        const inside = p && p.x >= -MANUAL_SNAP_MM && p.y >= -MANUAL_SNAP_MM && p.x <= b.palletLengthMm + MANUAL_SNAP_MM && p.y <= b.palletWidthMm + MANUAL_SNAP_MM;
+        if (!p || !inside) { drag.pos = null; ghost.setAttribute('display', 'none'); return }
+        const pos = manualResolvePosition(b, this.manualActiveBoxes(), p.x - drag.grab.dx, p.y - drag.grab.dy, drag.l, drag.w, drag.ignore);
+        drag.pos = pos;
+        ghost.setAttribute('x', MANUAL_PAD_MM + pos.x); ghost.setAttribute('y', MANUAL_PAD_MM + pos.y); ghost.setAttribute('width', pos.l); ghost.setAttribute('height', pos.w);
+        ghost.setAttribute('fill', pos.valid ? 'rgba(46,160,67,.35)' : 'rgba(192,57,43,.35)'); ghost.setAttribute('stroke', pos.valid ? '#2ea043' : '#c0392b'); ghost.removeAttribute('display');
+      }
+      manualPointerMove(event) { const drag = this.manualDrag; if (drag && event.pointerId === drag.pointerId) { this.manualUpdateDrag(event); event.preventDefault() } }
+      manualPointerUp(event) {
+        const drag = this.manualDrag, b = this.manualBuilder; if (!drag || event.pointerId !== drag.pointerId) return;
+        this.manualUpdateDrag(event);
+        const boxes = this.manualActiveBoxes(), pos = drag.pos;
+        // A press on the tray that never moved is not a placement; a plain click on the pallet drops where it was pressed.
+        const droppable = pos && pos.valid && (drag.source === 'canvas' || drag.moved);
+        if (b && droppable) {
+          if (drag.kind === 'new') boxes.push({ x: pos.x, y: pos.y, l: pos.l, w: pos.w });
+          else if (drag.moved) boxes[drag.index] = { x: pos.x, y: pos.y, l: pos.l, w: pos.w };
+        }
+        this.manualDrag = null;
+        this.renderManualPalletBuilder();
+      }
+      manualCancelDrag() { if (!this.manualDrag) return; this.manualDrag = null; this.renderManualPalletBuilder() }
+      manualKeyDown(event) {
+        const b = this.manualBuilder; if (!b || document.querySelector('#manualPalletLayoutPanel')?.hidden) return;
+        const tag = (event.target?.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+        if (event.key === 'r' || event.key === 'R') { event.preventDefault(); this.toggleManualPalletOrientation() }
+        else if (event.key === 'Escape') this.manualCancelDrag();
+        else if ((event.ctrlKey || event.metaKey) && (event.key === 'z' || event.key === 'Z')) { event.preventDefault(); this.manualUndo() }
+      }
+      updateManualTray() {
+        const b = this.manualBuilder, box = document.querySelector('#manualPalletTrayBox'); if (!b || !box) return;
+        const held = this.manualHeldSize(b), scale = 56 / Math.max(held.l, held.w);
+        box.style.width = `${Math.max(14, Math.round(held.l * scale))}px`; box.style.height = `${Math.max(14, Math.round(held.w * scale))}px`;
+        box.title = `${fmt(held.l)} × ${fmt(held.w)} mm`;
+      }
+      renderManualPalletControls() {
+        const b = this.manualBuilder; if (!b) return;
+        const set = (id, text) => { const el = document.querySelector(id); if (el) el.textContent = text };
+        set('#manualPalletModeButton', this.t(b.mode === 'add' ? 'manualPalletModeAdd' : 'manualPalletModeRemove'));
+        set('#manualPalletSnapButton', this.t(b.snap ? 'manualPalletSnapOn' : 'manualPalletSnapOff'));
+        const active = b.levels[b.activeLevel] || [], topEmpty = !b.levels[b.levels.length - 1].length;
+        const disable = (id, value) => { const el = document.querySelector(id); if (el) el.disabled = !!value };
+        disable('#manualPalletUndoButton', !active.length); disable('#manualPalletClearButton', !active.length);
+        disable('#manualPalletCopyPrevButton', b.activeLevel < 1 || !b.levels[b.activeLevel - 1].length);
+        disable('#manualPalletAddLevelButton', topEmpty || b.levels.length >= b.maxLayers);
+        disable('#manualPalletDeleteLevelButton', b.levels.length < 2 && !active.length);
+        disable('#manualPalletRepeatButton', !b.levels.some(l => l.length) || b.levels.filter(l => l.length).length >= b.maxLayers);
       }
       renderManualPalletBuilder() {
         const b = this.manualBuilder; if (!b) return;
         document.querySelector('#manualPalletSummary').innerHTML = '';
-        document.querySelector('#manualPalletGridBody').hidden = false; document.querySelector('#manualPalletGridControls').hidden = false;
-        document.querySelector('#manualPallet3DBody').hidden = false; document.querySelector('#manualPallet3DControls').hidden = false;
-        document.querySelector('#manualPalletGridWrap').innerHTML = buildManualPalletGridSvg(b);
+        for (const id of ['#manualPalletLevelBar', '#manualPalletGridBody', '#manualPalletGridControls', '#manualPallet3DBody', '#manualPallet3DControls', '#manualPalletSopSteps']) document.querySelector(id).hidden = false;
+        const tabs = document.querySelector('#manualPalletLevelTabs');
+        tabs.innerHTML = b.levels.map((boxes, k) => `<button type="button" class="manual-level-tab${k === b.activeLevel ? ' active' : ''}" data-level="${k}">${escapeHtml(this.t('manualPalletLevelTab', { n: k + 1 }))} (${boxes.length})</button>`).join('');
+        document.querySelector('#manualPalletGridWrap').innerHTML = buildManualPalletLevelSvg(b, b.activeLevel, { interactive: true });
         document.querySelector('#manualPalletGridSummary').innerHTML = buildManualPalletSummaryHtml(b);
-        this.manualPalletVisual.set({ palletLengthMm: b.palletLengthMm, palletWidthMm: b.palletWidthMm, grid: b.grid, counts: b.counts, maxLayers: b.maxLayers, ch: b.carton.height, maxHeightMm: b.maxHeightMm });
-        const sop = document.querySelector('#manualPalletSopSteps'); sop.hidden = false; sop.innerHTML = buildPalletSopHtml(b.method);
+        this.manualPalletVisual.set({ palletLengthMm: b.palletLengthMm, palletWidthMm: b.palletWidthMm, levels: b.levels, activeLevel: b.activeLevel, maxLayers: b.maxLayers, ch: b.carton.height, maxHeightMm: b.maxHeightMm });
+        const sop = document.querySelector('#manualPalletSopSteps'); sop.innerHTML = buildPalletSopHtml(b.method);
+        this.updateManualTray(); this.renderManualPalletControls();
       }
+      // One printed page per DISTINCT level pattern (levels with the same arrangement are listed together), then the
+      // order those patterns repeat in - the same "print only what has to be repeated" rule as the auto pallet SOP.
       exportManualPalletSopPdf() {
-        const b = this.manualBuilder; if (!b?.counts) return;
+        const b = this.manualBuilder; if (!b) return;
+        const built = b.levels.map((boxes, k) => ({ boxes, k })).filter(l => l.boxes.length);
+        if (!built.length) { this.manualNotice('manualPalletBuildWarn'); return }
         const prevLang = I18n.language;
         I18n.language = 'vi';
         try {
-          const summaryHtml = buildManualPalletSummaryHtml(b), sopHtml = buildPalletSopHtml(b.method);
-          const gridPage = `<div class="print-layer-page"><h2>${escapeHtml(I18n.t('manualPalletPrintGridTitle'))}</h2>${buildManualPalletGridSvg(b)}</div>`;
-          document.querySelector('#palletPrintSheet').innerHTML = `<div class="print-summary">${summaryHtml}</div><div class="print-sop">${sopHtml}</div>${gridPage}`;
+          const groups = [], bySignature = new Map();
+          for (const level of built) {
+            const signature = manualLevelSignature(level.boxes);
+            let group = bySignature.get(signature);
+            if (!group) { group = { label: String.fromCharCode(65 + groups.length), boxes: level.boxes, levels: [] }; bySignature.set(signature, group); groups.push(group) }
+            group.levels.push(level.k + 1);
+          }
+          const order = built.map(level => bySignature.get(manualLevelSignature(level.boxes)).label).join(' – ');
+          const pages = groups.map(group => {
+            const ref = b.levels.indexOf(group.boxes), svg = buildManualPalletLevelSvg(b, ref, { interactive: false });
+            const sizes = [...new Set(group.boxes.map(o => `${fmt(o.l)} × ${fmt(o.w)}`))].join(', ');
+            return `<div class="print-layer-page"><h2>${escapeHtml(I18n.t('manualPalletPrintLevelTitle', { label: group.label }))}</h2><div class="print-layer-meta">${escapeHtml(I18n.t('manualPalletPrintApplies', { list: group.levels.join(', ') }))} — ${escapeHtml(I18n.t('manualPalletPerLevel'))}: ${group.boxes.length}<br>${escapeHtml(I18n.t('manualPalletPrintDims'))}: ${escapeHtml(sizes)} mm</div>${svg}</div>`;
+          }).join('');
+          const orderPage = `<div class="print-layer-page"><p>${escapeHtml(I18n.t('manualPalletPrintOrder', { order }))}</p></div>`;
+          document.querySelector('#palletPrintSheet').innerHTML = `<div class="print-summary">${buildManualPalletSummaryHtml(b)}</div><div class="print-sop">${buildPalletSopHtml(b.method)}</div>${pages}${orderPage}`;
         } finally {
           I18n.language = prevLang;
         }
@@ -5345,6 +5690,7 @@
       reset() { this.file.value = ''; AppState.calculationMode=DEFAULT_CALCULATION_MODE;saveCalculationMode();updateCalculationModeUi();this.syncDimensionSettings(); SharedDecisionEngine.clearCache(); this.select.disabled = true; this.select.innerHTML = `<option value="">${escapeHtml(this.t('searchFg'))}</option>`; const search = document.querySelector('#fgSearchInput'); search.value = ''; search.disabled = true; this.data = null; this.weeklyBom = null; this.weeklyBomState = 'loading'; this.store = new AppDataStore(); this.fgLookupCartonOverrideByFg.clear(); this.setSourceLink('workbook', '', ''); this.setSourceLink('bom', '', ''); this.drop.textContent = this.t('dropExcel'); document.querySelector('#manualForm').reset(); document.querySelector('#manualQty').value = '3'; this.message(''); this.resetResults(); this.updateCalculationSettingsSummary(); if (typeof this.clearAuditModule === 'function') this.clearAuditModule(); this.initialize(''); }
       clearAllInputs() {
         document.querySelector('#manualFgId').value = '';
+        const manualWeight = document.querySelector('#manualWeightKg'); if (manualWeight) manualWeight.value = '';
         document.querySelector('#manualLength').value = ''; document.querySelector('#manualWidth').value = ''; document.querySelector('#manualHeight').value = '';
         document.querySelector('#manualQty').value = '3';
         const search = document.querySelector('#fgSearchInput'); search.value = ''; if (this.data) search.disabled = false;
@@ -6539,6 +6885,7 @@
       const saveDimensionToExcel = async (type, payload) => {
         const body = { type, id: payload.id, length_mm: payload.length_mm, width_mm: payload.width_mm, height_mm: payload.height_mm };
         if (type === 'carton' && payload.name) body.name = payload.name;
+        if (type === 'product' && Number.isFinite(payload.gross_weight_kg) && payload.gross_weight_kg > 0) body.gross_weight_kg = payload.gross_weight_kg;
         return call('/api/save-dimension', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -6631,9 +6978,12 @@
         const width = parseFloat($$('#manualWidth').value);
         const height = parseFloat($$('#manualHeight').value);
         const qty = parseInt($$('#manualQty').value, 10);
+        const weightText = ($$('#manualWeightKg')?.value || '').trim();
+        const weight = weightText === '' ? null : parseFloat(weightText);
 
         if (!id) { say(box, t('saveNeedId'), 'bad'); $$('#manualFgId').focus(); return; }
         if (!(length > 0 && width > 0 && height > 0)) { say(box, t('saveNeedSize'), 'bad'); return; }
+        if (weight !== null && !(weight > 0)) { say(box, t('saveWeightInvalid'), 'bad'); $$('#manualWeightKg').focus(); return; }
 
         const button = $$('#saveProductButton');
         button.disabled = true;
@@ -6646,7 +6996,7 @@
             box.dataset.saveGen = String((Number(box.dataset.saveGen) || 0) + 1);
             const gen = box.dataset.saveGen;
             say(box, savedLine + ' ' + t('excelSaveInProgress'), 'ok');
-            SavedEntries.saveDimensionToExcel('product', { id, length_mm: length, width_mm: width, height_mm: height })
+            SavedEntries.saveDimensionToExcel('product', { id, length_mm: length, width_mm: width, height_mm: height, gross_weight_kg: weight })
               .then(excelRes => {
                 if (box.dataset.saveGen !== gen) return;
                 if (excelRes.ok && excelRes.body && excelRes.body.success) {
