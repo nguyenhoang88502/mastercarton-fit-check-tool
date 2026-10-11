@@ -49,8 +49,11 @@ The current checkout still uses `Quick Start.txt`, a nonstandard application-fol
 1. Close source workbooks currently open in Excel.
 2. Confirm the latest BOM and dimension workbook are in `1. Weekly BOM`.
 3. Double-click `Open_WVN_Master_Carton_Fit_Tool.cmd`.
-4. Wait for preprocessing.
-5. The tool opens in Chrome or Edge.
+4. When data from an earlier launch exists, a small dialog asks **Update data** or **Skip - open with current data**. It shows when the data was last built and whether the workbooks changed since. With no answer for 30 seconds it updates.
+5. Wait for preprocessing (skipped when you chose Skip).
+6. The tool opens in Chrome or Edge.
+
+The dialog can be bypassed: `Open_WVN_Master_Carton_Fit_Tool.cmd --skip-update` or `--update` on the command line, or `UpdateData=ask|always|skip` under `[Launcher]` in `system\config.ini` (a per-PC `system\config.local.ini` overrides it). Skipping is refused when no generated data exists yet. The hidden rebuild that runs after a Save never asks.
 
 Only one launcher preparation process runs at a time. A second launch displays a friendly message and exits cleanly.
 
@@ -78,6 +81,8 @@ cache_state.ini
 ```
 
 Do not edit these files manually.
+
+`fg_dimensions.csv` also carries four weights in kg read from the `Dimension` sheet: `gross_weight_kg` / `net_weight_kg` (the FG's `EA` row, columns `Gross weight` / `Net Weight`) and `carton_gross_weight_kg` / `carton_net_weight_kg` (the FG's `CA` row, same columns). Where the `CA` row leaves a carton weight blank, the `Master list` sheet's `GW` / `NW` for the same item number fills it; `carton_weight_source` records which sheet supplied the values. A net weight larger than its own gross weight is dropped and listed in `data_quality.csv`.
 
 ## 7. Carton dimension preparation
 

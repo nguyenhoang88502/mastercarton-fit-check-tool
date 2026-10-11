@@ -695,6 +695,26 @@
     .manual-tray { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border: 1px dashed var(--line, #9bb); border-radius: 6px; cursor: grab; touch-action: none; user-select: none; font-size: 12px }
     .manual-tray-box { display: inline-block; background: rgba(23, 100, 143, .28); border: 2px solid #17648f; border-radius: 2px }
     #manualPalletGridWrap { touch-action: none; user-select: none; flex: 1 1 auto; min-width: 0 }
+    .weight-block { margin-top: 6px }
+    .weight-block h4 { margin: 6px 0 4px; font-size: 12px; color: var(--muted) }
+    .dimension-row.weight-row { grid-template-columns: repeat(2, minmax(120px, 180px)) }
+    .fg-pallet-panel { padding: 8px 12px }
+    .fg-pallet-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px }
+    .fg-pallet-head h2 { margin: 0; font-size: 14px }
+    .fg-pallet-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-left: auto; font-size: 12px }
+    .fg-pallet-controls label { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-weight: normal }
+    .fg-pallet-controls .dimension-row { grid-template-columns: repeat(2, 68px); gap: 4px }
+    .fg-pallet-controls input, .fg-pallet-controls select { padding: 2px 4px; font-size: 12px }
+    .fg-pallet-body { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; margin-top: 8px }
+    #fgPalletSvg { flex: 0 0 auto; width: 100%; max-width: 340px; height: 210px; border-radius: 5px; background: linear-gradient(160deg, var(--canvas1), var(--canvas2)); cursor: grab; touch-action: none; user-select: none }
+    #fgPalletSvg.dragging { cursor: grabbing }
+    .fg-pallet-summary { flex: 1 1 260px; min-width: 0; font-size: 12px }
+    .fg-pallet-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 6px 12px; margin: 0 }
+    .fg-pallet-facts > div { border-left: 3px solid var(--line, #c9d3dc); padding-left: 8px }
+    .fg-pallet-facts > div.wide { grid-column: 1 / -1 }
+    .fg-pallet-facts > div.wide dd { font-size: 12px; font-weight: normal }
+    .fg-pallet-facts dt { margin: 0; font-size: 11px; font-weight: bold; color: var(--muted) }
+    .fg-pallet-facts dd { margin: 0; font-size: 13px; font-weight: 600 }
     .visual-summary {
       font-size: 12px
     }
@@ -1437,9 +1457,15 @@
                 placeholder="mm"><span class="unit">mm</span></label><label><span data-i18n="height">Height</span><input
                 id="manualHeight" type="number" min="0.1" step="0.1" required placeholder="mm"><span
                 class="unit">mm</span></label></div>
-          <label><span data-i18n="fgWeightOptional">FG weight (optional)</span><input id="manualWeightKg" type="number"
-              min="0.001" step="0.001" data-i18n-placeholder="fgWeightPlaceholder" placeholder="kg per piece"><span
-              class="unit">kg</span></label>
+          <div class="weight-block">
+            <h4 data-i18n="weightGroup">Weights (optional, kg)</h4>
+            <div class="dimension-row weight-row">
+              <label><span data-i18n="fgNetWeightOptional">FG net weight</span><input id="manualNetWeightKg" type="number" min="0.001" step="0.001" data-i18n-placeholder="fgWeightPlaceholder" placeholder="kg per piece"></label>
+              <label><span data-i18n="fgWeightOptional">FG gross weight</span><input id="manualWeightKg" type="number" min="0.001" step="0.001" data-i18n-placeholder="fgWeightPlaceholder" placeholder="kg per piece"></label>
+              <label><span data-i18n="cartonNetWeightOptional">Carton net weight</span><input id="manualCartonNetWeightKg" type="number" min="0.001" step="0.001" data-i18n-placeholder="cartonWeightPlaceholder" placeholder="kg per full carton"></label>
+              <label><span data-i18n="cartonGrossWeightOptional">Carton gross weight</span><input id="manualCartonGrossWeightKg" type="number" min="0.001" step="0.001" data-i18n-placeholder="cartonWeightPlaceholder" placeholder="kg per full carton"></label>
+            </div>
+          </div>
           <label><span data-i18n="packingOrientationLabel">Packing orientation</span><select id="manualOrientation">
               <option value="" data-i18n="orientationAuto">Auto (best fit)</option>
               <option value="height" data-i18n="orientationHeightUp">Standard — height up</option>
@@ -1697,6 +1723,21 @@
         <div id="fgLookupCartonPicture" hidden></div>
       </section>
     </div>
+    <section id="fgPalletPanel" class="section fg-pallet-panel workflow-panel" data-workflow-panel="fg-lookup" hidden>
+      <div class="fg-pallet-head">
+        <h2 data-i18n="fgPalletTitle">Pallet stacking</h2><span id="fgPalletCarton" class="source-note"></span>
+        <div class="fg-pallet-controls">
+          <label><span data-i18n="palletSizeLabel">Pallet size L × W (mm)</span><span class="dimension-row"><input id="fgPalletLengthMm" type="number" min="100" step="10" value="1200"><input id="fgPalletWidthMm" type="number" min="100" step="10" value="1000"></span></label>
+          <label><span data-i18n="palletShipMethodLabel">Shipment method</span><select id="fgPalletShipMethod"><option value="air" data-i18n="palletShipAir">Air freight (max 1.6 m)</option><option value="truck" data-i18n="palletShipTruck" selected>Truck / container (max 2.2 m)</option></select></label>
+          <button id="fgPalletRotateLeft" type="button" class="small-secondary" data-i18n="rotateLeft">↶ Rotate</button><button id="fgPalletRotateRight" type="button" class="small-secondary" data-i18n="rotateRight">Rotate ↷</button><button id="fgPalletTopView" type="button" class="small-secondary" data-i18n="palletTopView">Top-down view</button><button id="fgPalletOpenTool" type="button" class="small-secondary" data-i18n="fgPalletOpenTool">Full pallet tool</button>
+        </div>
+      </div>
+      <div id="fgPalletEmpty" class="empty" data-i18n="fgPalletEmpty">Select an FG with an assigned carton to preview how it stacks on a pallet.</div>
+      <div id="fgPalletBody" class="fg-pallet-body" hidden>
+        <svg id="fgPalletSvg" viewBox="0 0 400 300" role="img" aria-label="Pallet stacking preview"></svg>
+        <div id="fgPalletSummary" class="fg-pallet-summary"></div>
+      </div>
+    </section>
     <details id="proposalPanel" class="table-panel proposal workflow-panel expandable-proposal" data-workflow-panel="fg-lookup new-product carton-audit" hidden>
       <summary class="proposal-summary"><span><strong data-i18n="proposalTitle">Generated New Shared Carton Options</strong><span data-i18n="physicalValidationRequired" class="proposal-summary-warning">Physical sample validation required</span></span><span id="proposalStatus" class="status"></span></summary>
       <div class="proposal-content"><div class="banner"><span data-i18n="engineeringProposal">ENGINEERING PROPOSAL — PHYSICAL SAMPLE VALIDATION REQUIRED</span><span id="temporaryId" class="temp-id"></span></div><div id="proposalTable" class="table-wrap"></div><div class="footnote" data-i18n="proposalFootnote"></div></div>
@@ -1778,6 +1819,10 @@
         <div id="manualPalletTray" class="manual-tray" role="button" tabindex="0"><span id="manualPalletTrayBox" class="manual-tray-box"></span><span data-i18n="manualPalletTrayLabel">Drag a carton onto the pallet</span></div>
         <button id="manualPalletRotateHeldButton" type="button" data-i18n="manualPalletFlipOrientation">Rotate carton in hand 90°</button>
         <button id="manualPalletModeButton" type="button" data-i18n="manualPalletModeAdd">Mode: place</button>
+        <button id="manualPalletSelectAllButton" type="button" data-i18n="manualPalletSelectAll">Select all</button>
+        <button id="manualPalletRotateSelButton" type="button" data-i18n="manualPalletRotateSel" disabled>Rotate selected 90°</button>
+        <button id="manualPalletDeleteSelButton" type="button" data-i18n="manualPalletDeleteSel" disabled>Delete selected</button>
+        <span id="manualPalletSelCount" class="source-note"></span>
         <button id="manualPalletSnapButton" type="button" data-i18n="manualPalletSnapOn">Snap: on</button>
         <button id="manualPalletUndoButton" type="button" data-i18n="manualPalletUndo">Undo last</button>
         <button id="manualPalletClearButton" type="button" data-i18n="manualPalletClearLevel">Clear level</button>
@@ -1835,6 +1880,30 @@
         Object.assign(this.text.vi, { palletStabilityLabel: 'Độ ổn định chồng', palletStabilityValue: '{interlock}% thùng được đỡ bởi từ 2 thùng bên dưới; thùng yếu nhất được đỡ {support}%', palletColumnStackWarning: 'Tổ hợp thùng/pallet này chỉ có thể xếp thành các cột thẳng (không có kiểu xếp đan xen nào đảm bảo thùng được đỡ). Dùng nẹp góc, quấn màng co thật chặt từ dưới lên, dây đai và tấm lót giữa các lớp.', palletWeakInterlockNote: 'Khả năng đan xen tốt nhất cho thùng này bị hạn chế. Dùng nẹp góc, quấn màng co chặt và kiểm tra chồng hàng trước khi xuất.' });
         Object.assign(this.text.en, { fgWeightOptional: 'FG weight (optional)', fgWeightPlaceholder: 'kg per piece', saveWeightInvalid: 'FG weight must be a positive number in kg (or leave it blank).' });
         Object.assign(this.text.vi, { fgWeightOptional: 'Khối lượng FG (không bắt buộc)', fgWeightPlaceholder: 'kg mỗi sản phẩm', saveWeightInvalid: 'Khối lượng FG phải là số dương tính bằng kg (hoặc để trống).' });
+        Object.assign(this.text.en, {
+          weightGroup: 'Weights (optional, kg)', fgNetWeightOptional: 'FG net weight', fgWeightOptional: 'FG gross weight', cartonNetWeightOptional: 'Carton net weight', cartonGrossWeightOptional: 'Carton gross weight',
+          fgWeightPlaceholder: 'kg per piece', cartonWeightPlaceholder: 'kg per full carton', saveWeightInvalid: 'Weights must be positive numbers in kg (or leave them blank).', saveWeightNetOverGross: 'A net weight cannot be larger than its gross weight.',
+          fgWeightsLabel: 'FG weight', cartonWeightsLabel: 'Carton weight', weightNetShort: 'net', weightGrossShort: 'gross',
+          fgPalletTitle: 'Pallet stacking', fgPalletEmpty: 'Select an FG with an assigned carton to preview how it stacks on a pallet.', fgPalletCartonNote: 'Carton {id}', fgPalletOpenTool: 'Full pallet tool',
+          fgPalletNoCarton: 'This FG has no usable carton to stack.', fgPalletPerLayer: 'Cartons per layer', fgPalletLoad: 'Load (cartons only)', fgPalletFgPerPallet: 'FG per pallet'
+        });
+        Object.assign(this.text.vi, {
+          weightGroup: 'Khối lượng (không bắt buộc, kg)', fgNetWeightOptional: 'Khối lượng tịnh FG', fgWeightOptional: 'Khối lượng cả bì FG', cartonNetWeightOptional: 'Khối lượng tịnh thùng', cartonGrossWeightOptional: 'Khối lượng cả bì thùng',
+          fgWeightPlaceholder: 'kg mỗi sản phẩm', cartonWeightPlaceholder: 'kg mỗi thùng đầy', saveWeightInvalid: 'Khối lượng phải là số dương tính bằng kg (hoặc để trống).', saveWeightNetOverGross: 'Khối lượng tịnh không được lớn hơn khối lượng cả bì.',
+          fgWeightsLabel: 'Khối lượng FG', cartonWeightsLabel: 'Khối lượng thùng', weightNetShort: 'tịnh', weightGrossShort: 'cả bì',
+          fgPalletTitle: 'Xếp pallet', fgPalletEmpty: 'Chọn một FG đã có thùng để xem cách xếp lên pallet.', fgPalletCartonNote: 'Thùng {id}', fgPalletOpenTool: 'Công cụ pallet đầy đủ',
+          fgPalletNoCarton: 'FG này chưa có thùng hợp lệ để xếp.', fgPalletPerLayer: 'Số thùng mỗi lớp', fgPalletLoad: 'Tải (chỉ thùng)', fgPalletFgPerPallet: 'FG mỗi pallet'
+        });
+        Object.assign(this.text.en, {
+          manualPalletModeSelect: 'Mode: select', manualPalletSelectAll: 'Select all', manualPalletRotateSel: 'Rotate selected 90°', manualPalletDeleteSel: 'Delete selected', manualPalletSelCount: '{n} selected',
+          manualPalletRotateBlocked: 'The rotated block would overlap another carton or leave the pallet. Move it or free some space first.',
+          manualPalletGridHint: 'Press and hold a carton (or the empty pallet), drag, and release to drop it. Drag a placed carton to move it. Select mode: drag across empty space to box-select (Shift/Ctrl adds or removes one), then drag any selected carton to move them all; R rotates and Delete removes the selection. Right-click removes one.'
+        });
+        Object.assign(this.text.vi, {
+          manualPalletModeSelect: 'Chế độ: chọn thùng', manualPalletSelectAll: 'Chọn tất cả', manualPalletRotateSel: 'Xoay các thùng đã chọn 90°', manualPalletDeleteSel: 'Xóa các thùng đã chọn', manualPalletSelCount: 'Đã chọn {n}',
+          manualPalletRotateBlocked: 'Khối thùng sau khi xoay sẽ chồng lên thùng khác hoặc ra ngoài pallet. Hãy di chuyển hoặc chừa thêm chỗ trước.',
+          manualPalletGridHint: 'Nhấn giữ một thùng (hoặc vùng trống của pallet), kéo rồi thả để đặt. Kéo thùng đã đặt để di chuyển. Chế độ chọn: kéo trên vùng trống để quét chọn (Shift/Ctrl để thêm hoặc bớt một thùng), rồi kéo một thùng đã chọn để di chuyển tất cả; phím R xoay và Delete xóa các thùng đã chọn. Bấm chuột phải để bỏ một thùng.'
+        });
         Object.assign(this.text.en, { sourceWorkbooks: 'Source workbooks:', openDimensionSource: 'Open dimension source', openBomSource: 'Open Weekly BOM source', sourceLinkWaiting: 'Links appear after launcher-loaded source files are found.', sourceLinkManual: 'The browser hides the original path of a manually selected file; use the launcher for a direct source link.', fgIdOptional: 'New FG ID (optional)', fgIdOptionalPlaceholder: 'Optional — generated if blank', invalidManual: 'Enter positive dimensions in mm and a positive whole-number target quantity. FG ID is optional.', explainUnderutilized: 'The target physically fits, but volumetric utilization is below the selected threshold. Review the optimized engineering proposal.', bomFallbackAlert: 'Weekly BOM source of truth did not load. The tool is using provisional FG_MasterCarton assignments with the available FG and carton dimension sheets. Verify the assignment before making an engineering decision.', bomFallbackLoading: 'Weekly BOM is still loading. Provisional FG_MasterCarton data is temporarily available.', dataCompleteFallback: '✓ Complete provisional data', fallbackMode: 'PROVISIONAL WORKBOOK FALLBACK', fallbackAssigned: 'PROVISIONAL FG_MasterCarton ASSIGNMENT', fallbackReference: 'WORKBOOK FALLBACK', fallbackPass: 'WORKBOOK FALLBACK — PASS — SIMPLE GRID', fallbackFail: 'WORKBOOK FALLBACK — SIMPLE GRID FAIL', fallbackMissing: 'WORKBOOK FALLBACK — DIMENSIONS MISSING', fallback3d: 'The 3D view uses the provisional FG_MasterCarton assignment because Weekly BOM is unavailable.', orientationsTested: 'Orthogonal orientations tested' });
         Object.assign(this.text.vi, { sourceWorkbooks: 'Workbook nguồn:', openDimensionSource: 'Mở file nguồn kích thước', openBomSource: 'Mở file nguồn BOM tuần', sourceLinkWaiting: 'Liên kết xuất hiện sau khi launcher tìm thấy file nguồn.', sourceLinkManual: 'Trình duyệt ẩn đường dẫn gốc của file được chọn thủ công; hãy dùng launcher để có liên kết trực tiếp.', fgIdOptional: 'Mã FG mới (không bắt buộc)', fgIdOptionalPlaceholder: 'Không bắt buộc — hệ thống tự tạo nếu để trống', invalidManual: 'Nhập kích thước dương theo mm và số lượng mục tiêu là số nguyên dương. Mã FG không bắt buộc.', explainUnderutilized: 'Số lượng mục tiêu vừa về mặt vật lý nhưng tỷ lệ sử dụng thể tích thấp hơn ngưỡng đã chọn. Hãy xem đề xuất kỹ thuật tối ưu.', bomFallbackAlert: 'Không tải được BOM tuần là nguồn dữ liệu chính. Công cụ đang dùng dữ liệu gán tạm từ FG_MasterCarton cùng các sheet kích thước FG và Master Carton hiện có. Hãy xác minh dữ liệu gán trước khi ra quyết định kỹ thuật.', bomFallbackLoading: 'BOM tuần vẫn đang tải. Dữ liệu tạm từ FG_MasterCarton hiện vẫn có thể sử dụng.', dataCompleteFallback: '✓ Đủ dữ liệu tạm', fallbackMode: 'DỮ LIỆU DỰ PHÒNG TỪ WORKBOOK', fallbackAssigned: 'GÁN TẠM TỪ FG_MasterCarton', fallbackReference: 'DỮ LIỆU DỰ PHÒNG', fallbackPass: 'DỮ LIỆU DỰ PHÒNG — ĐẠT — LƯỚI ĐƠN GIẢN', fallbackFail: 'DỮ LIỆU DỰ PHÒNG — KHÔNG ĐẠT LƯỚI ĐƠN GIẢN', fallbackMissing: 'DỮ LIỆU DỰ PHÒNG — THIẾU KÍCH THƯỚC', fallback3d: 'Mô hình 3D đang dùng dữ liệu gán tạm từ FG_MasterCarton vì chưa có BOM tuần.', orientationsTested: 'Số hướng vuông góc đã kiểm tra' });
         Object.assign(this.text.en, {
@@ -4214,6 +4283,49 @@
       const rect = { x, y, l, w };
       return { ...rect, valid: l <= PL + 1e-6 && w <= PW + 1e-6 && !manualOverlaps(boxes, rect, ignoreIndex) };
     }
+    // ---- Group (multi-select) helpers: the selected cartons move and turn as ONE rigid block so their relative layout survives. ----
+    function manualRound1(v) { return Math.round(v * 10) / 10 }
+    function manualGroupBounds(group) {
+      return { x0: Math.min(...group.map(o => o.x)), x1: Math.max(...group.map(o => o.x + o.l)), y0: Math.min(...group.map(o => o.y)), y1: Math.max(...group.map(o => o.y + o.w)) };
+    }
+    // Where the selected block ends up when dragged by (dx, dy): kept fully inside the pallet, pulled to the pallet edges and to
+    // the unselected cartons when snapping is on (any edge of any selected carton can snap), and rejected on overlap.
+    function manualResolveGroup(b, boxes, indices, dx, dy) {
+      const PL = b.palletLengthMm, PW = b.palletWidthMm, selected = new Set(indices), group = indices.map(i => boxes[i]).filter(Boolean), others = boxes.filter((_, i) => !selected.has(i));
+      if (!group.length) return { dx: 0, dy: 0, valid: false };
+      const { x0, x1, y0, y1 } = manualGroupBounds(group), clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+      let mx = clamp(dx, -x0, PL - x1), my = clamp(dy, -y0, PW - y1);
+      if (b.snap) {
+        const pull = (value, edges, targets, lo, hi) => {
+          let best = value, bestDistance = MANUAL_SNAP_MM;
+          for (const e of edges) for (const t of targets) { const candidate = t - e, d = Math.abs(candidate - value); if (d <= bestDistance) { bestDistance = d; best = candidate } }
+          return clamp(best, lo, hi);
+        };
+        const xTargets = new Set([0, PL]), yTargets = new Set([0, PW]), xEdges = new Set(), yEdges = new Set();
+        for (const o of others) { xTargets.add(o.x); xTargets.add(o.x + o.l); yTargets.add(o.y); yTargets.add(o.y + o.w) }
+        for (const o of group) { xEdges.add(o.x); xEdges.add(o.x + o.l); yEdges.add(o.y); yEdges.add(o.y + o.w) }
+        mx = pull(mx, xEdges, xTargets, -x0, PL - x1); my = pull(my, yEdges, yTargets, -y0, PW - y1);
+      }
+      mx = manualRound1(mx); my = manualRound1(my);
+      return { dx: mx, dy: my, valid: group.every(o => !manualOverlaps(others, { x: o.x + mx, y: o.y + my, l: o.l, w: o.w })) };
+    }
+    // Turns the selected block 90 degrees clockwise (screen view): every carton swaps length/width and the block pivots about its
+    // own centre. If that would leave the pallet or hit another carton, the block is tried pinned at each of its four corners
+    // instead. Returns the new rectangles (same order as `indices`) or null when no placement works.
+    function manualRotateGroup(b, boxes, indices) {
+      const PL = b.palletLengthMm, PW = b.palletWidthMm, selected = new Set(indices), group = indices.map(i => boxes[i]).filter(Boolean), others = boxes.filter((_, i) => !selected.has(i));
+      if (!group.length) return null;
+      const { x0, x1, y0, y1 } = manualGroupBounds(group), gx = (x0 + x1) / 2, gy = (y0 + y1) / 2, width = x1 - x0, height = y1 - y0;
+      const turned = group.map(o => ({ cx: -(o.y + o.w / 2 - gy), cy: o.x + o.l / 2 - gx, l: o.w, w: o.l }));   // centre relative to the block centre
+      if (height > PL + 1e-6 || width > PW + 1e-6) return null;                                                 // the block's new footprint is height x width
+      const anchors = [[gx, gy], [x0 + height / 2, y0 + width / 2], [x1 - height / 2, y0 + width / 2], [x0 + height / 2, y1 - width / 2], [x1 - height / 2, y1 - width / 2]];
+      for (const [ax, ay] of anchors) {
+        const cx = Math.min(Math.max(ax, height / 2), PL - height / 2), cy = Math.min(Math.max(ay, width / 2), PW - width / 2);
+        const rects = turned.map(t => ({ x: manualRound1(cx + t.cx - t.l / 2), y: manualRound1(cy + t.cy - t.w / 2), l: t.l, w: t.w }));
+        if (rects.every(r => r.x >= -1e-6 && r.y >= -1e-6 && r.x + r.l <= PL + 1e-6 && r.y + r.w <= PW + 1e-6 && !manualOverlaps(others, r))) return rects;
+      }
+      return null;
+    }
     // How much of this carton's bottom face rests on the level below (the pallet itself for level 1).
     function manualBoxSupport(box, below) {
       if (!below) return { support: 1, maxShare: 1, supporters: 0 };
@@ -4244,7 +4356,7 @@
     // Top-down drawing of one level. `interactive` adds the live ghost + per-carton support tint (screen); the print
     // version is static and numbers every carton so a packer can follow it.
     function buildManualPalletLevelSvg(b, levelIndex, opts = {}) {
-      const { interactive = false } = opts, PL = b.palletLengthMm, PW = b.palletWidthMm, pad = MANUAL_PAD_MM, vbW = PL + pad * 2, vbH = PW + pad * 2;
+      const { interactive = false } = opts, selected = new Set(opts.selected || []), PL = b.palletLengthMm, PW = b.palletWidthMm, pad = MANUAL_PAD_MM, vbW = PL + pad * 2, vbH = PW + pad * 2;
       const boxes = b.levels[levelIndex] || [], below = levelIndex > 0 ? b.levels[levelIndex - 1] : null, fontBase = Math.max(18, Math.min(PL, PW) / 38);
       let out = `<svg viewBox="0 0 ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${interactive ? 760 : 560}px;height:auto;${interactive ? 'touch-action:none;user-select:none;cursor:crosshair;' : ''}">`;
       out += `<rect x="${pad}" y="${pad}" width="${PL}" height="${PW}" fill="#f3e6d4" stroke="#8a5a2e" stroke-width="4"/>`;
@@ -4259,6 +4371,8 @@
         if (label) out += `<text x="${pad + box.x + box.l / 2}" y="${pad + box.y + box.w / 2}" font-size="${Math.min(fontBase, Math.min(box.l, box.w) * .36)}" text-anchor="middle" dominant-baseline="central" fill="#0d2b3d" style="font-weight:700;pointer-events:none">${label}</text>`;
         void weak;
       });
+      // Selection rings sit on top of the cartons; every carton gets one (hidden unless selected) so selecting only toggles attributes.
+      if (interactive) boxes.forEach((box, i) => { out += `<rect data-sel="${i}" x="${pad + box.x - 3}" y="${pad + box.y - 3}" width="${box.l + 6}" height="${box.w + 6}" fill="none" stroke="#ff7a00" stroke-width="6" pointer-events="none" ${selected.has(i) ? '' : 'display="none"'}/>` });
       if (!interactive) {
         out += `<text x="${pad + PL / 2}" y="${vbH - 4}" font-size="${fontBase}" text-anchor="middle" fill="#444">${fmt(PL)} mm</text>`;
         out += `<text x="12" y="${pad + PW / 2}" font-size="${fontBase}" text-anchor="middle" fill="#444" transform="rotate(-90 12 ${pad + PW / 2})">${fmt(PW)} mm</text>`;
@@ -4311,6 +4425,22 @@
     function packingLayoutNote(fit) { const a = fit?.arrangement; if (!a || typeof a !== 'object') return '—'; const axis = verticalAxisOf(fit); return I18n.t('packingLayoutNote', { length: a.alongLength, width: a.alongWidth, height: a.alongHeight, axis: I18n.t(axis || 'height') }) }
     function fitMethod() { return I18n.t('uniformGrid') }
     function fitFailureNote() { return I18n.t('orthogonalPreview') }
+    function buildFgPalletCompactHtml(ctx, fg) {
+      const { layout, maxHeightMm } = ctx, stability = layout.stability, facts = [
+        [I18n.t('fgPalletPerLayer'), fmt(layout.cartonsPerLayer)],
+        [I18n.t('palletLayers'), fmt(layout.layers)],
+        [I18n.t('palletTotalPerPallet'), fmt(layout.totalPerPallet)],
+        [I18n.t('palletStackHeightLabel'), `${fmt(layout.stackHeightMm)} / ${fmt(maxHeightMm)} mm`],
+      ];
+      if (Number.isFinite(ctx.qtyPerCarton) && ctx.qtyPerCarton > 0) facts.push([I18n.t('fgPalletFgPerPallet'), fmt(ctx.qtyPerCarton * layout.totalPerPallet)]);
+      const cartonGross = Number(fg?.cartonGrossWeightKg);
+      if (cartonGross > 0) facts.push([I18n.t('fgPalletLoad'), `${fmt(cartonGross * layout.totalPerPallet, 1)} kg`]);
+      if (Number.isFinite(ctx.palletsNeeded)) facts.push([I18n.t('palletPalletsNeeded'), fmt(ctx.palletsNeeded)]);
+      if (stability) facts.push([I18n.t('palletStabilityLabel'), I18n.t('palletStabilityValue', { interlock: Math.round(stability.interlockedShare * 100), support: Math.round(stability.minSupport * 100) }), true]);
+      let html = `<dl class="fg-pallet-facts">${facts.map(([k, v, wide]) => `<div${wide ? ' class="wide"' : ''}><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd></div>`).join('')}</dl>`;
+      if (stability?.columnStack) html += `<div class="notice audit-warning">${escapeHtml(I18n.t('palletColumnStackWarning'))}</div>`;
+      return html;
+    }
     function buildPalletSummaryHtml(ctx) {
       const { carton, layout, method, maxHeightMm, qtyPerCarton, cartonsNeeded, palletsNeeded, targetQty, targetSource, partialInfo } = ctx;
       const describe = p => `${fmt(p.cartonsPerLayer)} — ${patternKindLabel(p)} (${p.regions.map(r => `${r.perLength}×${r.perWidth}`).join(' + ')}${p.variant ? ', ' + patternVariantLabel(p) : ''}${p.offsetAxis ? ', ' + I18n.t('palletOrientationOffset') : ''})`;
@@ -4476,7 +4606,7 @@
         fgLookup: { cartonId: '', index: 0 },
         cartonLookup: { cartonId: '', index: 0 }
       };
-      constructor() { this.file = document.querySelector('#fileInput'); this.drop = document.querySelector('#dropZone'); this.select = document.querySelector('#fgSelect'); this.target = document.querySelector('#targetQty'); this.targetLabel = document.querySelector('#targetLabel'); this.fgInfo = document.querySelector('#fgInfo'); this.msg = document.querySelector('#message'); this.existing = document.querySelector('#existingTable'); this.existingStatus = document.querySelector('#existingStatus'); this.proposals = document.querySelector('#proposalPanel'); this.proposalTable = document.querySelector('#proposalTable'); this.proposalStatus = document.querySelector('#proposalStatus'); this.temporaryId = document.querySelector('#temporaryId'); this.dataTools = document.querySelector('#dataTools'); this.linkagePanel = document.querySelector('#linkagePanel'); this.linkageOverall = document.querySelector('#linkageOverall'); this.linkageFlow = document.querySelector('#linkageFlow'); this.linkageCards = document.querySelector('#linkageCards'); this.loaderOverlay = document.querySelector('#loaderOverlay'); this.loaderText = document.querySelector('#loaderText'); this.visual = new PackingVisualizer3D(document.querySelector('#packingSvg'), document.querySelector('#visualSummary')); this.palletVisual = new PalletVisualizer(document.querySelector('#palletSvg'), document.querySelector('#palletVisualSummary')); this.manualPalletVisual = new ManualPalletVisualizer(document.querySelector('#manualPalletSvg')); this.progress = new TaskProgressManager(document.querySelector('#taskProgressPanel')); this.store = new AppDataStore(); this.comparisonCurrent = new PackingVisualizer3D(document.querySelector('#comparisonCurrentSvg'), document.querySelector('#comparisonCurrentSummary')); this.comparisonSuggested = new PackingVisualizer3D(document.querySelector('#comparisonSuggestedSvg'), document.querySelector('#comparisonSuggestedSummary')); this.comparisonSync = true; this.auditComparisonItems=new Map();this.auditComparisonContext=null; this.batchResult = null; this.batchPage = 1; this.batchPageSize = 50; this.activeWorkflow = ''; this.workflowPanelState = new Map(); this.data = null; this.current = null; this.activeContext = 'fit'; this.manualMode = false; this.tempCartonId = ''; this.theme = 'light'; this.weeklyBomState = 'loading'; this._fgSearchTimer = null; this._dimensionSourceName = ''; this.sources = { workbook: { href: '', name: '', manual: false }, bom: { href: '', name: '', manual: false } }; this.auditMcUserEdited = false; this.lastAuditAutoFilledFgId = ''; this.lastAuditAutoFilledCartonId = ''; this.auditAutoFillTimer = null; this.auditModuleBound = false; this.fgLookupCartonOverrideByFg = new Map(); loadCalculationMode(); this.bind(); this.applyLanguage(); this.initToleranceControls(); this.syncDimensionSettings(); updateCalculationModeUi(); this.activateWorkflow('new-product'); }
+      constructor() { this.file = document.querySelector('#fileInput'); this.drop = document.querySelector('#dropZone'); this.select = document.querySelector('#fgSelect'); this.target = document.querySelector('#targetQty'); this.targetLabel = document.querySelector('#targetLabel'); this.fgInfo = document.querySelector('#fgInfo'); this.msg = document.querySelector('#message'); this.existing = document.querySelector('#existingTable'); this.existingStatus = document.querySelector('#existingStatus'); this.proposals = document.querySelector('#proposalPanel'); this.proposalTable = document.querySelector('#proposalTable'); this.proposalStatus = document.querySelector('#proposalStatus'); this.temporaryId = document.querySelector('#temporaryId'); this.dataTools = document.querySelector('#dataTools'); this.linkagePanel = document.querySelector('#linkagePanel'); this.linkageOverall = document.querySelector('#linkageOverall'); this.linkageFlow = document.querySelector('#linkageFlow'); this.linkageCards = document.querySelector('#linkageCards'); this.loaderOverlay = document.querySelector('#loaderOverlay'); this.loaderText = document.querySelector('#loaderText'); this.visual = new PackingVisualizer3D(document.querySelector('#packingSvg'), document.querySelector('#visualSummary')); this.palletVisual = new PalletVisualizer(document.querySelector('#palletSvg'), document.querySelector('#palletVisualSummary')); this.fgPalletVisual = new PalletVisualizer(document.querySelector('#fgPalletSvg'), document.querySelector('#fgPalletSummary')); this.manualPalletVisual = new ManualPalletVisualizer(document.querySelector('#manualPalletSvg')); this.progress = new TaskProgressManager(document.querySelector('#taskProgressPanel')); this.store = new AppDataStore(); this.comparisonCurrent = new PackingVisualizer3D(document.querySelector('#comparisonCurrentSvg'), document.querySelector('#comparisonCurrentSummary')); this.comparisonSuggested = new PackingVisualizer3D(document.querySelector('#comparisonSuggestedSvg'), document.querySelector('#comparisonSuggestedSummary')); this.comparisonSync = true; this.auditComparisonItems=new Map();this.auditComparisonContext=null; this.batchResult = null; this.batchPage = 1; this.batchPageSize = 50; this.activeWorkflow = ''; this.workflowPanelState = new Map(); this.data = null; this.current = null; this.activeContext = 'fit'; this.manualMode = false; this.tempCartonId = ''; this.theme = 'light'; this.weeklyBomState = 'loading'; this._fgSearchTimer = null; this._dimensionSourceName = ''; this.sources = { workbook: { href: '', name: '', manual: false }, bom: { href: '', name: '', manual: false } }; this.auditMcUserEdited = false; this.lastAuditAutoFilledFgId = ''; this.lastAuditAutoFilledCartonId = ''; this.auditAutoFillTimer = null; this.auditModuleBound = false; this.fgLookupCartonOverrideByFg = new Map(); loadCalculationMode(); this.bind(); this.applyLanguage(); this.initToleranceControls(); this.syncDimensionSettings(); updateCalculationModeUi(); this.activateWorkflow('new-product'); }
       showLoader(text = 'Loading data…') { this.loaderText.textContent = text; if (this.progress?.state.active) { const phase=/weekly bom/i.test(text)?'PARSING_WEEKLY_BOM':/reading|opening/i.test(text)?'PARSING_DIMENSION_WORKBOOK':this.progress.state.phase; this.progress.updateTask({ detail:text, phase, indeterminate:true }) } else this.loaderOverlay.classList.add('active') }
       hideLoader() { this.loaderOverlay.classList.remove('active') }
       getSourceFgLookupCartonId(fg) { if (!fg || this.manualMode) return ''; return String(this.weeklyBom ? fg.assignedCartonId || '' : fg.mvpAssignedCartonId || '').trim(); }
@@ -4703,6 +4833,19 @@
         document.querySelector('#palletLookupSelect')?.addEventListener('change', e => { if (!e.target.value) return; document.querySelector('#palletLookupId').value = e.target.value; this.runPalletLookup(); });
         document.querySelector('#palletExportPdfButton')?.addEventListener('click', () => this.exportPalletSopPdf());
         window.addEventListener('afterprint', () => document.body.classList.remove('printing-pallet'));
+        const refreshFgPallet = () => { const target = this.fgPalletTarget; if (target) this.renderFgLookupPallet(target.fg, target.cartonId) };
+        for (const id of ['#fgPalletLengthMm', '#fgPalletWidthMm', '#fgPalletShipMethod']) document.querySelector(id)?.addEventListener('change', refreshFgPallet);
+        document.querySelector('#fgPalletRotateLeft')?.addEventListener('click', () => { this.fgPalletVisual.rotation = (this.fgPalletVisual.rotation + 1) % 24; this.fgPalletVisual.render() });
+        document.querySelector('#fgPalletRotateRight')?.addEventListener('click', () => { this.fgPalletVisual.rotation = (this.fgPalletVisual.rotation - 1) % 24; this.fgPalletVisual.render() });
+        document.querySelector('#fgPalletTopView')?.addEventListener('click', () => this.fgPalletVisual.setTopView());
+        document.querySelector('#fgPalletOpenTool')?.addEventListener('click', () => {
+          const target = this.fgPalletTarget; if (!target) return;
+          document.querySelector('#palletLookupId').value = target.fg.fg_id;
+          document.querySelector('#palletShipMethod').value = document.querySelector('#fgPalletShipMethod').value;
+          document.querySelector('#palletLengthMm').value = document.querySelector('#fgPalletLengthMm').value;
+          document.querySelector('#palletWidthMm').value = document.querySelector('#fgPalletWidthMm').value;
+          this.activateWorkflow('pallet-visualizer'); this.runPalletLookup();
+        });
         document.querySelector('#palletRotateLeft')?.addEventListener('click', () => { this.palletVisual.rotation = (this.palletVisual.rotation + 1) % 24; this.palletVisual.render() });
         document.querySelector('#palletRotateRight')?.addEventListener('click', () => { this.palletVisual.rotation = (this.palletVisual.rotation - 1) % 24; this.palletVisual.render() });
         document.querySelector('#palletResetView')?.addEventListener('click', () => { this.palletVisual.rotation = 0; this.palletVisual.pitch = 0; this.palletVisual.topView = false; this.palletVisual.render() });
@@ -4717,6 +4860,9 @@
         for (const id of ['#manualPalletOrientationButton', '#manualPalletRotateHeldButton']) document.querySelector(id)?.addEventListener('click', () => this.toggleManualPalletOrientation());
         document.querySelector('#manualPalletModeButton')?.addEventListener('click', () => this.toggleManualPalletMode());
         document.querySelector('#manualPalletSnapButton')?.addEventListener('click', () => this.toggleManualPalletSnap());
+        document.querySelector('#manualPalletSelectAllButton')?.addEventListener('click', () => this.manualSelectAll());
+        document.querySelector('#manualPalletRotateSelButton')?.addEventListener('click', () => this.manualRotateSelected());
+        document.querySelector('#manualPalletDeleteSelButton')?.addEventListener('click', () => this.manualDeleteSelected());
         document.querySelector('#manualPalletUndoButton')?.addEventListener('click', () => this.manualUndo());
         document.querySelector('#manualPalletClearButton')?.addEventListener('click', () => this.clearManualPalletGrid());
         document.querySelector('#manualPalletCopyPrevButton')?.addEventListener('click', () => this.manualCopyPrevious());
@@ -4788,7 +4934,7 @@
         }
         this.activeWorkflow = name || 'new-product';
         const saved = this.workflowPanelState.get(this.activeWorkflow) || null;
-        const primary = new Set(['newProductPanel','auditSection','fgLookupPanel','fgResultsGrid','batchAuditPanel','cartonLookupPanel','addDataPanel','palletVisualizerPanel','manualPalletLayoutPanel']);
+        const primary = new Set(['newProductPanel','auditSection','fgLookupPanel','fgResultsGrid','fgPalletPanel','batchAuditPanel','cartonLookupPanel','addDataPanel','palletVisualizerPanel','manualPalletLayoutPanel']);
         document.querySelectorAll('.workflow-nav [data-workflow]').forEach(button => { const active = button.dataset.workflow === this.activeWorkflow; button.classList.toggle('active', active); button.setAttribute('aria-selected', String(active)); button.setAttribute('role', 'tab') });
         panels.forEach(panel => {
           const matches = String(panel.dataset.workflowPanel || '').split(/\s+/).includes(this.activeWorkflow);
@@ -4863,6 +5009,10 @@
             width: parseFloat(row.length_mm) || NaN,
             depth: parseFloat(row.width_mm) || NaN,
             height: parseFloat(row.height_mm) || NaN,
+            grossWeightKg: parseFloat(row.gross_weight_kg) || NaN,
+            netWeightKg: parseFloat(row.net_weight_kg) || NaN,
+            cartonGrossWeightKg: parseFloat(row.carton_gross_weight_kg) || NaN,
+            cartonNetWeightKg: parseFloat(row.carton_net_weight_kg) || NaN,
             hasDimensionRecord: true,
             dimensionConflict: row.conflict_flag === 'true',
             assignedCartonId: '',
@@ -5072,7 +5222,7 @@
         if (!id) return { inputId: rawId, error: this.t('palletNotFound', { id: '' }) };
         const resolved = this.resolvePalletId(id);
         if (resolved.error) return { inputId: id, error: this.t('palletNotFound', { id }) };
-        const carton = resolved.carton;
+        const carton = (opts.cartonId && this.store.cartonById.get(normalizeId(opts.cartonId))) || resolved.carton;
         if (!carton || !CartonFitEngine.validCarton(carton)) return { inputId: id, type: resolved.type, fg: resolved.fg, error: this.t('palletInvalidCartonDims') };
         const layout = computePalletLayout(carton, palletLengthMm, palletWidthMm, maxHeightMm);
         if (!layout || !layout.cartonsPerLayer || !layout.layers) return { inputId: id, type: resolved.type, fg: resolved.fg, carton, error: this.t('palletInvalidCartonDims') };
@@ -5121,6 +5271,28 @@
         document.querySelector('#palletBatchExportButton').disabled = !rows.length;
       }
       exportPalletBatch() { if (!this.palletBatchRows?.length) return; CsvExporter.download(`WVN_Pallet_SOP_Export_${new Date().toISOString().slice(0, 10)}.csv`, CsvExporter.palletBatchRows(this.palletBatchRows)) }
+      fgWeightsHtml(fg) {
+        const kg = n => Number.isFinite(n) && n > 0 ? Number(n.toFixed(3)).toLocaleString(undefined, { maximumFractionDigits: 3 }) : null;
+        const pair = (net, gross) => [kg(net) && `${this.t('weightNetShort')} ${kg(net)}`, kg(gross) && `${this.t('weightGrossShort')} ${kg(gross)}`].filter(Boolean).join(' / ');
+        const fgPart = pair(fg?.netWeightKg, fg?.grossWeightKg), cartonPart = pair(fg?.cartonNetWeightKg, fg?.cartonGrossWeightKg);
+        return (fgPart ? ` · ${escapeHtml(this.t('fgWeightsLabel'))}: <strong>${escapeHtml(fgPart)} kg</strong>` : '') + (cartonPart ? ` · ${escapeHtml(this.t('cartonWeightsLabel'))}: <strong>${escapeHtml(cartonPart)} kg</strong>` : '');
+      }
+      // Compact pallet preview inside FG Lookup: same engine and 3D renderer as the Pallet Visualizer tab, for the carton
+      // this lookup is actually using (BOM carton or the session override).
+      renderFgLookupPallet(fg, cartonId) {
+        const empty = document.querySelector('#fgPalletEmpty'), body = document.querySelector('#fgPalletBody'), note = document.querySelector('#fgPalletCarton');
+        if (!empty || !body || !this.fgPalletVisual) return;
+        this.fgPalletTarget = fg && fg.fg_id ? { fg, cartonId: cartonId || '' } : null;
+        const show = key => { body.hidden = true; empty.hidden = false; empty.dataset.i18n = key; empty.textContent = this.t(key); this.fgPalletVisual.empty(''); if (note) note.textContent = '' };
+        if (!this.fgPalletTarget || !this.fgPalletTarget.cartonId || this.manualMode) { show('fgPalletEmpty'); return }
+        const method = document.querySelector('#fgPalletShipMethod').value, palletLengthMm = Number(document.querySelector('#fgPalletLengthMm').value) || 1200, palletWidthMm = Number(document.querySelector('#fgPalletWidthMm').value) || 1000;
+        const ctx = this.computePalletContext(fg.fg_id, { method, palletLengthMm, palletWidthMm, qtyOverride: NaN, cartonId });
+        if (ctx.error) { show('fgPalletNoCarton'); return }
+        empty.hidden = true; body.hidden = false;
+        if (note) note.textContent = this.t('fgPalletCartonNote', { id: ctx.carton.carton_id });
+        const visual = this.fgPalletVisual; visual.rotation = 0; visual.pitch = 0; visual.topView = false;
+        visual.set({ palletLengthMm, palletWidthMm, layout: ctx.layout, maxHeightMm: ctx.maxHeightMm, summaryHtml: buildFgPalletCompactHtml(ctx, fg) });
+      }
       renderManualPalletError(message) {
         this.manualBuilder = null; this.manualDrag = null;
         document.querySelector('#manualPalletSummary').innerHTML = `<span class="audit-warning">${escapeHtml(message)}</span>`;
@@ -5169,12 +5341,74 @@
         const drag = this.manualDrag; if (drag) { [drag.l, drag.w] = [drag.w, drag.l]; if (drag.lastPointer) this.manualUpdateDrag(drag.lastPointer) }
         this.updateManualTray();
       }
-      toggleManualPalletMode() { const b = this.manualBuilder; if (!b) return; b.mode = b.mode === 'add' ? 'remove' : 'add'; this.renderManualPalletControls() }
+      toggleManualPalletMode() { const b = this.manualBuilder; if (!b) return; b.mode = b.mode === 'add' ? 'select' : b.mode === 'select' ? 'remove' : 'add'; this.renderManualPalletControls() }
       toggleManualPalletSnap() { const b = this.manualBuilder; if (!b) return; b.snap = !b.snap; this.renderManualPalletControls() }
       manualActiveBoxes() { const b = this.manualBuilder; return b ? b.levels[b.activeLevel] : [] }
-      manualUndo() { const boxes = this.manualActiveBoxes(); if (boxes.length) { boxes.pop(); this.renderManualPalletBuilder() } }
-      clearManualPalletGrid() { const b = this.manualBuilder; if (!b) return; b.levels[b.activeLevel] = []; this.renderManualPalletBuilder() }
-      manualRemoveBox(index) { const boxes = this.manualActiveBoxes(); if (index >= 0 && index < boxes.length) { boxes.splice(index, 1); this.renderManualPalletBuilder() } }
+      // ---- multi-select: the selection is a list of indices into the ACTIVE level and always acts as one rigid block ----
+      manualSelection() {
+        const b = this.manualBuilder; if (!b) return [];
+        if (b.selectionLevel !== b.activeLevel) { b.selection = []; b.selectionLevel = b.activeLevel }
+        const count = this.manualActiveBoxes().length;
+        b.selection = (b.selection || []).filter(i => i >= 0 && i < count);
+        return b.selection;
+      }
+      manualClearSelection() { const b = this.manualBuilder; if (b) { b.selection = []; b.selectionLevel = b.activeLevel } }
+      manualPaintSelection() {
+        const chosen = new Set(this.manualSelection());
+        document.querySelectorAll('#manualPalletGridWrap [data-sel]').forEach(el => { if (chosen.has(Number(el.dataset.sel))) el.removeAttribute('display'); else el.setAttribute('display', 'none') });
+        this.renderManualPalletControls();
+      }
+      manualSelectAll() {
+        const b = this.manualBuilder; if (!b) return;
+        const count = this.manualActiveBoxes().length; b.selection = Array.from({ length: count }, (_, i) => i); b.selectionLevel = b.activeLevel;
+        if (count && b.mode !== 'select') b.mode = 'select';
+        this.manualPaintSelection();
+      }
+      manualDeleteSelected() {
+        const b = this.manualBuilder, chosen = new Set(this.manualSelection()); if (!b || !chosen.size) return;
+        b.levels[b.activeLevel] = this.manualActiveBoxes().filter((_, i) => !chosen.has(i));
+        this.manualClearSelection(); this.renderManualPalletBuilder();
+      }
+      manualRotateSelected() {
+        const b = this.manualBuilder, indices = this.manualSelection(); if (!b || !indices.length) return;
+        const boxes = this.manualActiveBoxes(), rects = manualRotateGroup(b, boxes, indices);
+        if (!rects) { this.manualNotice('manualPalletRotateBlocked'); return }
+        indices.forEach((index, k) => { boxes[index] = rects[k] });
+        this.renderManualPalletBuilder();
+      }
+      manualSvgNode(tag, attrs) { const node = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v); return node }
+      // Block drag: a translucent copy of the whole selection follows the pointer; it turns red where it cannot be dropped.
+      manualUpdateGroupDrag(drag, event) {
+        const b = this.manualBuilder, svg = document.querySelector('#manualPalletGridWrap svg'), p = this.manualPointerToMm(event);
+        if (!b || !svg || !p || !drag.moved) return;
+        const boxes = this.manualActiveBoxes();
+        if (!drag.ghost) {
+          drag.ghost = this.manualSvgNode('g', { id: 'manualGroupGhost', 'pointer-events': 'none' });
+          for (const i of drag.indices) { const o = boxes[i]; if (o) drag.ghost.appendChild(this.manualSvgNode('rect', { x: MANUAL_PAD_MM + o.x, y: MANUAL_PAD_MM + o.y, width: o.l, height: o.w, 'stroke-width': 3, 'stroke-dasharray': '8 5' })) }
+          svg.appendChild(drag.ghost);
+          for (const i of drag.indices) svg.querySelector(`[data-box="${i}"]`)?.setAttribute('opacity', '.25');
+        }
+        const inside = p.x >= -MANUAL_SNAP_MM && p.y >= -MANUAL_SNAP_MM && p.x <= b.palletLengthMm + MANUAL_SNAP_MM && p.y <= b.palletWidthMm + MANUAL_SNAP_MM;
+        if (!inside) { drag.pos = null; drag.ghost.setAttribute('display', 'none'); return }
+        const pos = manualResolveGroup(b, boxes, drag.indices, p.x - drag.anchor.x, p.y - drag.anchor.y); drag.pos = pos;
+        drag.ghost.setAttribute('transform', `translate(${pos.dx} ${pos.dy})`); drag.ghost.removeAttribute('display');
+        const stroke = pos.valid ? '#2ea043' : '#c0392b', fill = pos.valid ? 'rgba(46,160,67,.35)' : 'rgba(192,57,43,.35)';
+        drag.ghost.querySelectorAll('rect').forEach(r => { r.setAttribute('stroke', stroke); r.setAttribute('fill', fill) });
+      }
+      // Rubber band: every carton the rectangle touches joins the selection (added to the existing one with Shift/Ctrl).
+      manualUpdateMarquee(drag, event) {
+        const b = this.manualBuilder, svg = document.querySelector('#manualPalletGridWrap svg'), p = this.manualPointerToMm(event);
+        if (!b || !svg || !p || !drag.moved) return;
+        const x0 = Math.min(drag.origin.x, p.x), x1 = Math.max(drag.origin.x, p.x), y0 = Math.min(drag.origin.y, p.y), y1 = Math.max(drag.origin.y, p.y);
+        if (!drag.rect) { drag.rect = this.manualSvgNode('rect', { id: 'manualMarquee', fill: 'rgba(11,94,168,.12)', stroke: '#0b5ea8', 'stroke-width': 2, 'stroke-dasharray': '6 4', 'pointer-events': 'none' }); svg.appendChild(drag.rect) }
+        drag.rect.setAttribute('x', MANUAL_PAD_MM + x0); drag.rect.setAttribute('y', MANUAL_PAD_MM + y0); drag.rect.setAttribute('width', x1 - x0); drag.rect.setAttribute('height', y1 - y0);
+        const hits = []; this.manualActiveBoxes().forEach((o, i) => { if (o.x < x1 && o.x + o.l > x0 && o.y < y1 && o.y + o.w > y0) hits.push(i) });
+        b.selection = [...new Set([...drag.base, ...hits])].sort((a, c) => a - c); b.selectionLevel = b.activeLevel;
+        this.manualPaintSelection();
+      }
+      manualUndo() { const boxes = this.manualActiveBoxes(); if (boxes.length) { boxes.pop(); this.manualClearSelection(); this.renderManualPalletBuilder() } }
+      clearManualPalletGrid() { const b = this.manualBuilder; if (!b) return; b.levels[b.activeLevel] = []; this.manualClearSelection(); this.renderManualPalletBuilder() }
+      manualRemoveBox(index) { const boxes = this.manualActiveBoxes(); if (index >= 0 && index < boxes.length) { boxes.splice(index, 1); this.manualClearSelection(); this.renderManualPalletBuilder() } }
       manualSelectLevel(index) { const b = this.manualBuilder; if (!b || index < 0 || index >= b.levels.length) return; b.activeLevel = index; this.renderManualPalletBuilder() }
       manualAddLevel() {
         const b = this.manualBuilder; if (!b || b.levels.length >= b.maxLayers) return;
@@ -5188,7 +5422,7 @@
       }
       manualCopyPrevious() {
         const b = this.manualBuilder; if (!b || b.activeLevel < 1) return;
-        b.levels[b.activeLevel] = b.levels[b.activeLevel - 1].map(o => ({ ...o })); this.renderManualPalletBuilder();
+        b.levels[b.activeLevel] = b.levels[b.activeLevel - 1].map(o => ({ ...o })); this.manualClearSelection(); this.renderManualPalletBuilder();
       }
       // Repeats the last two built levels (or the single level, if only one exists) on top, alternating, up to the height limit.
       manualRepeatLevels() {
@@ -5216,7 +5450,25 @@
           event.preventDefault(); return;
         }
         const p = this.manualPointerToMm(event); if (!p) return;
-        const hit = event.target.closest?.('[data-box]');
+        const hit = event.target.closest?.('[data-box]'), additive = event.shiftKey || event.ctrlKey || event.metaKey;
+        if (hit && b.mode === 'add' && additive) { b.mode = 'select'; this.renderManualPalletControls() }   // Shift/Ctrl+click on a carton starts a selection
+        if (b.mode === 'select') {
+          if (hit) {
+            const index = Number(hit.dataset.box); if (!boxes[index]) return;
+            const chosen = new Set(this.manualSelection());
+            if (additive) {
+              if (chosen.has(index)) chosen.delete(index); else chosen.add(index);
+              b.selection = [...chosen].sort((a, c) => a - c); this.manualPaintSelection(); event.preventDefault(); return;
+            }
+            const collapseOnClick = chosen.has(index) && chosen.size > 1;
+            if (!chosen.has(index)) { b.selection = [index]; b.selectionLevel = b.activeLevel }
+            this.manualDrag = { kind: 'group', source: 'canvas', pointerId: event.pointerId, indices: [...b.selection], anchor: { x: p.x, y: p.y }, start, moved: false, pos: null, clickIndex: index, collapseOnClick };
+            this.manualPaintSelection();
+          } else {
+            this.manualDrag = { kind: 'marquee', source: 'canvas', pointerId: event.pointerId, origin: { x: p.x, y: p.y }, start, moved: false, additive, base: additive ? [...this.manualSelection()] : [] };
+          }
+          event.preventDefault(); return;
+        }
         if (hit) {
           const index = Number(hit.dataset.box), box = boxes[index]; if (!box) return;
           if (b.mode === 'remove') { this.manualRemoveBox(index); event.preventDefault(); return }
@@ -5232,6 +5484,8 @@
         const drag = this.manualDrag, b = this.manualBuilder; if (!drag || !b) return;
         drag.lastPointer = { clientX: event.clientX, clientY: event.clientY, pointerId: event.pointerId };
         if (!drag.moved && Math.hypot(event.clientX - drag.start.x, event.clientY - drag.start.y) > 4) drag.moved = true;
+        if (drag.kind === 'group') { this.manualUpdateGroupDrag(drag, event); return }
+        if (drag.kind === 'marquee') { this.manualUpdateMarquee(drag, event); return }
         const ghost = document.querySelector('#manualGhost'), p = this.manualPointerToMm(event); if (!ghost) return;
         const inside = p && p.x >= -MANUAL_SNAP_MM && p.y >= -MANUAL_SNAP_MM && p.x <= b.palletLengthMm + MANUAL_SNAP_MM && p.y <= b.palletWidthMm + MANUAL_SNAP_MM;
         if (!p || !inside) { drag.pos = null; ghost.setAttribute('display', 'none'); return }
@@ -5244,6 +5498,17 @@
       manualPointerUp(event) {
         const drag = this.manualDrag, b = this.manualBuilder; if (!drag || event.pointerId !== drag.pointerId) return;
         this.manualUpdateDrag(event);
+        if (drag.kind === 'marquee') {
+          if (!drag.moved && !drag.additive && b) { b.selection = []; b.selectionLevel = b.activeLevel }
+          drag.rect?.remove(); this.manualDrag = null; this.manualPaintSelection(); return;
+        }
+        if (drag.kind === 'group') {
+          const groupBoxes = this.manualActiveBoxes(), moveTo = drag.pos;
+          if (b && drag.moved && moveTo && moveTo.valid && (moveTo.dx || moveTo.dy)) {
+            for (const i of drag.indices) { const o = groupBoxes[i]; if (o) groupBoxes[i] = { x: manualRound1(o.x + moveTo.dx), y: manualRound1(o.y + moveTo.dy), l: o.l, w: o.w } }
+          } else if (b && !drag.moved && drag.collapseOnClick) { b.selection = [drag.clickIndex]; b.selectionLevel = b.activeLevel }
+          this.manualDrag = null; this.renderManualPalletBuilder(); return;
+        }
         const boxes = this.manualActiveBoxes(), pos = drag.pos;
         // A press on the tray that never moved is not a placement; a plain click on the pallet drops where it was pressed.
         const droppable = pos && pos.valid && (drag.source === 'canvas' || drag.moved);
@@ -5258,8 +5523,13 @@
       manualKeyDown(event) {
         const b = this.manualBuilder; if (!b || document.querySelector('#manualPalletLayoutPanel')?.hidden) return;
         const tag = (event.target?.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
-        if (event.key === 'r' || event.key === 'R') { event.preventDefault(); this.toggleManualPalletOrientation() }
-        else if (event.key === 'Escape') this.manualCancelDrag();
+        if ((event.key === 'r' || event.key === 'R') && !event.ctrlKey && !event.metaKey) {
+          event.preventDefault();
+          if (this.manualSelection().length) this.manualRotateSelected(); else this.toggleManualPalletOrientation();   // selection first, else the carton in hand
+        }
+        else if (event.key === 'Delete' || event.key === 'Backspace') { if (this.manualSelection().length) { event.preventDefault(); this.manualDeleteSelected() } }
+        else if ((event.ctrlKey || event.metaKey) && (event.key === 'a' || event.key === 'A')) { event.preventDefault(); this.manualSelectAll() }
+        else if (event.key === 'Escape') { if (this.manualDrag) this.manualCancelDrag(); else if (this.manualSelection().length) { this.manualClearSelection(); this.manualPaintSelection() } }
         else if ((event.ctrlKey || event.metaKey) && (event.key === 'z' || event.key === 'Z')) { event.preventDefault(); this.manualUndo() }
       }
       updateManualTray() {
@@ -5271,7 +5541,7 @@
       renderManualPalletControls() {
         const b = this.manualBuilder; if (!b) return;
         const set = (id, text) => { const el = document.querySelector(id); if (el) el.textContent = text };
-        set('#manualPalletModeButton', this.t(b.mode === 'add' ? 'manualPalletModeAdd' : 'manualPalletModeRemove'));
+        set('#manualPalletModeButton', this.t(b.mode === 'add' ? 'manualPalletModeAdd' : b.mode === 'select' ? 'manualPalletModeSelect' : 'manualPalletModeRemove'));
         set('#manualPalletSnapButton', this.t(b.snap ? 'manualPalletSnapOn' : 'manualPalletSnapOff'));
         const active = b.levels[b.activeLevel] || [], topEmpty = !b.levels[b.levels.length - 1].length;
         const disable = (id, value) => { const el = document.querySelector(id); if (el) el.disabled = !!value };
@@ -5280,6 +5550,9 @@
         disable('#manualPalletAddLevelButton', topEmpty || b.levels.length >= b.maxLayers);
         disable('#manualPalletDeleteLevelButton', b.levels.length < 2 && !active.length);
         disable('#manualPalletRepeatButton', !b.levels.some(l => l.length) || b.levels.filter(l => l.length).length >= b.maxLayers);
+        const selectedCount = this.manualSelection().length;
+        disable('#manualPalletSelectAllButton', !active.length); disable('#manualPalletRotateSelButton', !selectedCount); disable('#manualPalletDeleteSelButton', !selectedCount);
+        set('#manualPalletSelCount', selectedCount ? this.t('manualPalletSelCount', { n: selectedCount }) : '');
       }
       renderManualPalletBuilder() {
         const b = this.manualBuilder; if (!b) return;
@@ -5287,7 +5560,7 @@
         for (const id of ['#manualPalletLevelBar', '#manualPalletGridBody', '#manualPalletGridControls', '#manualPallet3DBody', '#manualPallet3DControls', '#manualPalletSopSteps']) document.querySelector(id).hidden = false;
         const tabs = document.querySelector('#manualPalletLevelTabs');
         tabs.innerHTML = b.levels.map((boxes, k) => `<button type="button" class="manual-level-tab${k === b.activeLevel ? ' active' : ''}" data-level="${k}">${escapeHtml(this.t('manualPalletLevelTab', { n: k + 1 }))} (${boxes.length})</button>`).join('');
-        document.querySelector('#manualPalletGridWrap').innerHTML = buildManualPalletLevelSvg(b, b.activeLevel, { interactive: true });
+        document.querySelector('#manualPalletGridWrap').innerHTML = buildManualPalletLevelSvg(b, b.activeLevel, { interactive: true, selected: this.manualSelection() });
         document.querySelector('#manualPalletGridSummary').innerHTML = buildManualPalletSummaryHtml(b);
         this.manualPalletVisual.set({ palletLengthMm: b.palletLengthMm, palletWidthMm: b.palletWidthMm, levels: b.levels, activeLevel: b.activeLevel, maxLayers: b.maxLayers, ch: b.carton.height, maxHeightMm: b.maxHeightMm });
         const sop = document.querySelector('#manualPalletSopSteps'); sop.innerHTML = buildPalletSopHtml(b.method);
@@ -5492,8 +5765,9 @@
         const remeasuredFg=this.manualMode?null:this.remeasurementFor(this.current),objective=getSearchObjective(),activeFg=remeasuredFg?{...this.current,...remeasuredFg,target:this.current.target}:this.current;if(remeasuredFg){this.current.remeasuredDimensions={...remeasuredFg};this.current.appliedRemeasurement={...remeasuredFg}}this.renderRemeasurement();
         this.activeContext = 'fit'; const fg = this.current; if (!this.data) { this.visual.empty(this.t('loadNeeded')); return } const sequence=(this._ratioSearchSequence||0)+1;this._ratioSearchSequence=sequence;this._ratioSearchController?.abort();const controller=new AbortController();this._ratioSearchController=controller;const assignedId=this.manualMode?'':this.getEffectiveFgLookupCartonId(fg),assignedCarton=assignedId?this.data.cartons.find(c=>String(c.carton_id)===String(assignedId)):null,progressUpdate=p=>{if(this.progress.isCancelled())controller.abort();const quick=p.axis==='quickCartons',phase=quick?'CHECKING_EXACT_CARTON_DIMENSIONS':p.axis==='ranking'?'RANKING_BEST_FIT':`SEARCHING_${String(p.axis).toUpperCase()}_RATIOS`,label=quick?'Checking exact carton dimensions…':p.axis==='ranking'?this.t('rankingBestFit'):this.t(`searching${String(p.axis)[0].toUpperCase()}${String(p.axis).slice(1)}Ratios`);this.progress.updateTask({phase,current:p.current,total:p.total,detail:quick?`Carton ${p.current} / ${p.total}`:p.axis==='ranking'?label:`${label} ${p.current} of ${p.total}`})};
         if(CartonFitEngine.validFG(fg)&&CartonFitEngine.validCarton(assignedCarton))await SharedDecisionEngine.evaluateAllAsync(fg,assignedCarton,DimensionSettings.current,{bomConfirmed:true,remeasuredFg,objective,signal:controller.signal,onProgress:progressUpdate});if(sequence!==this._ratioSearchSequence||controller.signal.aborted)return;this.updateSelectedDataStatus(fg);const linkage=this.renderLinkage(fg),baselineObjective=isQuickMode()?'exactValues':'highestUtilization',baselineDecision=!this.manualMode&&CartonFitEngine.validCarton(assignedCarton)?SharedDecisionEngine.evaluateAll(fg,assignedCarton,DimensionSettings.current,{bomConfirmed:true,remeasuredFg,objective:baselineObjective}):null,baseline=baselineDecision?RecommendationPolicy.baseline(assignedCarton,baselineDecision,fg.target,baselineDecision.classification):null;this.currentRecommendationBaseline=baseline;this.renderConflicts(fg,linkage);this.renderWeeklyBom(fg);
-        if (!CartonFitEngine.validFG(fg) || fg.dimensionConflict) { this.fgInfo.textContent = this.t('invalidFg'); if (assignedId) this.renderExisting([], assignedId); else this.existing.innerHTML = `<div class="empty">${escapeHtml(this.t('invalidFg'))}</div>`; this.existingStatus.textContent = this.t('cannotCalculate'); this.existingStatus.className = 'status bad'; this.proposals.hidden = true; this.visual.empty(this.t('visualInvalid')); return }
-        this.fgInfo.innerHTML = `${escapeHtml(this.t('fgSize'))}: <strong>${escapeHtml(dims(activeFg))}</strong>${remeasuredFg?` · Workbook: ${escapeHtml(dims(fg))}`:''}`;
+        if (!CartonFitEngine.validFG(fg) || fg.dimensionConflict) { this.renderFgLookupPallet(null, ''); this.fgInfo.textContent = this.t('invalidFg'); if (assignedId) this.renderExisting([], assignedId); else this.existing.innerHTML = `<div class="empty">${escapeHtml(this.t('invalidFg'))}</div>`; this.existingStatus.textContent = this.t('cannotCalculate'); this.existingStatus.className = 'status bad'; this.proposals.hidden = true; this.visual.empty(this.t('visualInvalid')); return }
+        this.fgInfo.innerHTML = `${escapeHtml(this.t('fgSize'))}: <strong>${escapeHtml(dims(activeFg))}</strong>${remeasuredFg?` · Workbook: ${escapeHtml(dims(fg))}`:''}${this.fgWeightsHtml(fg)}`;
+        this.renderFgLookupPallet(fg, assignedId);
 
         if(this.progress.state.active)this.progress.setPhase('EVALUATING_EXISTING_CARTONS',`${this.data.cartons.length} ${this.t('cartons')}`);
         const winners = await CartonScorer.existingAsync(fg, this.data.cartons, 5, assignedId, {signal:controller.signal,onProgress:progressUpdate,remeasuredFg,objective,baseline});if(sequence!==this._ratioSearchSequence||controller.signal.aborted)return;
@@ -5690,7 +5964,7 @@
       reset() { this.file.value = ''; AppState.calculationMode=DEFAULT_CALCULATION_MODE;saveCalculationMode();updateCalculationModeUi();this.syncDimensionSettings(); SharedDecisionEngine.clearCache(); this.select.disabled = true; this.select.innerHTML = `<option value="">${escapeHtml(this.t('searchFg'))}</option>`; const search = document.querySelector('#fgSearchInput'); search.value = ''; search.disabled = true; this.data = null; this.weeklyBom = null; this.weeklyBomState = 'loading'; this.store = new AppDataStore(); this.fgLookupCartonOverrideByFg.clear(); this.setSourceLink('workbook', '', ''); this.setSourceLink('bom', '', ''); this.drop.textContent = this.t('dropExcel'); document.querySelector('#manualForm').reset(); document.querySelector('#manualQty').value = '3'; this.message(''); this.resetResults(); this.updateCalculationSettingsSummary(); if (typeof this.clearAuditModule === 'function') this.clearAuditModule(); this.initialize(''); }
       clearAllInputs() {
         document.querySelector('#manualFgId').value = '';
-        const manualWeight = document.querySelector('#manualWeightKg'); if (manualWeight) manualWeight.value = '';
+        for (const weightId of ['#manualWeightKg', '#manualNetWeightKg', '#manualCartonGrossWeightKg', '#manualCartonNetWeightKg']) { const weightInput = document.querySelector(weightId); if (weightInput) weightInput.value = ''; }
         document.querySelector('#manualLength').value = ''; document.querySelector('#manualWidth').value = ''; document.querySelector('#manualHeight').value = '';
         document.querySelector('#manualQty').value = '3';
         const search = document.querySelector('#fgSearchInput'); search.value = ''; if (this.data) search.disabled = false;
@@ -6885,7 +7159,7 @@
       const saveDimensionToExcel = async (type, payload) => {
         const body = { type, id: payload.id, length_mm: payload.length_mm, width_mm: payload.width_mm, height_mm: payload.height_mm };
         if (type === 'carton' && payload.name) body.name = payload.name;
-        if (type === 'product' && Number.isFinite(payload.gross_weight_kg) && payload.gross_weight_kg > 0) body.gross_weight_kg = payload.gross_weight_kg;
+        if (type === 'product') for (const key of ['gross_weight_kg', 'net_weight_kg', 'carton_gross_weight_kg', 'carton_net_weight_kg']) { const value = payload[key]; if (Number.isFinite(value) && value > 0) body[key] = value; }
         return call('/api/save-dimension', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -6978,12 +7252,14 @@
         const width = parseFloat($$('#manualWidth').value);
         const height = parseFloat($$('#manualHeight').value);
         const qty = parseInt($$('#manualQty').value, 10);
-        const weightText = ($$('#manualWeightKg')?.value || '').trim();
-        const weight = weightText === '' ? null : parseFloat(weightText);
+        const readKg = id => { const text = ($$(id)?.value || '').trim(); return text === '' ? null : parseFloat(text); };
+        const weight = readKg('#manualWeightKg'), netWeight = readKg('#manualNetWeightKg'), cartonGross = readKg('#manualCartonGrossWeightKg'), cartonNet = readKg('#manualCartonNetWeightKg');
 
         if (!id) { say(box, t('saveNeedId'), 'bad'); $$('#manualFgId').focus(); return; }
         if (!(length > 0 && width > 0 && height > 0)) { say(box, t('saveNeedSize'), 'bad'); return; }
-        if (weight !== null && !(weight > 0)) { say(box, t('saveWeightInvalid'), 'bad'); $$('#manualWeightKg').focus(); return; }
+        const badWeight = [['#manualNetWeightKg', netWeight], ['#manualWeightKg', weight], ['#manualCartonNetWeightKg', cartonNet], ['#manualCartonGrossWeightKg', cartonGross]].find(([, value]) => value !== null && !(value > 0));
+        if (badWeight) { say(box, t('saveWeightInvalid'), 'bad'); $$(badWeight[0]).focus(); return; }
+        if ((netWeight !== null && weight !== null && netWeight > weight) || (cartonNet !== null && cartonGross !== null && cartonNet > cartonGross)) { say(box, t('saveWeightNetOverGross'), 'bad'); return; }
 
         const button = $$('#saveProductButton');
         button.disabled = true;
@@ -6996,7 +7272,7 @@
             box.dataset.saveGen = String((Number(box.dataset.saveGen) || 0) + 1);
             const gen = box.dataset.saveGen;
             say(box, savedLine + ' ' + t('excelSaveInProgress'), 'ok');
-            SavedEntries.saveDimensionToExcel('product', { id, length_mm: length, width_mm: width, height_mm: height, gross_weight_kg: weight })
+            SavedEntries.saveDimensionToExcel('product', { id, length_mm: length, width_mm: width, height_mm: height, gross_weight_kg: weight, net_weight_kg: netWeight, carton_gross_weight_kg: cartonGross, carton_net_weight_kg: cartonNet })
               .then(excelRes => {
                 if (box.dataset.saveGen !== gen) return;
                 if (excelRes.ok && excelRes.body && excelRes.body.success) {

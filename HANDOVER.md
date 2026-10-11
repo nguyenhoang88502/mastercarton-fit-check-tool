@@ -81,9 +81,13 @@ Dimension candidates prefer the canonical filename, then matching valid alternat
 
 The launcher parses XLSX ZIP/XML directly. It builds EA FG dimensions, BOM carton assignments, CA measurements resolved through FG assignments, normalized axes, ×10 millimetre conversion, carton averages, reverse indexes, and data-quality records. Carton dimension source/version are `BOM_LINKED_CA_AVERAGE` and `BOM_LINKED_CA_AVERAGE_V1`.
 
+### Update-data choice
+
+Before any workbook is touched, `launcher.ps1` decides whether to run the discovery/hash/rebuild block at all (`$skipUpdate`, the block is wrapped in `if (-not $skipUpdate) { ... }`). Order: `ForceRebuild` / `--force-rebuild` and `--update` update without asking; missing generated files force an update; `--skip-update` or `[Launcher] UpdateData=skip` skip; `UpdateData=always` updates; otherwise `Show-UpdateDataDialog` (WinForms: Update / Skip / Cancel, 30 s countdown to Update that stops on any mouse or key activity) asks. `--manifests-only` never asks. `config.local.ini` overrides `config.ini` for these keys (`Get-LauncherSetting`).
+
 ### Cache
 
-`CacheSchemaVersion` is `2.0`; preprocessing version is `BOM_LINKED_CA_AVERAGE_V1`. Both workbook sections validate version, path, size, timestamp, and hash. Reuse also requires all six core CSVs. Locked-source fallback requires matching cached source metadata and stored fingerprints.
+`CacheSchemaVersion` is `2.0`; preprocessing version is `BOM_LINKED_CA_AVERAGE_V4_WEIGHTS` (bump it whenever the generated columns change, and keep the literal in the update-data dialog block in step). Both workbook sections validate version, path, size, timestamp, and hash. Reuse also requires all six core CSVs. Locked-source fallback requires matching cached source metadata and stored fingerprints.
 
 ### Generated-file writing
 
@@ -94,6 +98,10 @@ The launcher parses XLSX ZIP/XML directly. It builds EA FG dimensions, BOM carto
 The launcher looks for Chrome and Edge in their standard Program Files locations, creates a temporary browser profile, and starts the HTML with `--allow-file-access-from-files`.
 
 ## 6. JavaScript architecture
+
+Pallet code added after the classes listed below: `computePalletLayout` (stable interlocked auto stacking), `buildStack3dSvg` (shared 3D renderer), `PalletVisualizer` (used twice: the Pallet Visualizer tab and the compact `#fgPalletPanel` inside FG Lookup, fed by `UiController.renderFgLookupPallet`), and `ManualPalletVisualizer` plus the `manual*` helpers for the free drag-and-drop builder. Multi-select in the manual builder is `builder.selection` (indices into the active level): `manualResolveGroup` moves the selection as one rigid block, `manualRotateGroup` turns it 90 degrees about its centre (falling back to pinning each corner), and Select mode adds box-select, Shift/Ctrl+click, `R`, `Delete`, `Ctrl+A` and `Esc`.
+
+Weights: the New Product form sends `gross_weight_kg`, `net_weight_kg`, `carton_gross_weight_kg`, `carton_net_weight_kg` to `/api/save-dimension`; `update_dimension_excel.ps1` writes them to the FG's `EA` row and its `CA` row on the `Dimension` sheet (`Gross weight` / `Net Weight`, first header occurrence). Blank means the cell is left alone. FG Lookup shows them from `fg_dimensions.csv`.
 
 Active classes include `I18n`, `WorkbookLoader`, `SimpleZip`, `WeeklyBomLoader`, `DataNormalizer`, `BomTruthReconciler`, `OrthogonalPackingSolver`, `FitSettings`, `TaskProgressManager`, `DimensionSettings`, `AppDataStore`, `ToleranceClassifier`, `CartonFitEngine`, `FitInterpretation`, `NewCartonGenerator`, `ExistingCartonRanking`, `CartonScorer`, `RecommendationPolicy`, `SharedDecisionEngine`, `RecommendationEngine`, `MissingDimensionQuery`, `BatchAuditEngine`, `SharedCartonLineGenerator`, `CsvExporter`, `PackingVisualizer3D`, and `UiController`.
 

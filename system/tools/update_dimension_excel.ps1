@@ -33,6 +33,14 @@ param(
     # Optional. Product only: written to the 'Gross weight' (kg) column of the EA row on the Dimension sheet.
     # 0 (the default) means "not supplied" and leaves the cell exactly as it was.
     [double]$GrossWeightKg = 0,
+    # Optional, product only, same 0-means-not-supplied rule. The Dimension sheet keeps four weights per FG:
+    #   FG gross  -> EA row, 'Gross weight'   (GrossWeightKg above)
+    #   FG net    -> EA row, 'Net Weight'     (NetWeightKg)
+    #   carton gross -> CA row, 'Gross weight' (CartonGrossWeightKg)
+    #   carton net   -> CA row, 'Net Weight'   (CartonNetWeightKg)
+    [double]$NetWeightKg = 0,
+    [double]$CartonGrossWeightKg = 0,
+    [double]$CartonNetWeightKg = 0,
     [string]$TrackId = ''
 )
 
@@ -505,8 +513,16 @@ try {
         # First 'Gross weight' header wins (same rule as every other column on this sheet), which is the kg
         # column beside Unit - the later 'Gross weight' headers belong to the pallet helper block.
         $weightCol = 0
-        if ($GrossWeightKg -gt 0) { $weightCol = Resolve-Col $headerMap 'Gross weight' $sheetName }
+        $anyGrossWanted = ($GrossWeightKg -gt 0) -or ($CartonGrossWeightKg -gt 0)
+        if ($anyGrossWanted) { $weightCol = Resolve-Col $headerMap 'Gross weight' $sheetName }
+        # 'Net Weight' is the same story: first occurrence is the net-kg column of the CA/EA rows.
+        $netCol = 0
+        if (($NetWeightKg -gt 0) -or ($CartonNetWeightKg -gt 0)) { $netCol = Resolve-Col $headerMap 'Net Weight' $sheetName }
         $eaWeightKg = [Math]::Round($GrossWeightKg, 3)
+        $eaNetKg = [Math]::Round($NetWeightKg, 3)
+        $caWeightKg = [Math]::Round($CartonGrossWeightKg, 3)
+        $caNetKg = [Math]::Round($CartonNetWeightKg, 3)
+        $cartonWeightWritten = $false
         $idLetter = Get-ColumnLetter $idCol
         $unitLetter = Get-ColumnLetter $unitCol
         $maxCol = ($headerMap.Values | Measure-Object -Maximum).Maximum
@@ -518,6 +534,7 @@ try {
         $rowsByNumber = @{}
         $lastDataRow = 0
         $matchRow = 0
+        $caMatchRows = New-Object System.Collections.Generic.List[int]
         foreach ($rowEl in $sheetDataEl.ChildNodes) {
             if ($rowEl.LocalName -ne 'row') { continue }
             $rn = [int]$rowEl.GetAttribute('r')
@@ -536,6 +553,7 @@ try {
                 if ($idText -eq $Id.Trim()) {
                     $unitText = (Resolve-CellText $unitCell $sstDoc).Trim().ToUpperInvariant()
                     if ($unitText -eq 'EA') { $matchRow = $rn }
+                    elseif ($unitText -eq 'CA') { $caMatchRows.Add($rn) }
                 }
             }
         }
@@ -575,6 +593,11 @@ try {
             Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $depthCol)$row" $null) $eaDepthCm
             Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $heightCol)$row" $null) $eaHeightCm
             if ($weightCol) { Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $weightCol)$row" $null) $eaWeightKg }
+            if ($netCol -and $NetWeightKg -gt 0) { Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $netCol)$row" $null) $eaNetKg }
+            # The new block's CA row is created right here, so the carton weights always have a home.
+            if ($weightCol -and $CartonGrossWeightKg -gt 0) { Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $caRowEl "$(Get-ColumnLetter $weightCol)$caRow" $null) $caWeightKg; $cartonWeightWritten = $true }
+            if ($netCol -and $CartonNetWeightKg -gt 0) { Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $caRowEl "$(Get-ColumnLetter $netCol)$caRow" $null) $caNetKg; $cartonWeightWritten = $true }
+            if ($anyGrossWanted -or $netCol) { $formulaWritten = $true }
             if ($volCol) {
                 $volLetter = Get-ColumnLetter $volCol
                 $wL = Get-ColumnLetter $widthCol; $dL = Get-ColumnLetter $depthCol; $hL = Get-ColumnLetter $heightCol
@@ -603,6 +626,23 @@ try {
             Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $depthCol)$row" $null) $eaDepthCm
             Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $heightCol)$row" $null) $eaHeightCm
             if ($weightCol) { Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $weightCol)$row" $null) $eaWeightKg }
+            if ($netCol -and $NetWeightKg -gt 0) { Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $eaRowEl "$(Get-ColumnLetter $netCol)$row" $null) $eaNetKg }
+            # Carton weights live on this FG's own CA row: the nearest CA row above the EA row (the sheet's CA/EA/PL
+            # block order), else any CA row carrying this item number. If the item has none, nothing is invented here.
+            if (($CartonGrossWeightKg -gt 0) -or ($CartonNetWeightKg -gt 0)) {
+                $caTarget = 0
+                foreach ($candidateRow in $caMatchRows) { if ($candidateRow -lt $row -and $candidateRow -gt $caTarget) { $caTarget = $candidateRow } }
+                if ($caTarget -eq 0 -and $caMatchRows.Count -gt 0) { $caTarget = $caMatchRows[0] }
+                if ($caTarget -gt 0) {
+                    $caRowEl = $rowsByNumber[$caTarget]
+                    if ($weightCol -and $CartonGrossWeightKg -gt 0) { Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $caRowEl "$(Get-ColumnLetter $weightCol)$caTarget" $null) $caWeightKg; $cartonWeightWritten = $true }
+                    if ($netCol -and $CartonNetWeightKg -gt 0) { Set-CellNumberValue $sheetDoc (Get-OrCreateCell $sheetDoc $caRowEl "$(Get-ColumnLetter $netCol)$caTarget" $null) $caNetKg; $cartonWeightWritten = $true }
+                    $caRow = $caTarget
+                }
+            }
+            # Weights feed other cells (carton gross = FG gross x qty + box, the pallet row, 'Gross weight' copies), so
+            # ask Excel to recalculate on open rather than showing stale cached values.
+            if ($anyGrossWanted -or $netCol) { $formulaWritten = $true }
             if ($volCol) {
                 $volLetter = Get-ColumnLetter $volCol
                 $wL = Get-ColumnLetter $widthCol; $dL = Get-ColumnLetter $depthCol; $hL = Get-ColumnLetter $heightCol
@@ -768,6 +808,10 @@ Send-Result -Ok $true -Fields @{
     backup_path           = $backupPath
     write_ms              = $writeSw.ElapsedMilliseconds
     gross_weight_kg       = $(if ($Type -eq 'product' -and $GrossWeightKg -gt 0) { [Math]::Round($GrossWeightKg, 3) } else { $null })
+    net_weight_kg         = $(if ($Type -eq 'product' -and $NetWeightKg -gt 0) { [Math]::Round($NetWeightKg, 3) } else { $null })
+    carton_gross_weight_kg = $(if ($Type -eq 'product' -and $CartonGrossWeightKg -gt 0) { [Math]::Round($CartonGrossWeightKg, 3) } else { $null })
+    carton_net_weight_kg  = $(if ($Type -eq 'product' -and $CartonNetWeightKg -gt 0) { [Math]::Round($CartonNetWeightKg, 3) } else { $null })
+    carton_weight_written = $(if ($Type -eq 'product') { [bool]$cartonWeightWritten } else { $null })
     cache_rebuild_started = $cacheRebuildStarted
     rebuild_error         = $rebuildError
 }

@@ -19,8 +19,10 @@ $WeeklyBomDirectory = Join-Path $ToolsParent '1. Weekly BOM'
 $systemDir = $ScriptDirectory
 $projectDir = $AppRoot
 
-$manifestsOnly = $args[0] -eq '--manifests-only'
-$forceRebuildArg = $args[0] -eq '--force-rebuild'
+$manifestsOnly = $args -contains '--manifests-only'
+$forceRebuildArg = $args -contains '--force-rebuild'
+$updateArg = $args -contains '--update'          # refresh the data without asking
+$skipUpdateArg = $args -contains '--skip-update'  # open straight away with the data from the last run
 
 $logDir = Join-Path $systemDir 'logs'
 if (-not (Test-Path -LiteralPath $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
@@ -381,6 +383,176 @@ function Get-BomBusinessDateFromFilename {
   return $res
 }
 
+# ---------------------------------------------------------------------------------------------------------------
+# Update data? Reading the weekly workbooks and rebuilding the CSV cache is the slow part of a launch. When data from
+# an earlier run is already on disk the user can bypass it and open the tool straight away.
+#   --update / --skip-update           command line, no dialog
+#   config(.local).ini [Launcher] UpdateData=ask|always|skip   (default: ask)
+#   --manifests-only (the hidden rebuild after a Save) never asks and always updates.
+# ---------------------------------------------------------------------------------------------------------------
+function Get-LauncherSetting {
+  param([string]$Name)
+  foreach ($file in @('config.local.ini', 'config.ini')) {
+    $ini = Read-IniFile -FilePath (Join-Path $systemDir $file)
+    if ($ini.ContainsKey('Launcher') -and $ini['Launcher'].ContainsKey($Name) -and $ini['Launcher'][$Name]) { return [string]$ini['Launcher'][$Name] }
+  }
+  return ''
+}
+
+function Show-UpdateDataDialog {
+  param([string]$InfoText, [int]$TimeoutSeconds = 30, [string]$TimeoutChoice = 'update')
+  Add-Type -AssemblyName System.Windows.Forms
+  Add-Type -AssemblyName System.Drawing
+  [System.Windows.Forms.Application]::EnableVisualStyles()
+  $form = New-Object System.Windows.Forms.Form
+  $form.Text = 'WVN Master Carton Fit Tool - update data?'
+  $form.StartPosition = 'CenterScreen'
+  $form.FormBorderStyle = 'FixedDialog'
+  $form.MaximizeBox = $false
+  $form.MinimizeBox = $false
+  $form.TopMost = $true
+  $form.ShowInTaskbar = $true
+  $form.Font = New-Object System.Drawing.Font('Segoe UI', 9)
+  $form.ClientSize = New-Object System.Drawing.Size(540, 268)
+
+  $heading = New-Object System.Windows.Forms.Label
+  $heading.Text = 'Update the carton data from the Excel workbooks first?'
+  $heading.Font = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Bold)
+  $heading.Location = New-Object System.Drawing.Point(16, 14)
+  $heading.Size = New-Object System.Drawing.Size(508, 26)
+  $form.Controls.Add($heading)
+
+  $info = New-Object System.Windows.Forms.Label
+  $info.Text = $InfoText
+  $info.Location = New-Object System.Drawing.Point(16, 48)
+  $info.Size = New-Object System.Drawing.Size(508, 130)
+  $form.Controls.Add($info)
+
+  $btnUpdate = New-Object System.Windows.Forms.Button
+  $btnUpdate.Text = 'Update data (recommended)'
+  $btnUpdate.Location = New-Object System.Drawing.Point(16, 188)
+  $btnUpdate.Size = New-Object System.Drawing.Size(210, 34)
+  $btnUpdate.DialogResult = [System.Windows.Forms.DialogResult]::Yes
+  $form.Controls.Add($btnUpdate)
+
+  $btnSkip = New-Object System.Windows.Forms.Button
+  $btnSkip.Text = 'Skip - open with current data'
+  $btnSkip.Location = New-Object System.Drawing.Point(234, 188)
+  $btnSkip.Size = New-Object System.Drawing.Size(190, 34)
+  $btnSkip.DialogResult = [System.Windows.Forms.DialogResult]::No
+  $form.Controls.Add($btnSkip)
+
+  $btnCancel = New-Object System.Windows.Forms.Button
+  $btnCancel.Text = 'Cancel'
+  $btnCancel.Location = New-Object System.Drawing.Point(432, 188)
+  $btnCancel.Size = New-Object System.Drawing.Size(92, 34)
+  $btnCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+  $form.Controls.Add($btnCancel)
+
+  $countdown = New-Object System.Windows.Forms.Label
+  $countdown.Location = New-Object System.Drawing.Point(16, 234)
+  $countdown.Size = New-Object System.Drawing.Size(508, 22)
+  $countdown.ForeColor = [System.Drawing.Color]::DimGray
+  $form.Controls.Add($countdown)
+
+  $form.AcceptButton = $btnUpdate
+  $form.CancelButton = $btnCancel
+
+  # Nobody at the keyboard (scheduled or remote launch)? Carry on with the default after a while rather than hang.
+  # Any mouse or keyboard activity on the dialog means someone is there, so the countdown stops.
+  $state = @{ Remaining = $TimeoutSeconds }
+  $timer = New-Object System.Windows.Forms.Timer
+  $timer.Interval = 1000
+  $label = if ($TimeoutChoice -eq 'skip') { 'skipping the update' } else { 'updating' }
+  $countdown.Text = "No answer in $($state.Remaining) s: $label automatically."
+  $timer.Add_Tick({
+    $state.Remaining = $state.Remaining - 1
+    if ($state.Remaining -le 0) {
+      $timer.Stop()
+      $form.DialogResult = if ($TimeoutChoice -eq 'skip') { [System.Windows.Forms.DialogResult]::No } else { [System.Windows.Forms.DialogResult]::Yes }
+      $form.Close()
+    } else {
+      $countdown.Text = "No answer in $($state.Remaining) s: $label automatically."
+    }
+  })
+  $stopCountdown = { $timer.Stop(); $countdown.Text = '' }
+  foreach ($control in @($form, $btnUpdate, $btnSkip, $btnCancel)) {
+    $control.Add_MouseEnter($stopCountdown)
+    $control.Add_KeyDown($stopCountdown)
+  }
+  $form.KeyPreview = $true
+  if ($TimeoutSeconds -gt 0) { $timer.Start() } else { $countdown.Text = '' }
+
+  $result = $form.ShowDialog()
+  $timer.Stop(); $timer.Dispose(); $form.Dispose()
+  switch ([string]$result) {
+    'Yes' { return 'update' }
+    'No' { return 'skip' }
+    default { return 'cancel' }
+  }
+}
+
+$forceRebuild = $forceRebuildArg -or ((Get-LauncherSetting 'ForceRebuild') -ieq 'true')
+$skipUpdate = $false
+if (-not $manifestsOnly) {
+  $probeDir = Join-Path $systemDir 'generated'
+  $probeState = Join-Path $probeDir 'cache_state.ini'
+  $missingOutputs = @('fg_dimensions.csv', 'carton_dimensions.csv', 'bom_carton_assignments.csv', 'carton_fg_reverse_index.csv', 'carton_dimension_sources.csv', 'data_quality.csv') |
+    Where-Object { -not (Test-Path -LiteralPath (Join-Path $probeDir $_)) }
+  $haveData = (Test-Path -LiteralPath $probeState) -and (@($missingOutputs).Count -eq 0)
+  $mode = (Get-LauncherSetting 'UpdateData').ToLowerInvariant()
+  if ($forceRebuild) { Write-Log "Update data: full rebuild requested; skipping the prompt." }
+  elseif ($updateArg) { Write-Log "Update data: --update given; updating without asking." }
+  elseif (-not $haveData) { Write-Log "Update data: no previous generated data found, so the update is required." }
+  elseif ($skipUpdateArg -or $mode -eq 'skip') { $skipUpdate = $true; Write-Log "Update data: skipped ($(if ($skipUpdateArg) { '--skip-update' } else { 'UpdateData=skip' })). Opening with the data from the last update." }
+  elseif ($mode -eq 'always') { Write-Log "Update data: UpdateData=always; updating without asking." }
+  else {
+    # Describe what is on disk so the choice is an informed one.
+    $lines = New-Object System.Collections.Generic.List[string]
+    $state = Read-IniFile -FilePath $probeState
+    $generatedLocal = $null
+    foreach ($section in @('DimensionWorkbook', 'BomWorkbook')) {
+      if (-not $state.ContainsKey($section)) { continue }
+      $entry = $state[$section]
+      if (-not $generatedLocal -and $entry.ContainsKey('GeneratedUtc')) {
+        try { $generatedLocal = ([datetime]::Parse($entry['GeneratedUtc'], [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::RoundtripKind)).ToLocalTime() } catch { }
+      }
+    }
+    if ($generatedLocal) {
+      $age = (Get-Date) - $generatedLocal
+      $ageText = if ($age.TotalHours -lt 1) { 'less than an hour ago' } elseif ($age.TotalDays -lt 1) { "$([int]$age.TotalHours) hour(s) ago" } else { "$([int]$age.TotalDays) day(s) ago" }
+      $lines.Add("Data was last updated: $($generatedLocal.ToString('yyyy-MM-dd HH:mm')) ($ageText).")
+    } else { $lines.Add('Data was last updated: unknown date.') }
+    $anyChanged = $false
+    foreach ($pair in @(@('DimensionWorkbook', 'Dimension workbook'), @('BomWorkbook', 'BOM workbook'))) {
+      $section = $pair[0]; $title = $pair[1]
+      if (-not $state.ContainsKey($section) -or -not $state[$section]['Filename']) { continue }
+      $entry = $state[$section]; $status = 'unchanged since then'
+      try {
+        if (-not $entry['Path'] -or -not (Test-Path -LiteralPath $entry['Path'])) { $status = 'not found at the recorded location'; $anyChanged = $true }
+        else {
+          $item = Get-Item -LiteralPath $entry['Path']
+          if ([string]$item.Length -ne [string]$entry['Size'] -or $item.LastWriteTimeUtc.ToString('o') -ne $entry['LastModifiedUtc']) { $status = 'CHANGED since then'; $anyChanged = $true }
+        }
+      } catch { $status = 'could not be checked' }
+      $lines.Add("${title}: $($entry['Filename']) - $status")
+    }
+    if ($state.ContainsKey('DimensionWorkbook') -and $state['DimensionWorkbook']['PreprocessingVersion'] -ne 'BOM_LINKED_CA_AVERAGE_V4_WEIGHTS') {
+      $lines.Add('The saved data is from an older version of this tool, so an update is recommended (new columns such as weights will be missing).')
+    } elseif ($anyChanged) { $lines.Add('The workbooks differ from the saved data, so an update is recommended.') }
+    else { $lines.Add('The workbooks look the same as when the data was built, so skipping is safe.') }
+    $lines.Add('')
+    $lines.Add('Skipping opens the tool immediately; anything saved in the workbooks since then will not appear until you update.')
+    $choice = 'update'
+    try { $choice = Show-UpdateDataDialog -InfoText ($lines -join "`r`n") }
+    catch { Write-Log "Update data: could not show the dialog ($($_.Exception.Message)); updating." }
+    if ($choice -eq 'cancel') { Write-Log "Update data: cancelled by the user. Nothing was opened."; exit 0 }
+    if ($choice -eq 'skip') { $skipUpdate = $true; Write-Log "Update data: skipped by the user. Opening with the data from the last update." }
+    else { Write-Log "Update data: the user chose to update." }
+  }
+}
+
+if (-not $skipUpdate) {
 # Read configuration
 $configPath = Join-Path $systemDir 'config.ini'
 $config = Read-IniFile -FilePath $configPath
@@ -744,7 +916,7 @@ if ($dimensionFile) { $dimHash = (Get-FileHash -LiteralPath $dimensionFile.FullN
 if ($bomFile) { $bomHash = (Get-FileHash -LiteralPath $bomFile.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
 
 $CacheSchemaVersion = "2.0"
-$PreprocessingVersion = "BOM_LINKED_CA_AVERAGE_V2_MAXDIM"
+$PreprocessingVersion = "BOM_LINKED_CA_AVERAGE_V4_WEIGHTS"
 
 $RequiredGeneratedFiles = @(
   (Join-Path $generatedDir 'fg_dimensions.csv'),
@@ -1191,6 +1363,8 @@ if ($rebuildNeeded) {
 
   # 5. Parse Dimension workbook sheet for FG (EA) and Carton (CA) measurements
   $fgMeasurements = @{}
+  $fgWeights = @{}        # fgId -> EA row weights (kg): one finished good
+  $fgCartonWeights = @{}  # fgId -> CA row weights (kg): one full master carton
   $cartonObservations = @{} # resolved: cartonId -> list of [pscustomobject]@{ fgId, L, W, H, row, fgName }
   $cartonDimensionSources = [System.Collections.ArrayList]::new() # Traceability list
   
@@ -1203,6 +1377,9 @@ if ($rebuildNeeded) {
       $depthCol = Find-HeaderColumn $dimHeader @('depth','length')
       $heightCol = Find-HeaderColumn $dimHeader @('height')
       $nameCol = Find-HeaderColumn $dimHeader @('name','description','item description','product name','item name')
+      # First occurrence wins (same rule as every other column on this sheet): the kg columns beside Unit, not the pallet helper block.
+      $grossWeightCol = Find-HeaderColumn $dimHeader @('gross weight')
+      $netWeightCol = Find-HeaderColumn $dimHeader @('net weight')
       
       for ($r = $dimHeader.Row + 1; $r -lt $dimensionSheet.Rows.Count; $r++) {
         $row = $dimensionSheet.Rows[$r]
@@ -1222,6 +1399,22 @@ if ($rebuildNeeded) {
         $unit = (Normalize-Header $unitVal).ToUpperInvariant()
         
         if ($unit -notin @('EA','CA')) { continue }
+
+        # Weights (kg): the EA row is one finished good, the CA row one full master carton. Read before the dimension
+        # validity check - a row can carry a usable weight even when its dimensions are incomplete. Only the first
+        # usable value per FG is kept, and a net weight above its own gross is a data-entry slip: reported, not shown.
+        $grossKg = if ($grossWeightCol -ge 0) { Convert-ToFiniteNumber (Get-RowCell $row $grossWeightCol) } else { [double]::NaN }
+        $netKg = if ($netWeightCol -ge 0) { Convert-ToFiniteNumber (Get-RowCell $row $netWeightCol) } else { [double]::NaN }
+        if ([double]::IsNaN($grossKg) -or $grossKg -le 0) { $grossKg = [double]::NaN }
+        if ([double]::IsNaN($netKg) -or $netKg -le 0) { $netKg = [double]::NaN }
+        if (-not [double]::IsNaN($netKg) -and -not [double]::IsNaN($grossKg) -and $netKg -gt $grossKg) {
+          Add-DataQuality -issue "Net weight above gross weight" -entityType $unit -entityId $fgId -desc "Net weight is larger than the gross weight in workbook row $($r+1); the net weight was ignored" -detail "net=$netKg, gross=$grossKg"
+          $netKg = [double]::NaN
+        }
+        $weightStore = if ($unit -eq 'EA') { $fgWeights } else { $fgCartonWeights }
+        if (-not $weightStore.ContainsKey($fgId)) { $weightStore[$fgId] = [pscustomobject]@{ gross = [double]::NaN; net = [double]::NaN } }
+        if ([double]::IsNaN($weightStore[$fgId].gross) -and -not [double]::IsNaN($grossKg)) { $weightStore[$fgId].gross = $grossKg }
+        if ([double]::IsNaN($weightStore[$fgId].net) -and -not [double]::IsNaN($netKg)) { $weightStore[$fgId].net = $netKg }
         
         $width = Convert-ToFiniteNumber (Get-RowCell $row $widthCol)
         $depth = Convert-ToFiniteNumber (Get-RowCell $row $depthCol)
@@ -1326,6 +1519,31 @@ if ($rebuildNeeded) {
     }
   }
 
+  # 5b. Master list sheet (when the workbook has one): carton NW / GW per item number. It is only used to fill carton
+  # weights the Dimension sheet leaves blank - the Dimension sheet stays the primary source.
+  $masterListWeights = @{}
+  $masterListSheet = $sheets | Where-Object Name -eq 'Master list' | Select-Object -First 1
+  if ($masterListSheet) {
+    $mlHeader = Get-HeaderInfo $masterListSheet @(@('item no','item number'), @('nw','net weight'), @('gw','gross weight'))
+    if ($mlHeader) {
+      $mlItemCol = Find-HeaderColumn $mlHeader @('item no','item number')
+      $mlNetCol = Find-HeaderColumn $mlHeader @('nw','net weight')
+      $mlGrossCol = Find-HeaderColumn $mlHeader @('gw','gross weight')
+      for ($r = $mlHeader.Row + 1; $r -lt $masterListSheet.Rows.Count; $r++) {
+        $mlRow = $masterListSheet.Rows[$r]
+        $mlId = Normalize-ItemId (Get-RowCell $mlRow $mlItemCol)
+        if (-not $mlId) { continue }
+        $mlNet = Convert-ToFiniteNumber (Get-RowCell $mlRow $mlNetCol)
+        $mlGross = Convert-ToFiniteNumber (Get-RowCell $mlRow $mlGrossCol)
+        if ([double]::IsNaN($mlNet) -or $mlNet -le 0) { $mlNet = [double]::NaN }
+        if ([double]::IsNaN($mlGross) -or $mlGross -le 0) { $mlGross = [double]::NaN }
+        if (-not [double]::IsNaN($mlNet) -and -not [double]::IsNaN($mlGross) -and $mlNet -gt $mlGross) { $mlNet = [double]::NaN }
+        if (-not $masterListWeights.ContainsKey($mlId)) { $masterListWeights[$mlId] = [pscustomobject]@{ gross = $mlGross; net = $mlNet } }
+      }
+      Write-Log "Master list sheet: $($masterListWeights.Count) item weight record(s) available as a fallback for carton weights."
+    }
+  }
+
   # 6. Build fg_dimensions.csv records
   foreach ($fgId in $fgMeasurements.Keys) {
     $mList = $fgMeasurements[$fgId]
@@ -1345,6 +1563,14 @@ if ($rebuildNeeded) {
       Add-DataQuality -issue "Conflicting FG dimensions" -entityType "FG" -entityId $fgId -desc "Multiple EA rows have different dimensions" -detail "$mCount measurements"
     }
 
+    $ew = $fgWeights[$fgId]; $cw = $fgCartonWeights[$fgId]; $ml = $masterListWeights[$fgId]
+    $cartonGrossKg = [double]::NaN; $cartonNetKg = [double]::NaN; $fromDimension = $false; $fromMasterList = $false
+    if ($cw -and -not [double]::IsNaN($cw.gross)) { $cartonGrossKg = $cw.gross; $fromDimension = $true }
+    elseif ($ml -and -not [double]::IsNaN($ml.gross)) { $cartonGrossKg = $ml.gross; $fromMasterList = $true }
+    if ($cw -and -not [double]::IsNaN($cw.net)) { $cartonNetKg = $cw.net; $fromDimension = $true }
+    elseif ($ml -and -not [double]::IsNaN($ml.net)) { $cartonNetKg = $ml.net; $fromMasterList = $true }
+    if (-not [double]::IsNaN($cartonNetKg) -and -not [double]::IsNaN($cartonGrossKg) -and $cartonNetKg -gt $cartonGrossKg) { $cartonNetKg = [double]::NaN }
+    $cartonWeightSource = if ($fromDimension -and $fromMasterList) { 'Dimension + Master list' } elseif ($fromMasterList) { 'Master list' } elseif ($fromDimension) { 'Dimension' } else { '' }
     $allFgs[$fgId] = [pscustomobject]@{
       fg_id = $fgId
       fg_name = $first.name
@@ -1357,6 +1583,11 @@ if ($rebuildNeeded) {
       source_row = $first.row
       conflict_flag = $conflict
       conflict_detail = $detail
+      gross_weight_kg = $(if ($ew -and -not [double]::IsNaN($ew.gross)) { [math]::Round($ew.gross, 4) } else { "" })
+      net_weight_kg = $(if ($ew -and -not [double]::IsNaN($ew.net)) { [math]::Round($ew.net, 4) } else { "" })
+      carton_gross_weight_kg = $(if (-not [double]::IsNaN($cartonGrossKg)) { [math]::Round($cartonGrossKg, 4) } else { "" })
+      carton_net_weight_kg = $(if (-not [double]::IsNaN($cartonNetKg)) { [math]::Round($cartonNetKg, 4) } else { "" })
+      carton_weight_source = $cartonWeightSource
     }
   }
 
@@ -1510,7 +1741,7 @@ if ($rebuildNeeded) {
   # Output CSV files to system\generated\
   Write-Log "Writing fg_dimensions.csv..."
   $fgExport = @($allFgs.Values)
-  if ($fgExport.Count -eq 0) { $fgExport = @([pscustomobject]@{ fg_id=""; fg_name=""; length_mm=""; width_mm=""; height_mm=""; measurement_count=""; source_workbook=""; source_sheet=""; source_row=""; conflict_flag=""; conflict_detail="" }) }
+  if ($fgExport.Count -eq 0) { $fgExport = @([pscustomobject]@{ fg_id=""; fg_name=""; length_mm=""; width_mm=""; height_mm=""; measurement_count=""; source_workbook=""; source_sheet=""; source_row=""; conflict_flag=""; conflict_detail=""; gross_weight_kg=""; net_weight_kg=""; carton_gross_weight_kg=""; carton_net_weight_kg=""; carton_weight_source="" }) }
   $fgExport | Export-Csv -Path (Join-Path $generatedDir 'fg_dimensions.csv') -NoTypeInformation -Encoding UTF8
 
   Write-Log "Writing carton_dimensions.csv..."
@@ -1603,6 +1834,7 @@ if ($rebuildNeeded) {
   }
   Write-Log "Preprocessing completed successfully. Derived dimensions and indices generated."
 }
+} # end if (-not $skipUpdate)
 
 # Browser launching
 if ($manifestsOnly) {

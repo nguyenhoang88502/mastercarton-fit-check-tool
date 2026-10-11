@@ -642,16 +642,32 @@ try {
                 $dimWidth = Resolve-Dimension (Get-Field $parsed 'width_mm') 'width_mm' $dimErrors
                 $dimHeight = Resolve-Dimension (Get-Field $parsed 'height_mm') 'height_mm' $dimErrors
 
-                # Optional gross weight (kg) of one finished good - product saves only. Blank means "leave the
-                # workbook cell alone"; anything supplied must be a sensible positive number.
-                $dimWeight = $null
-                $weightRaw = Get-Field $parsed 'gross_weight_kg'
-                if ($dimType -eq 'PRODUCT' -and -not (Test-Blank $weightRaw)) {
-                    $weightParsed = 0.0
-                    $weightOk = [double]::TryParse([string]$weightRaw, [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$weightParsed)
-                    if (-not $weightOk) { [void]$dimErrors.Add((New-FieldError 'gross_weight_kg' 'Must be numeric')) }
-                    elseif ($weightParsed -le 0 -or $weightParsed -gt 1000) { [void]$dimErrors.Add((New-FieldError 'gross_weight_kg' 'Must be greater than 0 and at most 1000 kg')) }
-                    else { $dimWeight = $weightParsed }
+                # Optional weights (kg) - product saves only. The Dimension sheet keeps four per FG: FG gross / FG net on its
+                # EA row and carton gross / carton net on its CA row. Blank means "leave the workbook cell alone";
+                # anything supplied must be a sensible positive number and a net weight may not exceed its gross.
+                $dimWeights = [ordered]@{}
+                $weightFields = @(
+                    @{ field = 'gross_weight_kg';        arg = '-GrossWeightKg' },
+                    @{ field = 'net_weight_kg';          arg = '-NetWeightKg' },
+                    @{ field = 'carton_gross_weight_kg'; arg = '-CartonGrossWeightKg' },
+                    @{ field = 'carton_net_weight_kg';   arg = '-CartonNetWeightKg' }
+                )
+                if ($dimType -eq 'PRODUCT') {
+                    foreach ($wf in $weightFields) {
+                        $weightRaw = Get-Field $parsed $wf.field
+                        if (Test-Blank $weightRaw) { continue }
+                        $weightParsed = 0.0
+                        $weightOk = [double]::TryParse([string]$weightRaw, [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$weightParsed)
+                        if (-not $weightOk) { [void]$dimErrors.Add((New-FieldError $wf.field 'Must be numeric')) }
+                        elseif ($weightParsed -le 0 -or $weightParsed -gt 1000) { [void]$dimErrors.Add((New-FieldError $wf.field 'Must be greater than 0 and at most 1000 kg')) }
+                        else { $dimWeights[$wf.field] = $weightParsed }
+                    }
+                    if ($dimWeights.Contains('gross_weight_kg') -and $dimWeights.Contains('net_weight_kg') -and $dimWeights['net_weight_kg'] -gt $dimWeights['gross_weight_kg']) {
+                        [void]$dimErrors.Add((New-FieldError 'net_weight_kg' 'Net weight cannot exceed the gross weight'))
+                    }
+                    if ($dimWeights.Contains('carton_gross_weight_kg') -and $dimWeights.Contains('carton_net_weight_kg') -and $dimWeights['carton_net_weight_kg'] -gt $dimWeights['carton_gross_weight_kg']) {
+                        [void]$dimErrors.Add((New-FieldError 'carton_net_weight_kg' 'Net weight cannot exceed the gross weight'))
+                    }
                 }
 
                 $dimNameRaw = Get-Field $parsed 'name'
@@ -683,7 +699,9 @@ try {
                     '-TrackId', $trackId
                 )
                 if ($dimName) { $writerArgs += @('-Name', $dimName) }
-                if ($null -ne $dimWeight) { $writerArgs += @('-GrossWeightKg', $dimWeight.ToString([Globalization.CultureInfo]::InvariantCulture)) }
+                foreach ($wf in $weightFields) {
+                    if ($dimWeights.Contains($wf.field)) { $writerArgs += @($wf.arg, ([double]$dimWeights[$wf.field]).ToString([Globalization.CultureInfo]::InvariantCulture)) }
+                }
 
                 $writerOutput = & powershell.exe @writerArgs 2>&1
                 $jsonLine = ($writerOutput | Where-Object { $_ -match '^\{.*\}$' } | Select-Object -Last 1)
